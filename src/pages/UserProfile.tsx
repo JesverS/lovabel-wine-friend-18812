@@ -6,7 +6,9 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CreatePost } from '@/components/CreatePost';
 import { PostCard } from '@/components/PostCard';
+import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { UserPlus, UserCheck } from 'lucide-react';
 
 export default function UserProfile() {
@@ -110,31 +112,44 @@ export default function UserProfile() {
         {/* Profile Header */}
         <div className="bg-card rounded-lg border p-8 mb-8">
           <div className="flex items-start gap-6">
-            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-bold">
-              {profile.full_name?.[0] || 'U'}
-            </div>
+            <Avatar className="w-24 h-24">
+              <AvatarImage src={profile.logo_adress || undefined} />
+              <AvatarFallback className="text-3xl">
+                {profile.full_name?.[0] || 'U'}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
                 <h1 className="text-3xl font-bold">{profile.full_name || 'Utilisateur'}</h1>
-                {!isOwnProfile && user && (
-                  <Button onClick={handleFollow} variant={isFollowing ? 'outline' : 'default'}>
-                    {isFollowing ? (
-                      <>
-                        <UserCheck className="w-4 h-4 mr-2" />
-                        Abonné
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Suivre
-                      </>
-                    )}
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {isOwnProfile ? (
+                    <EditProfileDialog profile={profile} onProfileUpdated={fetchProfileData} />
+                  ) : user ? (
+                    <Button onClick={handleFollow} variant={isFollowing ? 'outline' : 'default'}>
+                      {isFollowing ? (
+                        <>
+                          <UserCheck className="w-4 h-4 mr-2" />
+                          Abonné
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Suivre
+                        </>
+                      )}
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-              <p className="text-muted-foreground mb-4">{followersCount} abonné(s)</p>
+              
+              <p className="text-muted-foreground mb-2">{followersCount} abonné(s)</p>
+              
               {profile.description && (
-                <p className="text-foreground">{profile.description}</p>
+                <p className="text-foreground mb-4">{profile.description}</p>
+              )}
+              
+              {profile.address && (
+                <p className="text-sm text-muted-foreground">📍 {profile.address}</p>
               )}
             </div>
           </div>
