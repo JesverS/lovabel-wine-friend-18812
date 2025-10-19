@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Heart, MessageCircle, Send, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { z } from 'zod';
+
+const commentSchema = z.object({
+  content: z.string().trim().min(1, 'Le commentaire est requis').max(1000, 'Maximum 1000 caractères'),
+});
 
 interface PostCardProps {
   post: any;
@@ -14,11 +22,16 @@ interface PostCardProps {
 
 export const PostCard = ({ post }: PostCardProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [wine, setWine] = useState<any>(null);
   const [author, setAuthor] = useState<any>(null);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [loadingComment, setLoadingComment] = useState(false);
 
   useEffect(() => {
     fetchPostData();
@@ -39,7 +52,7 @@ export const PostCard = ({ post }: PostCardProps) => {
         .select('*')
         .eq('post_id', post.id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       setIsLiked(!!data);
     }
 
@@ -56,7 +69,7 @@ export const PostCard = ({ post }: PostCardProps) => {
         .from('vin')
         .select('*, domaine(*)')
         .eq('id', post.vin_id)
-        .single();
+        .maybeSingle();
       setWine(data);
     }
 
@@ -65,8 +78,17 @@ export const PostCard = ({ post }: PostCardProps) => {
       .from('user_profiles')
       .select('*')
       .eq('id', post.user_id)
-      .single();
+      .maybeSingle();
     setAuthor(authorData);
+  };
+
+  const fetchComments = async () => {
+    const { data } = await supabase
+      .from('post_comment')
+      .select('*, user_profiles(*)')
+      .eq('post_id', post.id)
+      .order('created_at', { ascending: false });
+    setComments(data || []);
   };
 
   const handleLike = async () => {
@@ -89,12 +111,66 @@ export const PostCard = ({ post }: PostCardProps) => {
     }
   };
 
+  const handleToggleComments = async () => {
+    if (!showComments) {
+      await fetchComments();
+    }
+    setShowComments(!showComments);
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setLoadingComment(true);
+
+    try {
+      const validated = commentSchema.parse({ content: newComment });
+
+      const { error } = await supabase.from('post_comment').insert({
+        post_id: post.id,
+        user_id: user.id,
+        content: validated.content,
+      });
+
+      if (error) throw error;
+
+      setNewComment('');
+      setCommentsCount((prev) => prev + 1);
+      await fetchComments();
+
+      toast({
+        title: 'Succès',
+        description: 'Commentaire ajouté',
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: error.errors[0].message,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: error.message || 'Erreur lors de l\'ajout du commentaire',
+        });
+      }
+    } finally {
+      setLoadingComment(false);
+    }
+  };
+
   return (
     <Card className="p-6 space-y-4">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          {author?.full_name?.[0] || 'U'}
-        </div>
+        <Avatar className="w-10 h-10">
+          <AvatarImage src={author?.logo_adress || undefined} />
+          <AvatarFallback>
+            {author?.full_name?.[0] || 'U'}
+          </AvatarFallback>
+        </Avatar>
         <div className="flex-1">
           <Link to={`/user/${post.user_id}`} className="font-semibold hover:underline">
             {author?.full_name || 'Utilisateur'}
@@ -141,11 +217,85 @@ export const PostCard = ({ post }: PostCardProps) => {
           <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
           {likesCount}
         </Button>
-        <Button variant="ghost" size="sm" className="gap-2">
+        <Button variant="ghost" size="sm" className="gap-2" onClick={handleToggleComments}>
           <MessageCircle className="w-4 h-4" />
           {commentsCount}
         </Button>
       </div>
+
+      {/* Comments Section */}
+      {showComments && (
+        <div className="space-y-4 pt-4 border-t">
+          {/* Add Comment Form */}
+          {user && (
+            <form onSubmit={handleSubmitComment} className="flex gap-2">
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={author?.logo_adress || undefined} />
+                <AvatarFallback className="text-sm">
+                  {user.email?.[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 flex gap-2">
+                <Textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Écrivez un commentaire..."
+                  className="min-h-[60px] resize-none"
+                  maxLength={1000}
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={loadingComment || !newComment.trim()}
+                >
+                  {loadingComment ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* Comments List */}
+          <div className="space-y-3">
+            {comments.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Aucun commentaire pour le moment
+              </p>
+            ) : (
+              comments.map((comment) => (
+                <div key={comment.id} className="flex gap-3">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
+                    <AvatarFallback className="text-sm">
+                      {comment.user_profiles?.full_name?.[0] || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 bg-muted rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Link
+                        to={`/user/${comment.user_id}`}
+                        className="font-semibold text-sm hover:underline"
+                      >
+                        {comment.user_profiles?.full_name || 'Utilisateur'}
+                      </Link>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(comment.created_at), {
+                          addSuffix: true,
+                          locale: fr,
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </Card>
   );
 };
