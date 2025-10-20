@@ -175,13 +175,6 @@ export default function UserProfile() {
           </div>
         </div>
 
-        {/* Create Post (only on own profile) */}
-        {isOwnProfile && (
-          <div className="mb-8">
-            <CreatePost onPostCreated={fetchProfileData} />
-          </div>
-        )}
-
         {/* Tabs */}
         <Tabs defaultValue="posts" className="w-full">
           <TabsList>
@@ -189,7 +182,12 @@ export default function UserProfile() {
             <TabsTrigger value="cellars">Mes caves</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="posts" className="mt-6">
+          <TabsContent value="posts" className="mt-6 space-y-6">
+            {/* Create Post (only on own profile) */}
+            {isOwnProfile && (
+              <CreatePost onPostCreated={fetchProfileData} />
+            )}
+            
             <div className="space-y-4">
               {posts.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">Aucun post pour le moment</p>
