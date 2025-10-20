@@ -38,16 +38,16 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'search' | 'found' | 'create'>('search');
+  const [step, setStep] = useState<'search' | 'results' | 'found' | 'create'>('search');
   
   // Search fields
-  const [domainSearch, setDomainSearch] = useState('');
-  const [domains, setDomains] = useState<any[]>([]);
-  const [selectedDomain, setSelectedDomain] = useState<any>(null);
-  const [openDomainSearch, setOpenDomainSearch] = useState(false);
-  const [year, setYear] = useState('');
-  const [bottleName, setBottleName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [displayedResults, setDisplayedResults] = useState<any[]>([]);
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const RESULTS_PER_PAGE = 8;
   
   // Found wine
   const [foundWine, setFoundWine] = useState<any>(null);
@@ -64,60 +64,30 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const [labelPreview, setLabelPreview] = useState<string>('');
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  // Search domains
-  useEffect(() => {
-    const searchDomains = async () => {
-      if (domainSearch.trim().length < 2) {
-        setDomains([]);
-        return;
-      }
-
-      const { data } = await supabase
-        .from('domain')
-        .select('id, name, logo_url')
-        .ilike('name', `%${domainSearch}%`)
-        .limit(10);
-
-      setDomains(data || []);
-    };
-
-    const debounce = setTimeout(searchDomains, 300);
-    return () => clearTimeout(debounce);
-  }, [domainSearch]);
-
   const handleSearchWine = async () => {
-    if (!selectedDomain || !bottleName.trim()) {
+    if (!searchQuery.trim()) {
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: 'Veuillez sélectionner un domaine et entrer un nom de bouteille',
+        description: 'Veuillez entrer un nom de vin, domaine ou année',
       });
       return;
     }
 
     setSearchLoading(true);
+    setCurrentOffset(0);
 
     try {
-      let query = supabase
-        .from('wine')
-        .select('*, domain(name, logo_url)')
-        .eq('domain_id', selectedDomain.id)
-        .ilike('name', bottleName.trim());
-
-      if (year) {
-        query = query.eq('year', parseInt(year));
-      }
-
-      const { data, error } = await query.maybeSingle();
+      const { data, error } = await supabase.rpc('search_wines', {
+        query: searchQuery.trim()
+      });
 
       if (error) throw error;
 
-      if (data) {
-        setFoundWine(data);
-        setStep('found');
-      } else {
-        setStep('create');
-      }
+      setSearchResults(data || []);
+      setDisplayedResults((data || []).slice(0, RESULTS_PER_PAGE));
+      setHasMoreResults((data || []).length > RESULTS_PER_PAGE);
+      setStep('results');
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -126,6 +96,29 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
       });
     } finally {
       setSearchLoading(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    const newOffset = currentOffset + RESULTS_PER_PAGE;
+    const newDisplayed = searchResults.slice(0, newOffset + RESULTS_PER_PAGE);
+    setDisplayedResults(newDisplayed);
+    setCurrentOffset(newOffset);
+    setHasMoreResults(newDisplayed.length < searchResults.length);
+  };
+
+  const handleSelectWine = (wine: any) => {
+    setFoundWine(wine);
+    setStep('found');
+  };
+
+  const handleCreateNewWine = () => {
+    setStep('create');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !searchLoading) {
+      handleSearchWine();
     }
   };
 
@@ -335,10 +328,11 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
 
   const resetForm = () => {
     setStep('search');
-    setDomainSearch('');
-    setSelectedDomain(null);
-    setYear('');
-    setBottleName('');
+    setSearchQuery('');
+    setSearchResults([]);
+    setDisplayedResults([]);
+    setCurrentOffset(0);
+    setHasMoreResults(false);
     setFoundWine(null);
     setImageChoice('default');
     setCustomLabelFile(null);
@@ -366,7 +360,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
         <DialogHeader>
           <DialogTitle>
             {step === 'search' && 'Rechercher un vin'}
-            {step === 'found' && 'Vin trouvé'}
+            {step === 'results' && 'Résultats de recherche'}
+            {step === 'found' && 'Vin sélectionné'}
             {step === 'create' && 'Créer un nouveau vin'}
           </DialogTitle>
         </DialogHeader>
@@ -375,79 +370,23 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
         {step === 'search' && (
           <div className="space-y-4">
             <div>
-              <Label>Domaine *</Label>
-              <Popover open={openDomainSearch} onOpenChange={setOpenDomainSearch}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between"
-                  >
-                    {selectedDomain ? (
-                      <span className="flex items-center gap-2">
-                        <Wine className="w-4 h-4" />
-                        {selectedDomain.name}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">Rechercher un domaine...</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput
-                      placeholder="Rechercher..."
-                      value={domainSearch}
-                      onValueChange={setDomainSearch}
-                    />
-                    <CommandList>
-                      <CommandEmpty>Aucun domaine trouvé</CommandEmpty>
-                      <CommandGroup>
-                        {domains.map((domain) => (
-                          <CommandItem
-                            key={domain.id}
-                            value={domain.id}
-                            onSelect={() => {
-                              setSelectedDomain(domain);
-                              setOpenDomainSearch(false);
-                            }}
-                          >
-                            <Wine className="w-4 h-4 mr-2" />
-                            {domain.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div>
-              <Label htmlFor="bottle-name">Nom de la bouteille *</Label>
+              <Label htmlFor="search-query">Rechercher un vin</Label>
               <Input
-                id="bottle-name"
-                value={bottleName}
-                onChange={(e) => setBottleName(e.target.value)}
-                placeholder="Ex: Châteauneuf-du-Pape"
+                id="search-query"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Nom du vin, domaine ou année..."
                 required
               />
-            </div>
-
-            <div>
-              <Label htmlFor="year">Année (optionnel)</Label>
-              <Input
-                id="year"
-                type="number"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                placeholder="2020"
-              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Appuyez sur Entrée pour rechercher
+              </p>
             </div>
 
             <Button
               onClick={handleSearchWine}
-              disabled={searchLoading || !selectedDomain || !bottleName.trim()}
+              disabled={searchLoading || !searchQuery.trim()}
               className="w-full"
             >
               {searchLoading ? (
@@ -462,7 +401,65 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
           </div>
         )}
 
-        {/* Step 2: Found Wine */}
+        {/* Step 2: Search Results */}
+        {step === 'results' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              {displayedResults.map((wine) => (
+                <div
+                  key={wine.id}
+                  onClick={() => handleSelectWine(wine)}
+                  className="border rounded-lg p-3 cursor-pointer hover:border-primary transition-colors"
+                >
+                  {wine.label_url && (
+                    <img
+                      src={wine.label_url}
+                      alt={wine.name}
+                      className="w-full h-32 object-cover rounded mb-2"
+                    />
+                  )}
+                  <h4 className="font-semibold text-sm line-clamp-2">{wine.name}</h4>
+                  <p className="text-xs text-muted-foreground">{wine.domain?.name}</p>
+                  {wine.year && (
+                    <p className="text-xs text-muted-foreground">Année: {wine.year}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {hasMoreResults && (
+              <Button
+                onClick={handleLoadMore}
+                variant="outline"
+                className="w-full"
+              >
+                Charger plus de résultats
+              </Button>
+            )}
+
+            {!hasMoreResults && displayedResults.length > 0 && (
+              <Button
+                onClick={handleCreateNewWine}
+                variant="outline"
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Créer un nouveau vin
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setStep('search')}
+              className="w-full"
+            >
+              Nouvelle recherche
+            </Button>
+          </div>
+        )}
+
+        {/* Step 3: Found Wine */}
         {step === 'found' && foundWine && (
           <div className="space-y-6">
             <div className="bg-muted/30 p-4 rounded-lg">
@@ -560,7 +557,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
             </div>
 
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setStep('search')}>
+              <Button type="button" variant="outline" onClick={() => setStep('results')}>
                 Retour
               </Button>
               <Button
@@ -583,18 +580,23 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
           </div>
         )}
 
-        {/* Step 3: Create New Wine */}
+        {/* Step 4: Create New Wine */}
         {step === 'create' && (
           <form onSubmit={handleCreateWine} className="space-y-4">
             <div className="bg-muted/30 p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">
                 Ce vin n'existe pas encore dans notre base. Créons-le ensemble !
               </p>
-              <div className="mt-2 space-y-1">
-                <p className="text-sm"><strong>Domaine:</strong> {selectedDomain?.name}</p>
-                <p className="text-sm"><strong>Nom:</strong> {bottleName}</p>
-                {year && <p className="text-sm"><strong>Année:</strong> {year}</p>}
-              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="wine-name">Nom du vin *</Label>
+              <Input
+                id="wine-name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                required
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -687,7 +689,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
             </div>
 
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setStep('search')}>
+              <Button type="button" variant="outline" onClick={() => setStep('results')}>
                 Retour
               </Button>
               <Button type="submit" disabled={loading || uploadingImages || !labelFile}>
