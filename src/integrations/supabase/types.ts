@@ -647,7 +647,59 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      search_wines: {
+        Args: { query: string }
+        Returns: {
+          alcohol_percentage: number
+          characteristics: Json
+          created_at: string
+          description: string
+          domain: Json
+          domain_id: string
+          id: string
+          label_url: string
+          name: string
+          price: number
+          stock: number
+          uber_order_url: string
+          updated_at: string
+          volume_ml: number
+          website_order_url: string
+          year: number
+        }[]
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
+      }
     }
     Enums: {
       [_ in never]: never

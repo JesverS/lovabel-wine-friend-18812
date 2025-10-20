@@ -56,6 +56,11 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const [customLabelPreview, setCustomLabelPreview] = useState<string>('');
   
   // Create wine fields
+  const [selectedDomain, setSelectedDomain] = useState<any>(null);
+  const [domainSearch, setDomainSearch] = useState('');
+  const [domains, setDomains] = useState<any[]>([]);
+  const [openDomainSearch, setOpenDomainSearch] = useState(false);
+  const [year, setYear] = useState('');
   const [volume, setVolume] = useState('750');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('1');
@@ -63,6 +68,27 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const [labelFile, setLabelFile] = useState<File | null>(null);
   const [labelPreview, setLabelPreview] = useState<string>('');
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  // Search domains for wine creation
+  useEffect(() => {
+    const searchDomains = async () => {
+      if (domainSearch.trim().length < 2) {
+        setDomains([]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('domain')
+        .select('id, name, logo_url')
+        .ilike('name', `%${domainSearch}%`)
+        .limit(10);
+
+      setDomains(data || []);
+    };
+
+    const debounce = setTimeout(searchDomains, 300);
+    return () => clearTimeout(debounce);
+  }, [domainSearch]);
 
   const handleSearchWine = async () => {
     if (!searchQuery.trim()) {
@@ -78,7 +104,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
     setCurrentOffset(0);
 
     try {
-      const { data, error } = await supabase.rpc('search_wines', {
+      const { data, error } = await (supabase as any).rpc('search_wines', {
         query: searchQuery.trim()
       });
 
@@ -281,7 +307,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
       const { data: wineData, error: wineError } = await supabase
         .from('wine')
         .insert({
-          name: bottleName,
+          name: searchQuery,
           year: year ? parseInt(year) : null,
           domain_id: selectedDomain.id,
           volume_ml: parseInt(volume),
@@ -337,6 +363,9 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
     setImageChoice('default');
     setCustomLabelFile(null);
     setCustomLabelPreview('');
+    setSelectedDomain(null);
+    setDomainSearch('');
+    setYear('');
     setVolume('750');
     setPrice('');
     setQuantity('1');
@@ -590,12 +619,72 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
             </div>
 
             <div>
+              <Label>Domaine *</Label>
+              <Popover open={openDomainSearch} onOpenChange={setOpenDomainSearch}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                  >
+                    {selectedDomain ? (
+                      <span className="flex items-center gap-2">
+                        <Wine className="w-4 h-4" />
+                        {selectedDomain.name}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Rechercher un domaine...</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Rechercher..."
+                      value={domainSearch}
+                      onValueChange={setDomainSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>Aucun domaine trouvé</CommandEmpty>
+                      <CommandGroup>
+                        {domains.map((domain) => (
+                          <CommandItem
+                            key={domain.id}
+                            value={domain.id}
+                            onSelect={() => {
+                              setSelectedDomain(domain);
+                              setOpenDomainSearch(false);
+                            }}
+                          >
+                            <Wine className="w-4 h-4 mr-2" />
+                            {domain.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
               <Label htmlFor="wine-name">Nom du vin *</Label>
               <Input
                 id="wine-name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="year-create">Année</Label>
+              <Input
+                id="year-create"
+                type="number"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                placeholder="2020"
               />
             </div>
 
