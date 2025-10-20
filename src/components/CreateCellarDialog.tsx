@@ -66,7 +66,7 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
       // Upload logo if provided
       if (logoFile) {
         const fileExt = logoFile.name.split('.').pop();
-        const fileName = `logo-${Math.random()}.${fileExt}`;
+        const fileName = `logo-${Date.now()}.${fileExt}`;
         const filePath = `${cellarId}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -75,17 +75,17 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data } = supabase.storage
           .from('cellar')
           .getPublicUrl(filePath);
 
-        logoUrl = publicUrl;
+        logoUrl = data.publicUrl;
       }
 
       // Upload banner if provided
       if (bannerFile) {
         const fileExt = bannerFile.name.split('.').pop();
-        const fileName = `banner-${Math.random()}.${fileExt}`;
+        const fileName = `banner-${Date.now()}.${fileExt}`;
         const filePath = `${cellarId}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -94,21 +94,22 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data } = supabase.storage
           .from('cellar')
           .getPublicUrl(filePath);
 
-        bannerUrl = publicUrl;
+        bannerUrl = data.publicUrl;
       }
 
       // Update cellar with image URLs if any
       if (logoUrl || bannerUrl) {
+        const updateData: any = {};
+        if (logoUrl) updateData.logo_url = logoUrl;
+        if (bannerUrl) updateData.banner_url = bannerUrl;
+
         const { error: updateError } = await supabase
           .from('cellar' as any)
-          .update({
-            logo_url: logoUrl,
-            banner_url: bannerUrl,
-          })
+          .update(updateData)
           .eq('id', cellarId);
 
         if (updateError) throw updateError;
