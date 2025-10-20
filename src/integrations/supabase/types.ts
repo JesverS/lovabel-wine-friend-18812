@@ -14,73 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
-      cave: {
+      cellar: {
         Row: {
+          banner_url: string | null
           created_at: string | null
           description: string | null
           id: string
+          is_public: boolean | null
+          is_seller: boolean | null
+          latitude: number | null
           location: string | null
+          logo_url: string | null
+          longitude: number | null
           name: string
           updated_at: string | null
         }
         Insert: {
+          banner_url?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_public?: boolean | null
+          is_seller?: boolean | null
+          latitude?: number | null
           location?: string | null
+          logo_url?: string | null
+          longitude?: number | null
           name: string
           updated_at?: string | null
         }
         Update: {
+          banner_url?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_public?: boolean | null
+          is_seller?: boolean | null
+          latitude?: number | null
           location?: string | null
+          logo_url?: string | null
+          longitude?: number | null
           name?: string
           updated_at?: string | null
         }
         Relationships: []
       }
-      cave_vin: {
+      cellar_wine: {
         Row: {
           added_at: string | null
-          cave_id: string
+          cellar_id: string
+          label_url: string | null
           notes: string | null
           quantity: number | null
-          vin_id: string
+          wine_id: string
         }
         Insert: {
           added_at?: string | null
-          cave_id: string
+          cellar_id: string
+          label_url?: string | null
           notes?: string | null
           quantity?: number | null
-          vin_id: string
+          wine_id: string
         }
         Update: {
           added_at?: string | null
-          cave_id?: string
+          cellar_id?: string
+          label_url?: string | null
           notes?: string | null
           quantity?: number | null
-          vin_id?: string
+          wine_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "cav_vin_cave_id_fkey"
-            columns: ["cave_id"]
+            columns: ["cellar_id"]
             isOneToOne: false
-            referencedRelation: "cave"
+            referencedRelation: "cellar"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "cav_vin_vin_id_fkey"
-            columns: ["vin_id"]
+            columns: ["wine_id"]
             isOneToOne: false
-            referencedRelation: "vin"
+            referencedRelation: "wine"
             referencedColumns: ["id"]
           },
         ]
       }
-      domaine: {
+      domain: {
         Row: {
           address: string | null
           banner_url: string | null
@@ -161,21 +182,21 @@ export type Database = {
         }
         Relationships: []
       }
-      event_domaine: {
+      event_domain: {
         Row: {
-          domaine_id: string
+          domain_id: string
           event_id: string
           notes: string | null
           stand_number: string | null
         }
         Insert: {
-          domaine_id: string
+          domain_id: string
           event_id: string
           notes?: string | null
           stand_number?: string | null
         }
         Update: {
-          domaine_id?: string
+          domain_id?: string
           event_id?: string
           notes?: string | null
           stand_number?: string | null
@@ -183,9 +204,9 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "event_domaine_domaine_id_fkey"
-            columns: ["domaine_id"]
+            columns: ["domain_id"]
             isOneToOne: false
-            referencedRelation: "domaine"
+            referencedRelation: "domain"
             referencedColumns: ["id"]
           },
           {
@@ -197,37 +218,37 @@ export type Database = {
           },
         ]
       }
-      event_domaine_vin: {
+      event_domain_wine: {
         Row: {
-          domaine_id: string
+          domain_id: string
           event_id: string
-          notes: string | null
+          notice: string | null
           quantity: number | null
           tasting_available: boolean | null
-          vin_id: string
+          wine_id: string
         }
         Insert: {
-          domaine_id: string
+          domain_id: string
           event_id: string
-          notes?: string | null
+          notice?: string | null
           quantity?: number | null
           tasting_available?: boolean | null
-          vin_id: string
+          wine_id: string
         }
         Update: {
-          domaine_id?: string
+          domain_id?: string
           event_id?: string
-          notes?: string | null
+          notice?: string | null
           quantity?: number | null
           tasting_available?: boolean | null
-          vin_id?: string
+          wine_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "event_domaine_vin_domaine_id_fkey"
-            columns: ["domaine_id"]
+            columns: ["domain_id"]
             isOneToOne: false
-            referencedRelation: "domaine"
+            referencedRelation: "domain"
             referencedColumns: ["id"]
           },
           {
@@ -239,9 +260,9 @@ export type Database = {
           },
           {
             foreignKeyName: "event_domaine_vin_vin_id_fkey"
-            columns: ["vin_id"]
+            columns: ["wine_id"]
             isOneToOne: false
-            referencedRelation: "vin"
+            referencedRelation: "wine"
             referencedColumns: ["id"]
           },
         ]
@@ -254,7 +275,7 @@ export type Database = {
           image_url: string | null
           updated_at: string | null
           user_id: string | null
-          vin_id: string | null
+          wine_id: string | null
         }
         Insert: {
           content?: string | null
@@ -263,7 +284,7 @@ export type Database = {
           image_url?: string | null
           updated_at?: string | null
           user_id?: string | null
-          vin_id?: string | null
+          wine_id?: string | null
         }
         Update: {
           content?: string | null
@@ -272,14 +293,14 @@ export type Database = {
           image_url?: string | null
           updated_at?: string | null
           user_id?: string | null
-          vin_id?: string | null
+          wine_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "post_vin_id_fkey"
-            columns: ["vin_id"]
+            columns: ["wine_id"]
             isOneToOne: false
-            referencedRelation: "vin"
+            referencedRelation: "wine"
             referencedColumns: ["id"]
           },
         ]
@@ -352,31 +373,60 @@ export type Database = {
           },
         ]
       }
-      user_cave: {
+      user_cellar: {
         Row: {
-          cave_id: string
           created_at: string | null
           role: string | null
+          user_cellar_id: string
           user_id: string
         }
         Insert: {
-          cave_id: string
           created_at?: string | null
           role?: string | null
+          user_cellar_id: string
           user_id: string
         }
         Update: {
-          cave_id?: string
           created_at?: string | null
           role?: string | null
+          user_cellar_id?: string
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "user_cave_cave_id_fkey"
-            columns: ["cave_id"]
+            columns: ["user_cellar_id"]
             isOneToOne: false
-            referencedRelation: "cave"
+            referencedRelation: "cellar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_domain: {
+        Row: {
+          created_at: string
+          domain_id: string
+          role: number | null
+          user_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          domain_id: string
+          role?: number | null
+          user_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          domain_id?: string
+          role?: number | null
+          user_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_domain_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: true
+            referencedRelation: "domain"
             referencedColumns: ["id"]
           },
         ]
@@ -408,7 +458,9 @@ export type Database = {
           full_name: string | null
           id: string
           last_name: string | null
+          latitude: number | null
           logo_adress: string | null
+          longitude: number | null
           updated_at: string | null
         }
         Insert: {
@@ -419,7 +471,9 @@ export type Database = {
           full_name?: string | null
           id: string
           last_name?: string | null
+          latitude?: number | null
           logo_adress?: string | null
+          longitude?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -430,12 +484,14 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_name?: string | null
+          latitude?: number | null
           logo_adress?: string | null
+          longitude?: number | null
           updated_at?: string | null
         }
         Relationships: []
       }
-      user_vin_inventory: {
+      user_wine_inventory: {
         Row: {
           location: string | null
           notes: string | null
@@ -468,12 +524,12 @@ export type Database = {
             foreignKeyName: "user_vin_inventory_vin_id_fkey"
             columns: ["vin_id"]
             isOneToOne: false
-            referencedRelation: "vin"
+            referencedRelation: "wine"
             referencedColumns: ["id"]
           },
         ]
       }
-      user_vin_note: {
+      user_wine_notice: {
         Row: {
           comment: string | null
           created_at: string | null
@@ -483,7 +539,7 @@ export type Database = {
           rating: number | null
           updated_at: string | null
           user_id: string | null
-          vin_id: string | null
+          wine_id: string | null
         }
         Insert: {
           comment?: string | null
@@ -494,7 +550,7 @@ export type Database = {
           rating?: number | null
           updated_at?: string | null
           user_id?: string | null
-          vin_id?: string | null
+          wine_id?: string | null
         }
         Update: {
           comment?: string | null
@@ -505,7 +561,7 @@ export type Database = {
           rating?: number | null
           updated_at?: string | null
           user_id?: string | null
-          vin_id?: string | null
+          wine_id?: string | null
         }
         Relationships: [
           {
@@ -517,20 +573,20 @@ export type Database = {
           },
           {
             foreignKeyName: "user_vin_note_vin_id_fkey"
-            columns: ["vin_id"]
+            columns: ["wine_id"]
             isOneToOne: false
-            referencedRelation: "vin"
+            referencedRelation: "wine"
             referencedColumns: ["id"]
           },
         ]
       }
-      vin: {
+      wine: {
         Row: {
           alcohol_percentage: number | null
           characteristics: Json | null
           created_at: string | null
           description: string | null
-          domaine_id: string | null
+          domain_id: string | null
           id: string
           label_url: string | null
           name: string
@@ -547,7 +603,7 @@ export type Database = {
           characteristics?: Json | null
           created_at?: string | null
           description?: string | null
-          domaine_id?: string | null
+          domain_id?: string | null
           id?: string
           label_url?: string | null
           name: string
@@ -564,7 +620,7 @@ export type Database = {
           characteristics?: Json | null
           created_at?: string | null
           description?: string | null
-          domaine_id?: string | null
+          domain_id?: string | null
           id?: string
           label_url?: string | null
           name?: string
@@ -579,9 +635,9 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vin_domaine_id_fkey"
-            columns: ["domaine_id"]
+            columns: ["domain_id"]
             isOneToOne: false
-            referencedRelation: "domaine"
+            referencedRelation: "domain"
             referencedColumns: ["id"]
           },
         ]
