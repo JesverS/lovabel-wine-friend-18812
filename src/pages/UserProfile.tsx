@@ -9,13 +9,17 @@ import { PostCard } from '@/components/PostCard';
 import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck } from 'lucide-react';
+import { UserPlus, UserCheck, Store } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
+  const [cellars, setCellars] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -44,6 +48,21 @@ export default function UserProfile() {
       .eq('user_id', id)
       .order('created_at', { ascending: false });
     setPosts(postsData || []);
+
+    // Fetch cellars
+    const isOwnProfile = user?.id === id;
+    const { data: userCellars } = await supabase
+      .from('user_cellar' as any)
+      .select('user_cellar_id, cellar(*)')
+      .eq('user_id', id);
+
+    if (userCellars) {
+      // Filter cellars: show all if own profile, only public if not
+      const filteredCellars = (userCellars as any[])
+        .filter((uc: any) => isOwnProfile || uc.cellar?.is_public)
+        .map((uc: any) => uc.cellar);
+      setCellars(filteredCellars);
+    }
 
     // Fetch followers count
     const { count } = await supabase
@@ -162,15 +181,64 @@ export default function UserProfile() {
           </div>
         )}
 
-        {/* Posts List */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Posts</h2>
-          {posts.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Aucun post pour le moment</p>
-          ) : (
-            posts.map((post) => <PostCard key={post.id} post={post} />)
-          )}
-        </div>
+        {/* Tabs */}
+        <Tabs defaultValue="posts" className="w-full">
+          <TabsList>
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="cellars">Mes caves</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="posts" className="mt-6">
+            <div className="space-y-4">
+              {posts.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Aucun post pour le moment</p>
+              ) : (
+                posts.map((post) => <PostCard key={post.id} post={post} />)
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="cellars" className="mt-6">
+            {cellars.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Store className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">Aucune cave pour le moment</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {cellars.map((cellar) => (
+                  <Link key={cellar.id} to={`/cellar/${cellar.id}`}>
+                    <Card className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <Avatar className="w-16 h-16">
+                            <AvatarImage src={cellar.logo_url || undefined} />
+                            <AvatarFallback>
+                              <Store className="w-8 h-8" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg truncate">{cellar.name}</h3>
+                            {cellar.location && (
+                              <p className="text-sm text-muted-foreground">{cellar.location}</p>
+                            )}
+                            {cellar.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
+                                {cellar.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
 
       <Footer />

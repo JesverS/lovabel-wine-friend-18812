@@ -28,7 +28,7 @@ export const Header = () => {
           <Link to="/events" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             Évènements
           </Link>
-          <Link to="/cavistes" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <Link to="/cellars" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             Cavistes
           </Link>
         </nav>
