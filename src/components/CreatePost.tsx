@@ -24,7 +24,7 @@ import {
 const postSchema = z.object({
   content: z.string().trim().min(1, 'Le contenu est requis').max(5000, 'Maximum 5000 caractères'),
   image_url: z.string().max(2048, 'URL trop longue').nullable().optional(),
-  vin_id: z.string().uuid().nullable().optional(),
+  wine_id: z.string().uuid().nullable().optional(),
 });
 
 interface CreatePostProps {
@@ -52,8 +52,8 @@ export const CreatePost = ({ onPostCreated }: CreatePostProps) => {
       }
 
       const { data } = await supabase
-        .from('vin')
-        .select('id, name, year, domaine(name)')
+        .from('wine' as any)
+        .select('id, name, year, domain(name)')
         .ilike('name', `%${wineSearch}%`)
         .limit(10);
 
@@ -129,14 +129,14 @@ export const CreatePost = ({ onPostCreated }: CreatePostProps) => {
       const validated = postSchema.parse({
         content,
         image_url: imageUrl,
-        vin_id: selectedWine?.id || null,
+        wine_id: selectedWine?.id || null,
       });
 
-      const { error } = await supabase.from('post').insert({
+      const { error } = await supabase.from('post' as any).insert({
         user_id: user.id,
         content: validated.content,
         image_url: validated.image_url,
-        vin_id: validated.vin_id,
+        wine_id: validated.wine_id,
       });
 
       if (error) throw error;

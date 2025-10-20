@@ -65,11 +65,11 @@ export const PostCard = ({ post }: PostCardProps) => {
     setCommentsCount(comments || 0);
 
     // Fetch wine if referenced
-    if (post.vin_id) {
+    if ((post as any).wine_id) {
       const { data } = await supabase
-        .from('vin')
-        .select('*, domaine(*)')
-        .eq('id', post.vin_id)
+        .from('wine' as any)
+        .select('*, domain(*)')
+        .eq('id', (post as any).wine_id)
         .maybeSingle();
       setWine(data);
     }
@@ -203,7 +203,7 @@ export const PostCard = ({ post }: PostCardProps) => {
           )}
           <div>
             <p className="font-semibold">{wine.name}</p>
-            <p className="text-sm text-muted-foreground">{wine.domaine?.name}</p>
+            <p className="text-sm text-muted-foreground">{wine.domain?.name}</p>
           </div>
         </Link>
       )}

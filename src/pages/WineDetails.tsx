@@ -25,27 +25,27 @@ export default function WineDetails() {
 
     // Fetch wine details
     const { data: wineData } = await supabase
-      .from('vin')
+      .from('wine' as any)
       .select('*')
       .eq('id', id)
       .single();
     setWine(wineData);
 
-    // Fetch domaine
-    if (wineData?.domaine_id) {
-      const { data: domaineData } = await supabase
-        .from('domaine')
+    // Fetch domain
+    if ((wineData as any)?.domain_id) {
+      const { data: domainData } = await supabase
+        .from('domain' as any)
         .select('*')
-        .eq('id', wineData.domaine_id)
+        .eq('id', (wineData as any).domain_id)
         .single();
-      setDomaine(domaineData);
+      setDomaine(domainData);
     }
 
     // Fetch posts mentioning this wine
     const { data: postsData } = await supabase
-      .from('post')
+      .from('post' as any)
       .select('*')
-      .eq('vin_id', id)
+      .eq('wine_id', id)
       .order('created_at', { ascending: false });
     setPosts(postsData || []);
 
