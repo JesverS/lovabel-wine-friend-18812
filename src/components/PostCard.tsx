@@ -32,6 +32,7 @@ export const PostCard = ({ post }: PostCardProps) => {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComment, setLoadingComment] = useState(false);
+  const [displayedCommentsCount, setDisplayedCommentsCount] = useState(8);
 
   useEffect(() => {
     fetchPostData();
@@ -114,6 +115,7 @@ export const PostCard = ({ post }: PostCardProps) => {
   const handleToggleComments = async () => {
     if (!showComments) {
       await fetchComments();
+      setDisplayedCommentsCount(8);
     }
     setShowComments(!showComments);
   };
@@ -265,33 +267,46 @@ export const PostCard = ({ post }: PostCardProps) => {
                 Aucun commentaire pour le moment
               </p>
             ) : (
-              comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
-                    <AvatarFallback className="text-sm">
-                      {comment.user_profiles?.full_name?.[0] || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 bg-muted rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Link
-                        to={`/user/${comment.user_id}`}
-                        className="font-semibold text-sm hover:underline"
-                      >
-                        {comment.user_profiles?.full_name || 'Utilisateur'}
-                      </Link>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(comment.created_at), {
-                          addSuffix: true,
-                          locale: fr,
-                        })}
-                      </span>
+              <>
+                {comments.slice(0, displayedCommentsCount).map((comment) => (
+                  <div key={comment.id} className="flex gap-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
+                      <AvatarFallback className="text-sm">
+                        {comment.user_profiles?.full_name?.[0] || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 bg-muted rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Link
+                          to={`/user/${comment.user_id}`}
+                          className="font-semibold text-sm hover:underline"
+                        >
+                          {comment.user_profiles?.full_name || 'Utilisateur'}
+                        </Link>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(comment.created_at), {
+                            addSuffix: true,
+                            locale: fr,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
                     </div>
-                    <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
                   </div>
-                </div>
-              ))
+                ))}
+                
+                {comments.length > displayedCommentsCount && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDisplayedCommentsCount(prev => prev + 8)}
+                    className="w-full"
+                  >
+                    Voir plus de commentaires ({comments.length - displayedCommentsCount} restant{comments.length - displayedCommentsCount > 1 ? 's' : ''})
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>
