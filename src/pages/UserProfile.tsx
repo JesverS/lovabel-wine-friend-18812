@@ -13,6 +13,7 @@ import { UserPlus, UserCheck, Store } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
+import { CreateCellarDialog } from '@/components/CreateCellarDialog';
 
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>();
@@ -199,11 +200,22 @@ export default function UserProfile() {
           </TabsContent>
 
           <TabsContent value="cellars" className="mt-6">
+            {isOwnProfile && (
+              <div className="mb-6">
+                <CreateCellarDialog onCellarCreated={fetchProfileData} />
+              </div>
+            )}
+            
             {cellars.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center">
                   <Store className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">Aucune cave pour le moment</p>
+                  <p className="text-muted-foreground mb-4">Aucune cave pour le moment</p>
+                  {isOwnProfile && (
+                    <p className="text-sm text-muted-foreground">
+                      Créez votre première cave pour commencer à gérer votre collection
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             ) : (
