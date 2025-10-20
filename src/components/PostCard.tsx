@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Send, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Loader2, Trash2, Wine } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -277,19 +277,50 @@ export const PostCard = ({ post }: PostCardProps) => {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 bg-muted rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Link
-                          to={`/user/${comment.user_id}`}
-                          className="font-semibold text-sm hover:underline"
-                        >
-                          {comment.user_profiles?.full_name || 'Utilisateur'}
-                        </Link>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.created_at), {
-                            addSuffix: true,
-                            locale: fr,
-                          })}
-                        </span>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to={`/user/${comment.user_id}`}
+                            className="font-semibold text-sm hover:underline"
+                          >
+                            {comment.user_profiles?.full_name || 'Utilisateur'}
+                          </Link>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(comment.created_at), {
+                              addSuffix: true,
+                              locale: fr,
+                            })}
+                          </span>
+                        </div>
+                        {user?.id === comment.user_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={async () => {
+                              const { error } = await supabase
+                                .from('post_comment')
+                                .delete()
+                                .eq('id', comment.id);
+                              
+                              if (error) {
+                                toast({
+                                  variant: 'destructive',
+                                  title: 'Erreur',
+                                  description: 'Impossible de supprimer le commentaire',
+                                });
+                              } else {
+                                toast({
+                                  title: 'Succès',
+                                  description: 'Commentaire supprimé',
+                                });
+                                fetchComments();
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
                       <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
                     </div>
