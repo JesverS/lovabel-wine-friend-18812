@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus } from 'lucide-react';
+import { Plus, Upload, X, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface CreateCellarDialogProps {
@@ -24,6 +24,7 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -32,7 +33,71 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
   const [isPublic, setIsPublic] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
   const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string>('');
+
+  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Veuillez sélectionner une image',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'L\'image ne doit pas dépasser 5 Mo',
+      });
+      return;
+    }
+
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleBannerSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Veuillez sélectionner une image',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'L\'image ne doit pas dépasser 5 Mo',
+      });
+      return;
+    }
+
+    setBannerFile(file);
+    setBannerPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview('');
+  };
+
+  const handleRemoveBanner = () => {
+    setBannerFile(null);
+    setBannerPreview('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +109,52 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
       let logoUrl = null;
       let bannerUrl = null;
 
-      // Create cellar first to get the ID
+      // Upload images first if provided
+      if (logoFile || bannerFile) {
+        setUploadingImages(true);
+      }
+
+      // Upload logo if provided
+      if (logoFile) {
+        const fileExt = logoFile.name.split('.').pop();
+        const fileName = `${Date.now()}-logo.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('cellar')
+          .upload(filePath, logoFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('cellar')
+          .getPublicUrl(filePath);
+
+        logoUrl = urlData.publicUrl;
+      }
+
+      // Upload banner if provided
+      if (bannerFile) {
+        const fileExt = bannerFile.name.split('.').pop();
+        const fileName = `${Date.now()}-banner.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('cellar')
+          .upload(filePath, bannerFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('cellar')
+          .getPublicUrl(filePath);
+
+        bannerUrl = urlData.publicUrl;
+      }
+
+      setUploadingImages(false);
+
+      // Create cellar with all data including image URLs
       const { data: cellarData, error: cellarError } = await supabase
         .from('cellar' as any)
         .insert({
@@ -55,6 +165,8 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
           longitude: longitude ? parseFloat(longitude) : null,
           is_public: isPublic,
           is_seller: isSeller,
+          logo_url: logoUrl,
+          banner_url: bannerUrl,
         })
         .select()
         .single();
@@ -62,58 +174,6 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
       if (cellarError) throw cellarError;
 
       const cellarId = (cellarData as any).id;
-
-      // Upload logo if provided
-      if (logoFile) {
-        const fileExt = logoFile.name.split('.').pop();
-        const fileName = `logo-${Date.now()}.${fileExt}`;
-        const filePath = `${cellarId}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('cellar')
-          .upload(filePath, logoFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data } = supabase.storage
-          .from('cellar')
-          .getPublicUrl(filePath);
-
-        logoUrl = data.publicUrl;
-      }
-
-      // Upload banner if provided
-      if (bannerFile) {
-        const fileExt = bannerFile.name.split('.').pop();
-        const fileName = `banner-${Date.now()}.${fileExt}`;
-        const filePath = `${cellarId}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('cellar')
-          .upload(filePath, bannerFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data } = supabase.storage
-          .from('cellar')
-          .getPublicUrl(filePath);
-
-        bannerUrl = data.publicUrl;
-      }
-
-      // Update cellar with image URLs if any
-      if (logoUrl || bannerUrl) {
-        const updateData: any = {};
-        if (logoUrl) updateData.logo_url = logoUrl;
-        if (bannerUrl) updateData.banner_url = bannerUrl;
-
-        const { error: updateError } = await supabase
-          .from('cellar' as any)
-          .update(updateData)
-          .eq('id', cellarId);
-
-        if (updateError) throw updateError;
-      }
 
       // Create user_cellar relationship with owner role
       const { error: userCellarError } = await supabase
@@ -141,9 +201,10 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
         description: error.message || 'Impossible de créer la cave',
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
+      setUploadingImages(false);
     }
-
-    setLoading(false);
   };
 
   const resetForm = () => {
@@ -155,7 +216,9 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
     setIsPublic(false);
     setIsSeller(false);
     setLogoFile(null);
+    setLogoPreview('');
     setBannerFile(null);
+    setBannerPreview('');
   };
 
   return (
@@ -228,30 +291,86 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="logo">Logo</Label>
-            <Input
-              id="logo"
-              type="file"
-              accept="image/*"
-              onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Image carrée recommandée (ex: 400x400px)
-            </p>
+          <div className="space-y-2">
+            <Label>Logo (optionnel)</Label>
+            {logoPreview ? (
+              <div className="relative">
+                <img
+                  src={logoPreview}
+                  alt="Logo preview"
+                  className="w-32 h-32 object-cover rounded-lg border"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute -top-2 -right-2"
+                  onClick={handleRemoveLogo}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoSelect}
+                  className="hidden"
+                  id="logo-upload"
+                />
+                <label htmlFor="logo-upload" className="cursor-pointer">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Ajouter un logo
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Image carrée recommandée • Max 5 Mo
+                  </p>
+                </label>
+              </div>
+            )}
           </div>
 
-          <div>
-            <Label htmlFor="banner">Bannière</Label>
-            <Input
-              id="banner"
-              type="file"
-              accept="image/*"
-              onChange={(e) => setBannerFile(e.target.files?.[0] || null)}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Format paysage recommandé (ex: 1200x400px)
-            </p>
+          <div className="space-y-2">
+            <Label>Bannière (optionnel)</Label>
+            {bannerPreview ? (
+              <div className="relative">
+                <img
+                  src={bannerPreview}
+                  alt="Banner preview"
+                  className="w-full h-32 object-cover rounded-lg border"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={handleRemoveBanner}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBannerSelect}
+                  className="hidden"
+                  id="banner-upload"
+                />
+                <label htmlFor="banner-upload" className="cursor-pointer">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Ajouter une bannière
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Format paysage recommandé • Max 5 Mo
+                  </p>
+                </label>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -286,8 +405,15 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Création...' : 'Créer la cave'}
+            <Button type="submit" disabled={loading || uploadingImages}>
+              {loading || uploadingImages ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {uploadingImages ? 'Upload en cours...' : 'Création...'}
+                </>
+              ) : (
+                'Créer la cave'
+              )}
             </Button>
           </div>
         </form>
