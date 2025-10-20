@@ -317,6 +317,13 @@ export type Database = {
             referencedRelation: "post"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_comment_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       post_like: {
