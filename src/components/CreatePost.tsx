@@ -112,13 +112,13 @@ export const CreatePost = ({ onPostCreated }: CreatePostProps) => {
         const filePath = `post-images/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('avatars')
+          .from('post')
           .upload(filePath, imageFile);
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('avatars')
+          .from('post')
           .getPublicUrl(filePath);
 
         imageUrl = urlData.publicUrl;
