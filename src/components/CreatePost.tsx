@@ -108,8 +108,8 @@ export const CreatePost = ({ onPostCreated }: CreatePostProps) => {
       if (imageFile) {
         setUploadingImage(true);
         const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `post-images/${fileName}`;
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('post')
