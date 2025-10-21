@@ -294,6 +294,17 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
 
         if (domainError) throw domainError;
         finalDomainId = newDomain.id;
+
+        // Link user to the newly created domain
+        const { error: userDomainError } = await supabase
+          .from('user_domain')
+          .insert({
+            user_id: user.id,
+            domain_id: finalDomainId,
+            role: 0 // Default role
+          });
+
+        if (userDomainError) throw userDomainError;
       }
 
       // Upload to domain bucket
