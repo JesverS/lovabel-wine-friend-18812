@@ -667,6 +667,16 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      search_domains: {
+        Args: { query: string }
+        Returns: {
+          description: string
+          id: string
+          logo_url: string
+          name: string
+          website_url: string
+        }[]
+      }
       search_wines: {
         Args: { query: string }
         Returns: {

@@ -12,21 +12,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Loader2, Upload, X, Wine, Check } from 'lucide-react';
+import { Plus, Loader2, Upload, X, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface AddWineDialogProps {
@@ -58,8 +45,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   // Create wine fields
   const [selectedDomain, setSelectedDomain] = useState<any>(null);
   const [domainSearch, setDomainSearch] = useState('');
-  const [domains, setDomains] = useState<any[]>([]);
-  const [openDomainSearch, setOpenDomainSearch] = useState(false);
+  const [domainResults, setDomainResults] = useState<any[]>([]);
+  const [showDomainResults, setShowDomainResults] = useState(false);
   const [year, setYear] = useState('');
   const [volume, setVolume] = useState('750');
   const [price, setPrice] = useState('');
@@ -69,26 +56,49 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const [labelPreview, setLabelPreview] = useState<string>('');
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  // Search domains for wine creation
-  useEffect(() => {
-    const searchDomains = async () => {
-      if (domainSearch.trim().length < 2) {
-        setDomains([]);
-        return;
-      }
+  const searchDomains = async (query: string) => {
+    if (!query.trim() || query.trim().length < 2) {
+      setDomainResults([]);
+      setShowDomainResults(false);
+      return;
+    }
 
-      const { data } = await supabase
-        .from('domain')
-        .select('id, name, logo_url')
-        .ilike('name', `%${domainSearch}%`)
-        .limit(10);
+    try {
+      const { data, error } = await (supabase as any).rpc('search_domains', {
+        query: query.trim()
+      });
 
-      setDomains(data || []);
-    };
+      if (error) throw error;
+      setDomainResults(data || []);
+      setShowDomainResults(true);
+    } catch (error) {
+      console.error('Error searching domains:', error);
+      setDomainResults([]);
+      setShowDomainResults(true);
+    }
+  };
 
-    const debounce = setTimeout(searchDomains, 300);
-    return () => clearTimeout(debounce);
-  }, [domainSearch]);
+  const handleDomainSearch = (value: string) => {
+    setDomainSearch(value);
+    setSelectedDomain(null);
+    if (value.trim().length >= 2) {
+      searchDomains(value);
+    } else {
+      setDomainResults([]);
+      setShowDomainResults(false);
+    }
+  };
+
+  const handleSelectDomain = (domain: any) => {
+    setSelectedDomain(domain);
+    setDomainSearch(domain.name);
+    setShowDomainResults(false);
+  };
+
+  const handleCreateNewDomain = () => {
+    setSelectedDomain({ name: domainSearch, isNew: true });
+    setShowDomainResults(false);
+  };
 
   const handleSearchWine = async () => {
     if (!searchQuery.trim()) {
@@ -272,10 +282,24 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
     setUploadingImages(true);
 
     try {
+      let finalDomainId = selectedDomain.id;
+
+      // If it's a new domain, create it first
+      if (selectedDomain.isNew) {
+        const { data: newDomain, error: domainError } = await supabase
+          .from('domain')
+          .insert({ name: selectedDomain.name })
+          .select()
+          .single();
+
+        if (domainError) throw domainError;
+        finalDomainId = newDomain.id;
+      }
+
       // Upload to domain bucket
       const fileExt = labelFile.name.split('.').pop();
       const domainFileName = `${Date.now()}-domain.${fileExt}`;
-      const domainFilePath = `${selectedDomain.id}/${domainFileName}`;
+      const domainFilePath = `${finalDomainId}/${domainFileName}`;
 
       const { error: domainUploadError } = await supabase.storage
         .from('domain')
@@ -309,7 +333,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
         .insert({
           name: searchQuery,
           year: year ? parseInt(year) : null,
-          domain_id: selectedDomain.id,
+          domain_id: finalDomainId,
           volume_ml: parseInt(volume),
           price: price ? parseFloat(price) : null,
           description,
@@ -334,7 +358,9 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
 
       toast({
         title: 'Succès',
-        description: 'Vin créé et ajouté à la cave',
+        description: selectedDomain.isNew 
+          ? 'Domaine et vin créés, ajoutés à la cave'
+          : 'Vin créé et ajouté à la cave',
       });
 
       setOpen(false);
@@ -365,6 +391,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
     setCustomLabelPreview('');
     setSelectedDomain(null);
     setDomainSearch('');
+    setDomainResults([]);
+    setShowDomainResults(false);
     setYear('');
     setVolume('750');
     setPrice('');
@@ -636,53 +664,60 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
               </p>
             </div>
 
-            <div>
-              <Label>Domaine *</Label>
-              <Popover open={openDomainSearch} onOpenChange={setOpenDomainSearch}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between"
-                  >
-                    {selectedDomain ? (
-                      <span className="flex items-center gap-2">
-                        <Wine className="w-4 h-4" />
-                        {selectedDomain.name}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">Rechercher un domaine...</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput
-                      placeholder="Rechercher..."
-                      value={domainSearch}
-                      onValueChange={setDomainSearch}
-                    />
-                    <CommandList>
-                      <CommandEmpty>Aucun domaine trouvé</CommandEmpty>
-                      <CommandGroup>
-                        {domains.map((domain) => (
-                          <CommandItem
-                            key={domain.id}
-                            value={domain.id}
-                            onSelect={() => {
-                              setSelectedDomain(domain);
-                              setOpenDomainSearch(false);
-                            }}
-                          >
-                            <Wine className="w-4 h-4 mr-2" />
-                            {domain.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+            <div className="space-y-2">
+              <Label htmlFor="domain-search">Domaine *</Label>
+              <Input
+                id="domain-search"
+                value={domainSearch}
+                onChange={(e) => handleDomainSearch(e.target.value)}
+                placeholder="Rechercher un domaine..."
+              />
+              
+              {showDomainResults && (
+                <div className="border rounded-md mt-1 max-h-60 overflow-y-auto bg-background z-50">
+                  {domainResults.length > 0 ? (
+                    <div className="divide-y">
+                      {domainResults.map((domain) => (
+                        <div
+                          key={domain.id}
+                          onClick={() => handleSelectDomain(domain)}
+                          className="p-3 hover:bg-accent cursor-pointer transition-colors"
+                        >
+                          <div className="font-medium">{domain.name}</div>
+                          {domain.description && (
+                            <div className="text-sm text-muted-foreground line-clamp-1">
+                              {domain.description}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Aucun domaine trouvé pour "{domainSearch}"
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={handleCreateNewDomain}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Créer le domaine "{domainSearch}"
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {selectedDomain && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedDomain.isNew ? '✨ Nouveau domaine: ' : 'Sélectionné: '}
+                  {selectedDomain.name}
+                </p>
+              )}
             </div>
 
             <div>
