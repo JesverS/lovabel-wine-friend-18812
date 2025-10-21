@@ -148,38 +148,56 @@ export type Database = {
       }
       event: {
         Row: {
+          address: string | null
           banner_url: string | null
+          city: string | null
           created_at: string | null
           description: string | null
           end_date: string | null
           id: string
+          is_public: boolean | null
+          latitude: number | null
           location: string
+          longitude: number | null
           name: string
           organizer_id: string | null
+          registration_link: string | null
           start_date: string
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           banner_url?: string | null
+          city?: string | null
           created_at?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          is_public?: boolean | null
+          latitude?: number | null
           location: string
+          longitude?: number | null
           name: string
           organizer_id?: string | null
+          registration_link?: string | null
           start_date: string
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           banner_url?: string | null
+          city?: string | null
           created_at?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          is_public?: boolean | null
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           name?: string
           organizer_id?: string | null
+          registration_link?: string | null
           start_date?: string
           updated_at?: string | null
         }
@@ -434,6 +452,39 @@ export type Database = {
           },
         ]
       }
+      user_favorite: {
+        Row: {
+          created_at: string
+          user_id: string
+          wine_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+          wine_id?: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorite_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorite_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wine"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_follow: {
         Row: {
           followed_at: string | null
@@ -539,6 +590,7 @@ export type Database = {
           details: Json | null
           event_id: string | null
           id: string
+          liked: boolean | null
           rating: number | null
           updated_at: string | null
           user_id: string | null
@@ -550,6 +602,7 @@ export type Database = {
           details?: Json | null
           event_id?: string | null
           id?: string
+          liked?: boolean | null
           rating?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -561,6 +614,7 @@ export type Database = {
           details?: Json | null
           event_id?: string | null
           id?: string
+          liked?: boolean | null
           rating?: number | null
           updated_at?: string | null
           user_id?: string | null
