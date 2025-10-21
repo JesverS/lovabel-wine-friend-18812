@@ -32,11 +32,13 @@ interface WineData {
   quantity: number;
   label_url: string | null;
   description: string | null;
+  price: number | null;
   wine: {
     id: string;
     name: string;
     description: string | null;
     label_url: string | null;
+    price: number | null;
   };
 }
 
@@ -51,6 +53,7 @@ export function EditWineInCellarDialog({ wineData, onUpdated }: EditWineInCellar
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState(wineData.description || wineData.wine.description || '');
   const [quantity, setQuantity] = useState(wineData.quantity);
+  const [price, setPrice] = useState(wineData.price?.toString() || wineData.wine.price?.toString() || '');
   const [uploading, setUploading] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,6 +112,43 @@ export function EditWineInCellarDialog({ wineData, onUpdated }: EditWineInCellar
     }
   };
 
+  const handleDeleteImage = async () => {
+    if (!wineData.label_url) return;
+    
+    setUploading(true);
+
+    try {
+      // Delete custom photo
+      const oldPath = wineData.label_url.split('/').slice(-2).join('/');
+      await supabase.storage.from('cellar').remove([oldPath]);
+
+      // Update cellar_wine to remove custom label
+      const { error: updateError } = await supabase
+        .from('cellar_wine' as any)
+        .update({ label_url: null })
+        .eq('cellar_id', wineData.cellar_id)
+        .eq('wine_id', wineData.wine_id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: 'Succès',
+        description: 'Photo supprimée',
+      });
+
+      onUpdated();
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de supprimer la photo',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -126,11 +166,22 @@ export function EditWineInCellarDialog({ wineData, onUpdated }: EditWineInCellar
         }
       }
 
+      // Determine if price should be saved or set to null
+      let finalPrice: number | null = null;
+      
+      if (price.trim() !== '') {
+        const priceNum = parseFloat(price);
+        if (!isNaN(priceNum) && priceNum !== (wineData.wine.price || 0)) {
+          finalPrice = priceNum;
+        }
+      }
+
       const { error } = await supabase
         .from('cellar_wine' as any)
         .update({
           description: finalDescription,
           quantity: quantity,
+          price: finalPrice,
         })
         .eq('cellar_id', wineData.cellar_id)
         .eq('wine_id', wineData.wine_id);
@@ -232,6 +283,22 @@ export function EditWineInCellarDialog({ wineData, onUpdated }: EditWineInCellar
           </div>
 
           <div>
+            <Label htmlFor="price">Prix personnalisé (€)</Label>
+            <Input
+              id="price"
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder={wineData.wine.price?.toString() || 'Prix du domaine'}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Si différent du prix du domaine ({wineData.wine.price || 'N/A'}€), il sera affiché à la place
+            </p>
+          </div>
+
+          <div>
             <Label htmlFor="photo">Photo personnalisée</Label>
             <div className="flex gap-2 items-center">
               <Input
@@ -247,6 +314,18 @@ export function EditWineInCellarDialog({ wineData, onUpdated }: EditWineInCellar
                   {uploading ? 'Upload...' : 'Changer'}
                 </label>
               </Button>
+              {wineData.label_url && (
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  size="sm"
+                  disabled={uploading}
+                  onClick={handleDeleteImage}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Supprimer photo
+                </Button>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Photo personnalisée pour votre cave (remplace celle du domaine)
@@ -258,6 +337,9 @@ export function EditWineInCellarDialog({ wineData, onUpdated }: EditWineInCellar
                   alt="Aperçu"
                   className="w-32 h-48 object-cover rounded"
                 />
+                {wineData.label_url && (
+                  <p className="text-xs text-muted-foreground mt-1">Photo personnalisée</p>
+                )}
               </div>
             )}
           </div>

@@ -63,24 +63,27 @@ export type Database = {
         Row: {
           added_at: string | null
           cellar_id: string
+          description: string | null
           label_url: string | null
-          notes: string | null
+          price: number | null
           quantity: number | null
           wine_id: string
         }
         Insert: {
           added_at?: string | null
           cellar_id: string
+          description?: string | null
           label_url?: string | null
-          notes?: string | null
+          price?: number | null
           quantity?: number | null
           wine_id: string
         }
         Update: {
           added_at?: string | null
           cellar_id?: string
+          description?: string | null
           label_url?: string | null
-          notes?: string | null
+          price?: number | null
           quantity?: number | null
           wine_id?: string
         }

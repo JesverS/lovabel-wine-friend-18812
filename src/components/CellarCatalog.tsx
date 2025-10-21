@@ -13,6 +13,7 @@ interface Wine {
   quantity: number;
   label_url: string | null;
   description: string | null;
+  price: number | null;
   wine: {
     id: string;
     name: string;
@@ -50,6 +51,7 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
         quantity,
         label_url,
         description,
+        price,
         wine:wine_id (
           id,
           name,
@@ -148,9 +150,9 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
                     {item.wine.volume_ml}ml
                   </p>
                 )}
-                {item.wine.price && (
+                {(item.price || item.wine.price) && (
                   <p className="text-lg font-bold text-primary mb-4">
-                    {item.wine.price}€
+                    {item.price || item.wine.price}€
                   </p>
                 )}
                 <div className="flex flex-col gap-2">
