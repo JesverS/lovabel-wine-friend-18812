@@ -743,6 +743,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      event_is_public: {
+        Args: { _event_id: string }
+        Returns: boolean
+      }
       gtrgm_compress: {
         Args: { "": unknown }
         Returns: unknown
@@ -805,6 +809,14 @@ export type Database = {
       show_trgm: {
         Args: { "": string }
         Returns: string[]
+      }
+      user_is_event_organizer: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_participates_in_event: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
