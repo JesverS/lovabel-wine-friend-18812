@@ -150,6 +150,7 @@ export type Database = {
         Row: {
           address: string | null
           banner_url: string | null
+          category: string | null
           city: string | null
           created_at: string | null
           description: string | null
@@ -168,6 +169,7 @@ export type Database = {
         Insert: {
           address?: string | null
           banner_url?: string | null
+          category?: string | null
           city?: string | null
           created_at?: string | null
           description?: string | null
@@ -186,6 +188,7 @@ export type Database = {
         Update: {
           address?: string | null
           banner_url?: string | null
+          category?: string | null
           city?: string | null
           created_at?: string | null
           description?: string | null
@@ -448,6 +451,42 @@ export type Database = {
             columns: ["domain_id"]
             isOneToOne: true
             referencedRelation: "domain"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_event: {
+        Row: {
+          created_at: string
+          event_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_event_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_event_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]

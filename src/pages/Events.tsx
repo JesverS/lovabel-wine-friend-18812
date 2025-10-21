@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { CreateEventDialog } from "@/components/CreateEventDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -50,32 +51,32 @@ const Events = () => {
   }, [user]);
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
-      let query = supabase
-        .from("event")
-        .select("*")
-        .eq("is_public", true)
-        .gte("start_date", new Date().toISOString())
-        .order("start_date", { ascending: true });
-
-      if (cityFilter) {
-        query = query.ilike("city", `%${cityFilter}%`);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        setEvents(data);
-      }
-      setLoading(false);
-    };
-
     fetchEvents();
   }, [cityFilter]);
 
   const handleSearch = () => {
     setCityFilter(searchCity);
+  };
+
+  const fetchEvents = async () => {
+    setLoading(true);
+    let query = supabase
+      .from("event")
+      .select("*")
+      .eq("is_public", true)
+      .gte("start_date", new Date().toISOString())
+      .order("start_date", { ascending: true });
+
+    if (cityFilter) {
+      query = query.ilike("city", `%${cityFilter}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (!error && data) {
+      setEvents(data);
+    }
+    setLoading(false);
   };
 
   return (
@@ -84,12 +85,17 @@ const Events = () => {
       <main className="pt-20">
         <section className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-serif font-bold text-center mb-4">
-              Événements Viticoles
-            </h1>
-            <p className="text-center text-muted-foreground mb-8">
-              Découvrez les salons, dégustations et événements près de chez vous
-            </p>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-4xl md:text-5xl font-serif font-bold mb-2">
+                  Événements Viticoles
+                </h1>
+                <p className="text-muted-foreground">
+                  Découvrez les salons, dégustations et événements près de chez vous
+                </p>
+              </div>
+              {user && <CreateEventDialog onEventCreated={fetchEvents} />}
+            </div>
 
             <div className="flex gap-2 mb-12">
               <Input

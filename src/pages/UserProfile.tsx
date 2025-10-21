@@ -7,9 +7,10 @@ import { Footer } from '@/components/Footer';
 import { CreatePost } from '@/components/CreatePost';
 import { PostCard } from '@/components/PostCard';
 import { EditProfileDialog } from '@/components/EditProfileDialog';
+import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck, Store } from 'lucide-react';
+import { UserPlus, UserCheck, Store, CalendarDays } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -21,6 +22,7 @@ export default function UserProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [cellars, setCellars] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -71,6 +73,22 @@ export default function UserProfile() {
       .select('*', { count: 'exact', head: true })
       .eq('following_id', id);
     setFollowersCount(count || 0);
+
+    // Fetch events (created or participating)
+    const { data: userEvents } = await supabase
+      .from('user_event')
+      .select('event_id')
+      .eq('user_id', id);
+
+    if (userEvents) {
+      const eventIds = userEvents.map((ue: any) => ue.event_id);
+      const { data: eventsData } = await supabase
+        .from('event')
+        .select('*')
+        .in('id', eventIds)
+        .order('start_date', { ascending: false });
+      setEvents(eventsData || []);
+    }
 
     // Check if following
     if (user && user.id !== id) {
@@ -180,6 +198,7 @@ export default function UserProfile() {
           <TabsList>
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="cellars">Mes caves</TabsTrigger>
+            <TabsTrigger value="events">Mes événements</TabsTrigger>
           </TabsList>
 
           <TabsContent value="posts" className="mt-6 space-y-6">
@@ -237,6 +256,70 @@ export default function UserProfile() {
                             {cellar.description && (
                               <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
                                 {cellar.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="events" className="mt-6">
+            {isOwnProfile && (
+              <div className="mb-6">
+                <CreateEventDialog onEventCreated={fetchProfileData} />
+              </div>
+            )}
+            
+            {events.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <CalendarDays className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-4">Aucun événement pour le moment</p>
+                  {isOwnProfile && (
+                    <p className="text-sm text-muted-foreground">
+                      Créez votre premier événement pour commencer à organiser
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {events.map((event) => (
+                  <Link key={event.id} to={`/event/${event.id}`}>
+                    <Card className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex gap-4">
+                          {event.banner_url && (
+                            <img
+                              src={event.banner_url}
+                              alt={event.name}
+                              className="w-32 h-32 object-cover rounded-md"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-xl mb-2">{event.name}</h3>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                              <CalendarDays className="w-4 h-4" />
+                              {new Date(event.start_date).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </div>
+                            {event.city && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                <Store className="w-4 h-4" />
+                                {event.city}
+                              </div>
+                            )}
+                            {event.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {event.description}
                               </p>
                             )}
                           </div>
