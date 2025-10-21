@@ -5,18 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Wine, Search, ShoppingCart } from 'lucide-react';
 import { AddWineDialog } from './AddWineDialog';
+import { EditWineInCellarDialog } from './EditWineInCellarDialog';
 
 interface Wine {
   wine_id: string;
+  cellar_id: string;
   quantity: number;
   label_url: string | null;
-  notes: string | null;
+  description: string | null;
   wine: {
     id: string;
     name: string;
     year: number | null;
     volume_ml: number | null;
     price: number | null;
+    description: string | null;
     label_url: string | null;
     uber_order_url: string | null;
     website_order_url: string | null;
@@ -43,15 +46,17 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
       .from('cellar_wine' as any)
       .select(`
         wine_id,
+        cellar_id,
         quantity,
         label_url,
-        notes,
+        description,
         wine:wine_id (
           id,
           name,
           year,
           volume_ml,
           price,
+          description,
           label_url,
           uber_order_url,
           website_order_url
@@ -133,6 +138,11 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
                     Année: {item.wine.year}
                   </p>
                 )}
+                {(item.description || item.wine.description) && (
+                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                    {item.description || item.wine.description}
+                  </p>
+                )}
                 {item.wine.volume_ml && (
                   <p className="text-sm text-muted-foreground mb-2">
                     {item.wine.volume_ml}ml
@@ -144,6 +154,9 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
                   </p>
                 )}
                 <div className="flex flex-col gap-2">
+                  {isOwner && (
+                    <EditWineInCellarDialog wineData={item} onUpdated={fetchWines} />
+                  )}
                   {item.wine.uber_order_url && (
                     <Button variant="outline" size="sm" asChild>
                       <a href={item.wine.uber_order_url} target="_blank" rel="noopener noreferrer">
