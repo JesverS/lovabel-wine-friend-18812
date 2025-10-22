@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { X, User, ChevronDown, ChevronUp, Heart } from "lucide-react";
+import { X, User, ChevronDown, ChevronUp, Heart, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -280,6 +280,47 @@ export const WineDetailsDialog = ({
     }
   };
 
+  const handleDeleteComment = async (commentUserId: string) => {
+    if (!user || user.id !== commentUserId) return;
+
+    const { error } = await supabase
+      .from("user_wine_comment" as any)
+      .delete()
+      .eq("user_id", user.id)
+      .eq("wine_id", wine.id);
+
+    if (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le commentaire",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Commentaire supprimé",
+      });
+      
+      // Refresh comments
+      const { data: commentsData } = await supabase
+        .from("user_wine_comment" as any)
+        .select(`
+          user_id,
+          comment,
+          created_at,
+          user_profiles (
+            full_name,
+            logo_adress
+          )
+        `)
+        .eq("wine_id", wine.id)
+        .order("created_at", { ascending: false });
+
+      if (commentsData) {
+        setComments(commentsData as any);
+      }
+    }
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -517,35 +558,47 @@ export const WineDetailsDialog = ({
               <div className="space-y-4">
                 {comments.map((comment) => (
                   <div key={comment.user_id} className="border rounded-lg p-4 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          navigate(`/user/${comment.user_id}`);
-                          onClose();
-                        }}
-                        className="cursor-pointer hover:opacity-80"
-                      >
-                        <Avatar>
-                          <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
-                          <AvatarFallback>
-                            <User className="h-4 w-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                      </button>
-                      <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
                         <button
                           onClick={() => {
                             navigate(`/user/${comment.user_id}`);
                             onClose();
                           }}
-                          className="font-medium hover:underline text-primary cursor-pointer"
+                          className="cursor-pointer hover:opacity-80"
                         >
-                          {comment.user_profiles?.full_name || "Utilisateur"}
+                          <Avatar>
+                            <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
+                            <AvatarFallback>
+                              <User className="h-4 w-4" />
+                            </AvatarFallback>
+                          </Avatar>
                         </button>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(comment.created_at), "d MMMM yyyy", { locale: fr })}
-                        </p>
+                        <div>
+                          <button
+                            onClick={() => {
+                              navigate(`/user/${comment.user_id}`);
+                              onClose();
+                            }}
+                            className="font-medium hover:underline text-primary cursor-pointer"
+                          >
+                            {comment.user_profiles?.full_name || "Utilisateur"}
+                          </button>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(comment.created_at), "d MMMM yyyy", { locale: fr })}
+                          </p>
+                        </div>
                       </div>
+                      {user && user.id === comment.user_id && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteComment(comment.user_id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                     <p className="text-sm">{comment.comment}</p>
                   </div>
