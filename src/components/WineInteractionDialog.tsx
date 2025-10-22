@@ -88,14 +88,14 @@ export const WineInteractionDialog = ({
 
       // Fetch public comment
       const { data: commentData } = await supabase
-        .from("user_wine_comment")
+        .from("user_wine_comment" as any)
         .select("comment")
         .eq("user_id", user.id)
         .eq("wine_id", wine.id)
         .maybeSingle();
 
       if (commentData) {
-        setPublicComment(commentData.comment || "");
+        setPublicComment((commentData as any)?.comment || "");
       }
 
       // Check if favorite
@@ -171,7 +171,7 @@ export const WineInteractionDialog = ({
 
     setLoading(true);
 
-    const { error } = await supabase.from("user_wine_comment").upsert({
+    const { error } = await supabase.from("user_wine_comment" as any).upsert({
       user_id: user.id,
       wine_id: wine.id,
       comment: publicComment || null,
@@ -349,10 +349,13 @@ export const WineInteractionDialog = ({
               </Button>
             </TabsContent>
 
-            <TabsContent value="tasting" className="space-y-6">
-              <p className="text-xs text-muted-foreground italic">
-                Ces notes de dégustation restent personnelles et privées
-              </p>
+              <TabsContent value="tasting" className="space-y-6">
+              <div className="bg-muted/50 border border-border rounded-lg p-3 mb-4">
+                <p className="text-xs text-muted-foreground italic flex items-center gap-2">
+                  <span className="text-primary">🔒</span>
+                  Ces notes de dégustation restent personnelles et privées
+                </p>
+              </div>
               <div className="space-y-4">
                 <div>
                   <Label>
