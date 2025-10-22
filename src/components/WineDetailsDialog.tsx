@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { X, User, ChevronDown, ChevronUp, Heart, Trash2 } from "lucide-react";
+import { X, User, ChevronDown, ChevronUp, Heart, Trash2, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -71,6 +71,11 @@ export const WineDetailsDialog = ({
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [isTastingOpen, setIsTastingOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [editingCommentUserId, setEditingCommentUserId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [commentsPage, setCommentsPage] = useState(0);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
+  const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
 
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
     acidity: 3,
@@ -123,28 +128,66 @@ export const WineDetailsDialog = ({
         });
       }
 
-      // Fetch public comments
-      const { data: commentsData } = await supabase
-        .from("user_wine_comment" as any)
-        .select(`
-          user_id,
-          comment,
-          created_at,
-          user_profiles (
-            full_name,
-            logo_adress
-          )
-        `)
-        .eq("wine_id", wine.id)
-        .order("created_at", { ascending: false });
-
-      if (commentsData) {
-        setComments(commentsData as any);
-      }
+      // Fetch public comments (first 8)
+      await fetchComments(0);
     };
 
     fetchData();
   }, [user, wine.id, wine.domain_id]);
+
+  const fetchComments = async (page: number) => {
+    if (!user) return;
+    
+    const pageSize = 8;
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data: commentsData, error } = await supabase
+      .from("user_wine_comment" as any)
+      .select(`
+        user_id,
+        comment,
+        created_at,
+        user_profiles (
+          full_name,
+          logo_adress
+        )
+      `)
+      .eq("wine_id", wine.id)
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Error fetching comments:", error);
+      return;
+    }
+
+    if (commentsData) {
+      // Sort to put user's comment first
+      const sortedComments = [...(commentsData as any)].sort((a, b) => {
+        if (a.user_id === user.id) return -1;
+        if (b.user_id === user.id) return 1;
+        return 0;
+      });
+
+      if (page === 0) {
+        setComments(sortedComments);
+      } else {
+        setComments(prev => [...prev, ...sortedComments]);
+      }
+
+      setHasMoreComments(commentsData.length === pageSize);
+      setCommentsPage(page);
+    }
+  };
+
+  const loadMoreComments = async () => {
+    if (isLoadingMoreComments || !hasMoreComments) return;
+    
+    setIsLoadingMoreComments(true);
+    await fetchComments(commentsPage + 1);
+    setIsLoadingMoreComments(false);
+  };
 
   const handleSaveTastingDetails = async () => {
     if (!user) {
@@ -225,23 +268,9 @@ export const WineDetailsDialog = ({
       setNewComment("");
       
       // Refresh comments
-      const { data: commentsData } = await supabase
-        .from("user_wine_comment" as any)
-        .select(`
-          user_id,
-          comment,
-          created_at,
-          user_profiles (
-            full_name,
-            logo_adress
-          )
-        `)
-        .eq("wine_id", wine.id)
-        .order("created_at", { ascending: false });
-
-      if (commentsData) {
-        setComments(commentsData as any);
-      }
+      setCommentsPage(0);
+      setHasMoreComments(true);
+      await fetchComments(0);
     }
 
     setIsPostingComment(false);
@@ -301,24 +330,58 @@ export const WineDetailsDialog = ({
       });
       
       // Refresh comments
-      const { data: commentsData } = await supabase
-        .from("user_wine_comment" as any)
-        .select(`
-          user_id,
-          comment,
-          created_at,
-          user_profiles (
-            full_name,
-            logo_adress
-          )
-        `)
-        .eq("wine_id", wine.id)
-        .order("created_at", { ascending: false });
-
-      if (commentsData) {
-        setComments(commentsData as any);
-      }
+      setCommentsPage(0);
+      setHasMoreComments(true);
+      await fetchComments(0);
     }
+  };
+
+  const handleEditComment = (userId: string, currentComment: string) => {
+    setEditingCommentUserId(userId);
+    setEditCommentText(currentComment);
+  };
+
+  const handleUpdateComment = async (userId: string) => {
+    if (!user || user.id !== userId) return;
+
+    if (!editCommentText.trim()) {
+      toast({
+        title: "Commentaire vide",
+        description: "Veuillez saisir un commentaire",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("user_wine_comment" as any)
+      .update({ comment: editCommentText })
+      .eq("user_id", user.id)
+      .eq("wine_id", wine.id);
+
+    if (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier le commentaire",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Commentaire modifié",
+      });
+      setEditingCommentUserId(null);
+      setEditCommentText("");
+      
+      // Refresh comments
+      setCommentsPage(0);
+      setHasMoreComments(true);
+      await fetchComments(0);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentUserId(null);
+    setEditCommentText("");
   };
 
   return (
@@ -558,51 +621,105 @@ export const WineDetailsDialog = ({
               <div className="space-y-4">
                 {comments.map((comment) => (
                   <div key={comment.user_id} className="border rounded-lg p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => {
-                            navigate(`/user/${comment.user_id}`);
-                            onClose();
-                          }}
-                          className="cursor-pointer hover:opacity-80"
-                        >
-                          <Avatar>
-                            <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
-                            <AvatarFallback>
-                              <User className="h-4 w-4" />
-                            </AvatarFallback>
-                          </Avatar>
-                        </button>
-                        <div>
-                          <button
-                            onClick={() => {
-                              navigate(`/user/${comment.user_id}`);
-                              onClose();
-                            }}
-                            className="font-medium hover:underline text-primary cursor-pointer"
+                    {editingCommentUserId === comment.user_id ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={editCommentText}
+                          onChange={(e) => setEditCommentText(e.target.value)}
+                          rows={3}
+                        />
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => handleUpdateComment(comment.user_id)}
+                            size="sm"
                           >
-                            {comment.user_profiles?.full_name || "Utilisateur"}
-                          </button>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(comment.created_at), "d MMMM yyyy", { locale: fr })}
-                          </p>
+                            Sauvegarder
+                          </Button>
+                          <Button 
+                            onClick={handleCancelEdit}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Annuler
+                          </Button>
                         </div>
                       </div>
-                      {user && user.id === comment.user_id && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteComment(comment.user_id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-sm">{comment.comment}</p>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => {
+                                navigate(`/user/${comment.user_id}`);
+                                onClose();
+                              }}
+                              className="cursor-pointer hover:opacity-80"
+                            >
+                              <Avatar>
+                                <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
+                                <AvatarFallback>
+                                  <User className="h-4 w-4" />
+                                </AvatarFallback>
+                              </Avatar>
+                            </button>
+                            <div>
+                              <button
+                                onClick={() => {
+                                  navigate(`/user/${comment.user_id}`);
+                                  onClose();
+                                }}
+                                className="font-medium hover:underline text-primary cursor-pointer"
+                              >
+                                {comment.user_profiles?.full_name || "Utilisateur"}
+                              </button>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(comment.created_at), "d MMMM yyyy", { locale: fr })}
+                              </p>
+                            </div>
+                          </div>
+                          {user && user.id === comment.user_id && (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditComment(comment.user_id, comment.comment)}
+                                className="text-primary hover:text-primary"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteComment(comment.user_id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-sm">{comment.comment}</p>
+                      </>
+                    )}
                   </div>
                 ))}
+                
+                {hasMoreComments && (
+                  <Button
+                    onClick={loadMoreComments}
+                    variant="outline"
+                    className="w-full"
+                    disabled={isLoadingMoreComments}
+                  >
+                    {isLoadingMoreComments ? "Chargement..." : "Charger plus de commentaires"}
+                  </Button>
+                )}
+                
+                {!hasMoreComments && comments.length > 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-4">
+                    Tous les commentaires ont été chargés
+                  </p>
+                )}
               </div>
             )}
           </div>
