@@ -27,36 +27,14 @@ const Events = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cityFilter, setCityFilter] = useState("");
+  const [searchName, setSearchName] = useState("");
   const [searchCity, setSearchCity] = useState("");
-
-  useEffect(() => {
-    const fetchUserCity = async () => {
-      if (user) {
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("address")
-          .eq("id", user.id)
-          .single();
-        
-        if (profile?.address) {
-          const city = profile.address.split(",")[0].trim();
-          setCityFilter(city);
-          setSearchCity(city);
-        }
-      }
-    };
-
-    fetchUserCity();
-  }, [user]);
+  const [searchDate, setSearchDate] = useState<Date | undefined>(undefined);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchEvents();
-  }, [cityFilter]);
-
-  const handleSearch = () => {
-    setCityFilter(searchCity);
-  };
+  }, [searchName, searchCity, searchDate]);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -64,11 +42,28 @@ const Events = () => {
       .from("event")
       .select("*")
       .eq("is_public", true)
-      .gte("start_date", new Date().toISOString())
       .order("start_date", { ascending: true });
 
-    if (cityFilter) {
-      query = query.ilike("city", `%${cityFilter}%`);
+    // Filter by name
+    if (searchName.trim()) {
+      query = query.ilike("name", `%${searchName}%`);
+    }
+
+    // Filter by city
+    if (searchCity.trim()) {
+      query = query.ilike("city", `%${searchCity}%`);
+    }
+
+    // Filter by date
+    if (searchDate) {
+      const startOfDay = new Date(searchDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(searchDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      query = query
+        .gte("start_date", startOfDay.toISOString())
+        .lte("start_date", endOfDay.toISOString());
     }
 
     const { data, error } = await query;
@@ -94,21 +89,70 @@ const Events = () => {
                   Découvrez les salons, dégustations et événements près de chez vous
                 </p>
               </div>
-              {user && <CreateEventDialog onEventCreated={fetchEvents} />}
+              {user && (
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  Créer un événement
+                </Button>
+              )}
             </div>
 
-            <div className="flex gap-2 mb-12">
-              <Input
-                placeholder="Rechercher par ville..."
-                value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                className="flex-1"
-              />
-              <Button onClick={handleSearch}>
-                <Search className="h-4 w-4 mr-2" />
-                Rechercher
-              </Button>
+            {/* Search and Filters Section */}
+            <div className="mb-12 space-y-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Nom de l'événement"
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Ville"
+                    value={searchCity}
+                    onChange={(e) => setSearchCity(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={searchDate ? format(searchDate, "d MMMM yyyy", { locale: fr }) : "Sélectionner une date"}
+                    value={searchDate ? format(searchDate, "d MMMM yyyy", { locale: fr }) : ""}
+                    readOnly
+                    className="pl-10 cursor-pointer"
+                  />
+                  <input
+                    type="date"
+                    className="absolute opacity-0 w-full h-full top-0 left-0 cursor-pointer"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setSearchDate(new Date(e.target.value));
+                      } else {
+                        setSearchDate(undefined);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {(searchName || searchCity || searchDate) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchName("");
+                    setSearchCity("");
+                    setSearchDate(undefined);
+                  }}
+                >
+                  Réinitialiser les filtres
+                </Button>
+              )}
             </div>
 
             {loading ? (
@@ -169,6 +213,15 @@ const Events = () => {
         </section>
       </main>
       <Footer />
+      
+      {isCreateDialogOpen && (
+        <CreateEventDialog 
+          onEventCreated={() => {
+            fetchEvents();
+            setIsCreateDialogOpen(false);
+          }} 
+        />
+      )}
     </div>
   );
 };

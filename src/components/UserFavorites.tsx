@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Wine, Calendar, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { WineDetailsDialog } from './WineDetailsDialog';
 
 type ViewMode = 'date' | 'domain';
 
@@ -14,10 +14,15 @@ interface FavoriteWine {
   domain_id: string;
   created_at: string;
   wine: {
+    id: string;
     name: string;
     year: number | null;
     price: number | null;
     label_url: string | null;
+    description: string | null;
+    volume_ml: number | null;
+    alcohol_percentage: number | null;
+    characteristics: any;
   };
   domain: {
     name: string;
@@ -41,6 +46,7 @@ export const UserFavorites = () => {
   const [favorites, setFavorites] = useState<FavoriteWine[]>([]);
   const [domains, setDomains] = useState<DomainGroup[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+  const [selectedWine, setSelectedWine] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
@@ -77,7 +83,7 @@ export const UserFavorites = () => {
       const enrichedData = await Promise.all(
         (data as any[]).map(async (fav: any) => {
           const [wineRes, domainRes] = await Promise.all([
-            supabase.from('wine').select('name, year, price, label_url').eq('id', fav.wine_id).single(),
+            supabase.from('wine').select('*').eq('id', fav.wine_id).single(),
             supabase.from('domain').select('name, logo_url').eq('id', fav.domain_id).single()
           ]);
           
@@ -85,7 +91,7 @@ export const UserFavorites = () => {
             wine_id: fav.wine_id,
             domain_id: fav.domain_id,
             created_at: fav.created_at,
-            wine: wineRes.data || { name: '', year: null, price: null, label_url: null },
+            wine: wineRes.data || { id: fav.wine_id, name: '', year: null, price: null, label_url: null, description: null, domain_id: fav.domain_id, volume_ml: null, alcohol_percentage: null, characteristics: null },
             domain: domainRes.data || { name: '', logo_url: null }
           };
         })
@@ -170,7 +176,7 @@ export const UserFavorites = () => {
       const enrichedData = await Promise.all(
         (data as any[]).map(async (fav: any) => {
           const [wineRes, domainRes] = await Promise.all([
-            supabase.from('wine').select('name, year, price, label_url').eq('id', fav.wine_id).single(),
+            supabase.from('wine').select('*').eq('id', fav.wine_id).single(),
             supabase.from('domain').select('name, logo_url').eq('id', fav.domain_id).single()
           ]);
           
@@ -178,7 +184,7 @@ export const UserFavorites = () => {
             wine_id: fav.wine_id,
             domain_id: fav.domain_id,
             created_at: fav.created_at,
-            wine: wineRes.data || { name: '', year: null, price: null, label_url: null },
+            wine: wineRes.data || { id: fav.wine_id, name: '', year: null, price: null, label_url: null, description: null, domain_id: fav.domain_id, volume_ml: null, alcohol_percentage: null, characteristics: null },
             domain: domainRes.data || { name: '', logo_url: null }
           };
         })
@@ -229,35 +235,37 @@ export const UserFavorites = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {favorites.map((fav) => (
-            <Link key={fav.wine_id} to={`/wine/${fav.wine_id}`}>
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex gap-4">
-                    {fav.wine.label_url && (
-                      <img
-                        src={fav.wine.label_url}
-                        alt={fav.wine.name}
-                        className="w-20 h-20 object-cover rounded"
-                      />
+            <Card 
+              key={fav.wine_id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setSelectedWine(fav.wine)}
+            >
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  {fav.wine.label_url && (
+                    <img
+                      src={fav.wine.label_url}
+                      alt={fav.wine.name}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{fav.wine.name}</h3>
+                    <p className="text-sm text-muted-foreground">{fav.domain.name}</p>
+                    {fav.wine.year && (
+                      <p className="text-sm text-muted-foreground">Année: {fav.wine.year}</p>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate">{fav.wine.name}</h3>
-                      <p className="text-sm text-muted-foreground">{fav.domain.name}</p>
-                      {fav.wine.year && (
-                        <p className="text-sm text-muted-foreground">Année: {fav.wine.year}</p>
-                      )}
-                      {fav.wine.price && (
-                        <p className="text-sm text-muted-foreground">Prix: {fav.wine.price}€</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        <Calendar className="w-3 h-3 inline mr-1" />
-                        Ajouté le {new Date(fav.created_at).toLocaleDateString('fr-FR')}
-                      </p>
-                    </div>
+                    {fav.wine.price && (
+                      <p className="text-sm text-muted-foreground">Prix: {fav.wine.price}€</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <Calendar className="w-3 h-3 inline mr-1" />
+                      Ajouté le {new Date(fav.created_at).toLocaleDateString('fr-FR')}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
 
@@ -299,35 +307,37 @@ export const UserFavorites = () => {
         {viewMode === 'date' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {favorites.map((fav) => (
-              <Link key={fav.wine_id} to={`/wine/${fav.wine_id}`}>
-                <Card className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex gap-4">
-                      {fav.wine.label_url && (
-                        <img
-                          src={fav.wine.label_url}
-                          alt={fav.wine.name}
-                          className="w-20 h-20 object-cover rounded"
-                        />
+              <Card 
+                key={fav.wine_id} 
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => setSelectedWine(fav.wine)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    {fav.wine.label_url && (
+                      <img
+                        src={fav.wine.label_url}
+                        alt={fav.wine.name}
+                        className="w-20 h-20 object-cover rounded"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate">{fav.wine.name}</h3>
+                      <p className="text-sm text-muted-foreground">{fav.domain.name}</p>
+                      {fav.wine.year && (
+                        <p className="text-sm text-muted-foreground">Année: {fav.wine.year}</p>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{fav.wine.name}</h3>
-                        <p className="text-sm text-muted-foreground">{fav.domain.name}</p>
-                        {fav.wine.year && (
-                          <p className="text-sm text-muted-foreground">Année: {fav.wine.year}</p>
-                        )}
-                        {fav.wine.price && (
-                          <p className="text-sm text-muted-foreground">Prix: {fav.wine.price}€</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          <Calendar className="w-3 h-3 inline mr-1" />
-                          Ajouté le {new Date(fav.created_at).toLocaleDateString('fr-FR')}
-                        </p>
-                      </div>
+                      {fav.wine.price && (
+                        <p className="text-sm text-muted-foreground">Prix: {fav.wine.price}€</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        <Calendar className="w-3 h-3 inline mr-1" />
+                        Ajouté le {new Date(fav.created_at).toLocaleDateString('fr-FR')}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : (
@@ -378,6 +388,13 @@ export const UserFavorites = () => {
           </p>
         )}
       </div>
+
+      {selectedWine && (
+        <WineDetailsDialog
+          wine={selectedWine}
+          onClose={() => setSelectedWine(null)}
+        />
+      )}
     </div>
   );
 };
