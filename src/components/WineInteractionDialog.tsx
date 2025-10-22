@@ -46,7 +46,7 @@ export const WineInteractionDialog = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [liked, setLiked] = useState<boolean | null>(null);
-  const [comment, setComment] = useState("");
+  const [publicComment, setPublicComment] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
   const [domain, setDomain] = useState<{ name: string } | null>(null);
@@ -74,7 +74,6 @@ export const WineInteractionDialog = ({
 
       if (noticeData) {
         setLiked(noticeData.liked);
-        setComment(noticeData.comment || "");
         if (noticeData.details && typeof noticeData.details === 'object' && !Array.isArray(noticeData.details)) {
           const details = noticeData.details as any;
           setTastingDetails({
@@ -85,6 +84,18 @@ export const WineInteractionDialog = ({
             remarks: details.remarks || "",
           });
         }
+      }
+
+      // Fetch public comment
+      const { data: commentData } = await supabase
+        .from("user_wine_comment")
+        .select("comment")
+        .eq("user_id", user.id)
+        .eq("wine_id", wine.id)
+        .maybeSingle();
+
+      if (commentData) {
+        setPublicComment(commentData.comment || "");
       }
 
       // Check if favorite
@@ -128,7 +139,6 @@ export const WineInteractionDialog = ({
       wine_id: wine.id,
       event_id: eventId,
       liked: newLiked,
-      comment: comment || null,
     }, {
       onConflict: 'user_id,wine_id,event_id'
     });
@@ -161,14 +171,12 @@ export const WineInteractionDialog = ({
 
     setLoading(true);
 
-    const { error } = await supabase.from("user_wine_notice").upsert({
+    const { error } = await supabase.from("user_wine_comment").upsert({
       user_id: user.id,
       wine_id: wine.id,
-      event_id: eventId,
-      comment: comment || null,
-      liked,
+      comment: publicComment || null,
     }, {
-      onConflict: 'user_id,wine_id,event_id'
+      onConflict: 'user_id,wine_id'
     });
 
     if (error) {
@@ -179,7 +187,7 @@ export const WineInteractionDialog = ({
       });
     } else {
       toast({
-        title: "Commentaire enregistré",
+        title: "Commentaire public enregistré",
       });
     }
 
@@ -203,7 +211,6 @@ export const WineInteractionDialog = ({
       wine_id: wine.id,
       event_id: eventId,
       details: tastingDetails as any,
-      comment: comment || null,
       liked,
     }, {
       onConflict: 'user_id,wine_id,event_id'
@@ -253,6 +260,7 @@ export const WineInteractionDialog = ({
       const { error } = await supabase.from("user_favorite").insert({
         user_id: user.id,
         wine_id: wine.id,
+        domain_id: wine.domain_id,
       });
 
       if (!error) {
@@ -324,12 +332,15 @@ export const WineInteractionDialog = ({
 
             <TabsContent value="comment" className="space-y-4">
               <div>
-                <Label htmlFor="comment">Votre commentaire</Label>
+                <Label htmlFor="comment">Votre commentaire public</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Ce commentaire sera visible par tous les utilisateurs
+                </p>
                 <Textarea
                   id="comment"
                   placeholder="Partagez votre impression sur ce vin..."
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                  value={publicComment}
+                  onChange={(e) => setPublicComment(e.target.value)}
                   rows={4}
                 />
               </div>
@@ -339,6 +350,9 @@ export const WineInteractionDialog = ({
             </TabsContent>
 
             <TabsContent value="tasting" className="space-y-6">
+              <p className="text-xs text-muted-foreground italic">
+                Ces notes de dégustation restent personnelles et privées
+              </p>
               <div className="space-y-4">
                 <div>
                   <Label>

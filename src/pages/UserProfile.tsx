@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { CreateCellarDialog } from '@/components/CreateCellarDialog';
+import { UserFavorites } from '@/components/UserFavorites';
 
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>();
@@ -199,6 +200,7 @@ export default function UserProfile() {
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="cellars">Mes caves</TabsTrigger>
             <TabsTrigger value="events">Mes événements</TabsTrigger>
+            <TabsTrigger value="favorites">Mes favoris</TabsTrigger>
           </TabsList>
 
           <TabsContent value="posts" className="mt-6 space-y-6">
@@ -329,6 +331,18 @@ export default function UserProfile() {
                   </Link>
                 ))}
               </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="favorites" className="mt-6">
+            {isOwnProfile ? (
+              <UserFavorites />
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">Les favoris ne sont visibles que par le propriétaire du profil</p>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
         </Tabs>
