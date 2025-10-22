@@ -161,12 +161,14 @@ export const WineInteractionDialog = ({
 
     setLoading(true);
 
-    const { error } = await supabase.from("user_wine_comment" as any).upsert({
+    const { error } = await supabase.from("user_wine_notice").upsert({
       user_id: user.id,
       wine_id: wine.id,
+      event_id: eventId,
       comment: comment || null,
+      liked,
     }, {
-      onConflict: 'user_id,wine_id'
+      onConflict: 'user_id,wine_id,event_id'
     });
 
     if (error) {
@@ -251,7 +253,6 @@ export const WineInteractionDialog = ({
       const { error } = await supabase.from("user_favorite").insert({
         user_id: user.id,
         wine_id: wine.id,
-        domain_id: wine.domain_id,
       });
 
       if (!error) {
@@ -338,9 +339,6 @@ export const WineInteractionDialog = ({
             </TabsContent>
 
             <TabsContent value="tasting" className="space-y-6">
-              <p className="text-xs text-muted-foreground italic">
-                Ces informations restent personnelles et ne sont pas partagées publiquement.
-              </p>
               <div className="space-y-4">
                 <div>
                   <Label>
