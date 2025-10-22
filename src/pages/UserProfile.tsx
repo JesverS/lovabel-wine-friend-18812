@@ -15,6 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { CreateCellarDialog } from '@/components/CreateCellarDialog';
+import { UserFavorites } from '@/components/UserFavorites';
+import { Heart } from 'lucide-react';
 
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>();
@@ -199,6 +201,12 @@ export default function UserProfile() {
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="cellars">Mes caves</TabsTrigger>
             <TabsTrigger value="events">Mes événements</TabsTrigger>
+            {isOwnProfile && (
+              <TabsTrigger value="favorites">
+                <Heart className="w-4 h-4 mr-2" />
+                Mes favoris
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="posts" className="mt-6 space-y-6">
@@ -331,6 +339,12 @@ export default function UserProfile() {
               </div>
             )}
           </TabsContent>
+
+          {isOwnProfile && (
+            <TabsContent value="favorites" className="mt-6">
+              <UserFavorites userId={id!} />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
