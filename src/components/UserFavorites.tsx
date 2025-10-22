@@ -393,6 +393,18 @@ export const UserFavorites = () => {
         <WineDetailsDialog
           wine={selectedWine}
           onClose={() => setSelectedWine(null)}
+          onFavoriteRemoved={() => {
+            setSelectedWine(null);
+            // Refresh the favorites list
+            setPage(0);
+            setHasMore(true);
+            if (viewMode === "date") {
+              fetchFavoritesByDate(0);
+            } else {
+              setDomains([]);
+              fetchDomains(0);
+            }
+          }}
         />
       )}
     </div>

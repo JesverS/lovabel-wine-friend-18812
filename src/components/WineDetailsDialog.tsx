@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { X, User, ChevronDown, ChevronUp } from "lucide-react";
+import { X, User, ChevronDown, ChevronUp, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 interface Wine {
   id: string;
@@ -34,6 +35,7 @@ interface Wine {
 interface WineDetailsDialogProps {
   wine: Wine;
   onClose: () => void;
+  onFavoriteRemoved?: () => void;
 }
 
 interface TastingDetails {
@@ -57,15 +59,18 @@ interface UserComment {
 export const WineDetailsDialog = ({
   wine,
   onClose,
+  onFavoriteRemoved,
 }: WineDetailsDialogProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [domain, setDomain] = useState<{ name: string; logo_url: string | null } | null>(null);
   const [comments, setComments] = useState<UserComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [isTastingOpen, setIsTastingOpen] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
     acidity: 3,
@@ -87,6 +92,16 @@ export const WineDetailsDialog = ({
         .single();
 
       setDomain(domainData);
+
+      // Check if wine is in favorites
+      const { data: favoriteData } = await supabase
+        .from("user_favorite")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("wine_id", wine.id)
+        .maybeSingle();
+
+      setIsFavorite(!!favoriteData);
 
       // Fetch private tasting notes
       const { data: noticeData } = await supabase
@@ -232,15 +247,55 @@ export const WineDetailsDialog = ({
     setIsPostingComment(false);
   };
 
+  const handleRemoveFromFavorites = async () => {
+    if (!user) {
+      toast({
+        title: "Connexion requise",
+        description: "Veuillez vous connecter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("user_favorite")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("wine_id", wine.id);
+
+    if (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de retirer ce vin de vos favoris",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Retiré des favoris",
+      });
+      setIsFavorite(false);
+      if (onFavoriteRemoved) {
+        onFavoriteRemoved();
+      }
+    }
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-3xl font-serif flex items-center justify-between">
             <span>{wine.name}</span>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {isFavorite && user && (
+                <Button variant="outline" size="icon" onClick={handleRemoveFromFavorites}>
+                  <Heart className="h-5 w-5 fill-current" />
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
@@ -265,7 +320,15 @@ export const WineDetailsDialog = ({
                   )}
                   <div>
                     <p className="text-sm text-muted-foreground">Domaine</p>
-                    <p className="text-xl font-semibold">{domain.name}</p>
+                    <button 
+                      onClick={() => {
+                        navigate(`/domain/${wine.domain_id}`);
+                        onClose();
+                      }}
+                      className="text-xl font-semibold hover:underline text-primary cursor-pointer"
+                    >
+                      {domain.name}
+                    </button>
                   </div>
                 </div>
               )}
@@ -455,16 +518,30 @@ export const WineDetailsDialog = ({
                 {comments.map((comment) => (
                   <div key={comment.user_id} className="border rounded-lg p-4 space-y-2">
                     <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
-                        <AvatarFallback>
-                          <User className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
+                      <button
+                        onClick={() => {
+                          navigate(`/user/${comment.user_id}`);
+                          onClose();
+                        }}
+                        className="cursor-pointer hover:opacity-80"
+                      >
+                        <Avatar>
+                          <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
+                          <AvatarFallback>
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
                       <div>
-                        <p className="font-medium">
+                        <button
+                          onClick={() => {
+                            navigate(`/user/${comment.user_id}`);
+                            onClose();
+                          }}
+                          className="font-medium hover:underline text-primary cursor-pointer"
+                        >
                           {comment.user_profiles?.full_name || "Utilisateur"}
-                        </p>
+                        </button>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(comment.created_at), "d MMMM yyyy", { locale: fr })}
                         </p>

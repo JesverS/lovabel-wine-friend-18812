@@ -494,20 +494,30 @@ export type Database = {
       user_favorite: {
         Row: {
           created_at: string
+          domain_id: string
           user_id: string
           wine_id: string
         }
         Insert: {
           created_at?: string
+          domain_id: string
           user_id: string
           wine_id?: string
         }
         Update: {
           created_at?: string
+          domain_id?: string
           user_id?: string
           wine_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_favorite_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "domain"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_favorite_user_id_fkey"
             columns: ["user_id"]
@@ -583,6 +593,42 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      user_wine_comment: {
+        Row: {
+          comment: string | null
+          created_at: string
+          user_id: string
+          wine_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          user_id: string
+          wine_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          user_id?: string
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_wine_comment_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_wine_comment_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wine"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_wine_inventory: {
         Row: {
@@ -743,30 +789,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      event_is_public: {
-        Args: { _event_id: string }
-        Returns: boolean
-      }
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
+      event_is_public: { Args: { _event_id: string }; Returns: boolean }
       search_domains: {
         Args: { query: string }
         Returns: {
@@ -798,18 +821,8 @@ export type Database = {
           year: number
         }[]
       }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
-      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       user_is_event_organizer: {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
