@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { X, User } from "lucide-react";
+import { X, User, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -62,6 +63,9 @@ export const WineDetailsDialog = ({
   const [loading, setLoading] = useState(false);
   const [domain, setDomain] = useState<{ name: string; logo_url: string | null } | null>(null);
   const [comments, setComments] = useState<UserComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [isPostingComment, setIsPostingComment] = useState(false);
+  const [isTastingOpen, setIsTastingOpen] = useState(false);
 
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
     acidity: 3,
@@ -158,9 +162,74 @@ export const WineDetailsDialog = ({
       toast({
         title: "Dégustation enregistrée",
       });
+      setIsTastingOpen(false);
     }
 
     setLoading(false);
+  };
+
+  const handlePostComment = async () => {
+    if (!user) {
+      toast({
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour commenter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newComment.trim()) {
+      toast({
+        title: "Commentaire vide",
+        description: "Veuillez saisir un commentaire",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsPostingComment(true);
+
+    const { error } = await supabase.from("user_wine_comment" as any).upsert({
+      user_id: user.id,
+      wine_id: wine.id,
+      comment: newComment,
+    }, {
+      onConflict: 'user_id,wine_id'
+    });
+
+    if (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer votre commentaire",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Commentaire enregistré",
+      });
+      setNewComment("");
+      
+      // Refresh comments
+      const { data: commentsData } = await supabase
+        .from("user_wine_comment" as any)
+        .select(`
+          user_id,
+          comment,
+          created_at,
+          user_profiles (
+            full_name,
+            logo_adress
+          )
+        `)
+        .eq("wine_id", wine.id)
+        .order("created_at", { ascending: false });
+
+      if (commentsData) {
+        setComments(commentsData as any);
+      }
+    }
+
+    setIsPostingComment(false);
   };
 
   return (
@@ -175,7 +244,7 @@ export const WineDetailsDialog = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Wine Image and Basic Info */}
           <div className="grid md:grid-cols-2 gap-6">
             {wine.label_url && (
@@ -247,19 +316,25 @@ export const WineDetailsDialog = ({
             </div>
           </div>
 
-          {/* Private Tasting Notes */}
-          <div className="border-t pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold">Mes impressions de dégustation</h3>
-              <div className="bg-muted/50 border border-border rounded-lg px-3 py-1">
-                <p className="text-xs text-muted-foreground italic flex items-center gap-2">
-                  <span className="text-primary">🔒</span>
-                  Vos impressions de dégustation restent personnelles et privées
-                </p>
-              </div>
+          {/* Private Tasting Notes - Collapsible */}
+          <Collapsible open={isTastingOpen} onOpenChange={setIsTastingOpen} className="border-t pt-6">
+            <div className="flex items-center justify-between">
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    Mes impressions de dégustation
+                    <span className="text-xs text-muted-foreground">(privé 🔒)</span>
+                  </span>
+                  {isTastingOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
             </div>
 
-            <div className="space-y-4">
+            <CollapsibleContent className="mt-4 space-y-4">
+              <p className="text-xs text-muted-foreground italic">
+                Vos impressions de dégustation restent personnelles et privées.
+              </p>
+
               <div>
                 <Label>Acidité: {tastingDetails.acidity}/5</Label>
                 <p className="text-xs text-muted-foreground mb-2">
@@ -343,13 +418,34 @@ export const WineDetailsDialog = ({
               <Button onClick={handleSaveTastingDetails} disabled={loading} className="w-full">
                 Enregistrer mes impressions
               </Button>
-            </div>
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Public Comments Section */}
           <div className="border-t pt-6">
             <h3 className="text-xl font-semibold mb-4">Commentaires des utilisateurs</h3>
             
+            {/* Form to add comment */}
+            {user && (
+              <div className="mb-6 space-y-3">
+                <Label htmlFor="new-comment">Ajouter un commentaire</Label>
+                <Textarea
+                  id="new-comment"
+                  placeholder="Partagez votre avis sur ce vin..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  rows={3}
+                />
+                <Button 
+                  onClick={handlePostComment} 
+                  disabled={isPostingComment || !newComment.trim()}
+                  className="w-full"
+                >
+                  Publier mon commentaire
+                </Button>
+              </div>
+            )}
+
             {comments.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
                 Aucun commentaire pour l'instant
