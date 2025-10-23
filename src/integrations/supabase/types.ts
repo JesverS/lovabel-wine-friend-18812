@@ -598,18 +598,21 @@ export type Database = {
         Row: {
           comment: string | null
           created_at: string
+          id: string
           user_id: string
           wine_id: string
         }
         Insert: {
           comment?: string | null
           created_at?: string
+          id?: string
           user_id: string
           wine_id: string
         }
         Update: {
           comment?: string | null
           created_at?: string
+          id?: string
           user_id?: string
           wine_id?: string
         }
@@ -626,6 +629,42 @@ export type Database = {
             columns: ["wine_id"]
             isOneToOne: false
             referencedRelation: "wine"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_wine_comment_reaction: {
+        Row: {
+          comment_id: string
+          created_at: string
+          reaction: number
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          reaction: number
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          reaction?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_comment_reaction_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "user_wine_comment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_comment_reaction_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -675,7 +714,7 @@ export type Database = {
           details: Json | null
           event_id: string | null
           id: string
-          liked: boolean | null
+          liked: number
           rating: number | null
           updated_at: string | null
           user_id: string | null
@@ -687,7 +726,7 @@ export type Database = {
           details?: Json | null
           event_id?: string | null
           id?: string
-          liked?: boolean | null
+          liked?: number
           rating?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -699,7 +738,7 @@ export type Database = {
           details?: Json | null
           event_id?: string | null
           id?: string
-          liked?: boolean | null
+          liked?: number
           rating?: number | null
           updated_at?: string | null
           user_id?: string | null
