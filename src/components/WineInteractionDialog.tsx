@@ -57,6 +57,7 @@ export const WineInteractionDialog = ({
   const [commentsPage, setCommentsPage] = useState(1);
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
+  const [commentReactions, setCommentReactions] = useState<Record<string, { userReaction: number | null, likeCount: number }>>({});
   
   const COMMENTS_PER_PAGE = 8;
 
@@ -161,6 +162,37 @@ export const WineInteractionDialog = ({
 
     setHasMoreComments(allComments.length === COMMENTS_PER_PAGE);
     setCommentsPage(page);
+
+    // Fetch reactions for all comments
+    if (sortedComments.length > 0) {
+      await fetchReactionsForComments(sortedComments.map((c: any) => c.id));
+    }
+  };
+
+  const fetchReactionsForComments = async (commentIds: string[]) => {
+    if (!commentIds.length) return;
+
+    // Fetch all reactions for these comments
+    const { data: reactionsData } = await supabase
+      .from('user_wine_comment_reaction' as any)
+      .select('*')
+      .in('comment_id', commentIds) as { data: any[] | null };
+
+    // Calculate like counts and user reactions
+    const reactionsMap: Record<string, { userReaction: number | null, likeCount: number }> = {};
+    
+    commentIds.forEach(commentId => {
+      const commentReactions = reactionsData?.filter((r: any) => r.comment_id === commentId) || [];
+      const userReaction = commentReactions.find((r: any) => r.user_id === session?.user?.id);
+      const likeCount = commentReactions.filter((r: any) => r.reaction === 1).length;
+      
+      reactionsMap[commentId] = {
+        userReaction: userReaction?.reaction || null,
+        likeCount
+      };
+    });
+
+    setCommentReactions(reactionsMap);
   };
 
   const loadMoreComments = async () => {
@@ -293,6 +325,60 @@ export const WineInteractionDialog = ({
     toast({
       title: "Commentaire supprimé",
     });
+  };
+
+  const handleCommentReaction = async (commentId: string, reaction: number) => {
+    if (!session?.user?.id) {
+      toast({
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour réagir",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const currentReaction = commentReactions[commentId]?.userReaction;
+    
+    // If clicking the same reaction, remove it
+    if (currentReaction === reaction) {
+      const { error } = await supabase
+        .from('user_wine_comment_reaction' as any)
+        .delete()
+        .eq('comment_id', commentId)
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de retirer la réaction",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Upsert the new reaction
+      const { error } = await supabase
+        .from('user_wine_comment_reaction' as any)
+        .upsert({
+          comment_id: commentId,
+          user_id: session.user.id,
+          reaction
+        } as any, {
+          onConflict: 'comment_id,user_id'
+        });
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible d'ajouter la réaction",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Refresh reactions for this comment
+    await fetchReactionsForComments([commentId]);
   };
 
   const handleSaveTastingDetails = async () => {
@@ -493,6 +579,25 @@ export const WineInteractionDialog = ({
                           <p className="text-sm text-muted-foreground mt-1">
                             {comment.comment}
                           </p>
+                          <div className="flex items-center gap-4 mt-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCommentReaction(comment.id, 1)}
+                              className={`h-8 ${commentReactions[comment.id]?.userReaction === 1 ? 'bg-primary/20' : ''}`}
+                            >
+                              <ThumbsUp className={`h-4 w-4 mr-1 ${commentReactions[comment.id]?.userReaction === 1 ? 'fill-current' : ''}`} />
+                              {commentReactions[comment.id]?.likeCount || 0}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCommentReaction(comment.id, -1)}
+                              className={`h-8 ${commentReactions[comment.id]?.userReaction === -1 ? 'bg-muted' : ''}`}
+                            >
+                              <ThumbsDown className={`h-4 w-4 ${commentReactions[comment.id]?.userReaction === -1 ? 'fill-current' : ''}`} />
+                            </Button>
+                          </div>
                         </>
                       )}
                     </div>

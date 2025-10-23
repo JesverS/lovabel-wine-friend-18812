@@ -47,6 +47,7 @@ interface TastingDetails {
 }
 
 interface UserComment {
+  id: string;
   user_id: string;
   comment: string;
   created_at: string;
@@ -77,6 +78,7 @@ export const WineDetailsDialog = ({
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
   const [liked, setLiked] = useState<number>(0); // 0 = neutre, 1 = j'aime, -1 = je n'aime pas
+  const [commentReactions, setCommentReactions] = useState<Record<string, { userReaction: number | null, likeCount: number }>>({});
 
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
     acidity: 3,
@@ -150,6 +152,7 @@ export const WineDetailsDialog = ({
     const { data: commentsData, error } = await supabase
       .from("user_wine_comment" as any)
       .select(`
+        id,
         user_id,
         comment,
         created_at,
@@ -183,7 +186,38 @@ export const WineDetailsDialog = ({
 
       setHasMoreComments(commentsData.length === pageSize);
       setCommentsPage(page);
+
+      // Fetch reactions for all comments
+      if (sortedComments.length > 0) {
+        await fetchReactionsForComments(sortedComments.map((c: any) => c.id));
+      }
     }
+  };
+
+  const fetchReactionsForComments = async (commentIds: string[]) => {
+    if (!commentIds.length) return;
+
+    // Fetch all reactions for these comments
+    const { data: reactionsData } = await supabase
+      .from('user_wine_comment_reaction' as any)
+      .select('*')
+      .in('comment_id', commentIds) as { data: any[] | null };
+
+    // Calculate like counts and user reactions
+    const reactionsMap: Record<string, { userReaction: number | null, likeCount: number }> = {};
+    
+    commentIds.forEach(commentId => {
+      const commentReactions = reactionsData?.filter((r: any) => r.comment_id === commentId) || [];
+      const userReaction = commentReactions.find((r: any) => r.user_id === user?.id);
+      const likeCount = commentReactions.filter((r: any) => r.reaction === 1).length;
+      
+      reactionsMap[commentId] = {
+        userReaction: userReaction?.reaction || null,
+        likeCount
+      };
+    });
+
+    setCommentReactions(reactionsMap);
   };
 
   const loadMoreComments = async () => {
@@ -427,6 +461,60 @@ export const WineDetailsDialog = ({
   const handleCancelEdit = () => {
     setEditingCommentUserId(null);
     setEditCommentText("");
+  };
+
+  const handleCommentReaction = async (commentId: string, reaction: number) => {
+    if (!user) {
+      toast({
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour réagir",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const currentReaction = commentReactions[commentId]?.userReaction;
+    
+    // If clicking the same reaction, remove it
+    if (currentReaction === reaction) {
+      const { error } = await supabase
+        .from('user_wine_comment_reaction' as any)
+        .delete()
+        .eq('comment_id', commentId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de retirer la réaction",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Upsert the new reaction
+      const { error } = await supabase
+        .from('user_wine_comment_reaction' as any)
+        .upsert({
+          comment_id: commentId,
+          user_id: user.id,
+          reaction
+        } as any, {
+          onConflict: 'comment_id,user_id'
+        });
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible d'ajouter la réaction",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Refresh reactions for this comment
+    await fetchReactionsForComments([commentId]);
   };
 
   return (
@@ -690,7 +778,7 @@ export const WineDetailsDialog = ({
             ) : (
               <div className="space-y-4">
                 {comments.map((comment) => (
-                  <div key={comment.user_id} className="border rounded-lg p-4 space-y-2">
+                  <div key={comment.id} className="border rounded-lg p-4 space-y-2">
                     {editingCommentUserId === comment.user_id ? (
                       <div className="space-y-3">
                         <Textarea
@@ -769,6 +857,25 @@ export const WineDetailsDialog = ({
                           )}
                         </div>
                         <p className="text-sm">{comment.comment}</p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCommentReaction(comment.id, 1)}
+                            className={`h-8 ${commentReactions[comment.id]?.userReaction === 1 ? 'bg-primary/20' : ''}`}
+                          >
+                            <ThumbsUp className={`h-4 w-4 mr-1 ${commentReactions[comment.id]?.userReaction === 1 ? 'fill-current' : ''}`} />
+                            {commentReactions[comment.id]?.likeCount || 0}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCommentReaction(comment.id, -1)}
+                            className={`h-8 ${commentReactions[comment.id]?.userReaction === -1 ? 'bg-muted' : ''}`}
+                          >
+                            <ThumbsDown className={`h-4 w-4 ${commentReactions[comment.id]?.userReaction === -1 ? 'fill-current' : ''}`} />
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>
