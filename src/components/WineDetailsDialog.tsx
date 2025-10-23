@@ -662,8 +662,8 @@ export const WineDetailsDialog = ({
           <div className="border-t pt-6">
             <h3 className="text-xl font-semibold mb-4">Commentaires des utilisateurs</h3>
             
-            {/* Form to add comment */}
-            {user && (
+            {/* Form to add comment - Only show if user hasn't commented yet */}
+            {user && !comments.find(c => c.user_id === user.id) && (
               <div className="mb-6 space-y-3">
                 <Label htmlFor="new-comment">Ajouter un commentaire</Label>
                 <Textarea
