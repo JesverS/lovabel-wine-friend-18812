@@ -131,7 +131,7 @@ export const WineInteractionDialog = ({
       .from('user_wine_comment' as any)
       .select(`
         *,
-        user_profiles (
+        user_profiles!user_wine_comment_user_id_fkey (
           full_name,
           logo_adress
         )
