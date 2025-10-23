@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Heart, MessageSquare, FileText, Star } from "lucide-react";
+import { Heart, MessageSquare, FileText, Star, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -45,7 +45,7 @@ export const WineInteractionDialog = ({
 }: WineInteractionDialogProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [liked, setLiked] = useState<boolean | null>(null);
+  const [liked, setLiked] = useState<number>(0); // 0 = neutre, 1 = j'aime, -1 = je n'aime pas
   const [publicComment, setPublicComment] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -73,7 +73,8 @@ export const WineInteractionDialog = ({
         .maybeSingle();
 
       if (noticeData) {
-        setLiked(noticeData.liked);
+        const likedValue = typeof noticeData.liked === 'number' ? noticeData.liked : (noticeData.liked ? 1 : 0);
+        setLiked(likedValue);
         if (noticeData.details && typeof noticeData.details === 'object' && !Array.isArray(noticeData.details)) {
           const details = noticeData.details as any;
           setTastingDetails({
@@ -121,25 +122,26 @@ export const WineInteractionDialog = ({
     fetchData();
   }, [user, wine.id, eventId, wine.domain_id]);
 
-  const handleToggleLike = async () => {
+  const handleSetLikeStatus = async (status: number) => {
     if (!user) {
       toast({
         title: "Connexion requise",
-        description: "Veuillez vous connecter pour liker un vin",
+        description: "Veuillez vous connecter pour donner votre avis",
         variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
-    const newLiked = !liked;
+    const newLiked = liked === status ? 0 : status;
 
     const { error } = await supabase.from("user_wine_notice").upsert({
       user_id: user.id,
       wine_id: wine.id,
       event_id: eventId,
-      liked: newLiked,
-    }, {
+      liked: newLiked as any,
+      details: tastingDetails as any,
+    } as any, {
       onConflict: 'user_id,wine_id,event_id'
     });
 
@@ -152,7 +154,7 @@ export const WineInteractionDialog = ({
     } else {
       setLiked(newLiked);
       toast({
-        title: newLiked ? "J'aime ajouté" : "J'aime retiré",
+        title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
       });
     }
 
@@ -211,8 +213,8 @@ export const WineInteractionDialog = ({
       wine_id: wine.id,
       event_id: eventId,
       details: tastingDetails as any,
-      liked,
-    }, {
+      liked: liked as any,
+    } as any, {
       onConflict: 'user_id,wine_id,event_id'
     });
 
@@ -299,19 +301,10 @@ export const WineInteractionDialog = ({
 
           <div className="flex gap-2">
             <Button
-              variant={liked ? "default" : "outline"}
-              onClick={handleToggleLike}
-              disabled={loading}
-              className="flex-1"
-            >
-              <Heart className={`h-4 w-4 mr-2 ${liked ? "fill-current" : ""}`} />
-              {liked ? "J'aime" : "J'aime cette bouteille"}
-            </Button>
-            <Button
               variant={isFavorite ? "default" : "outline"}
               onClick={handleToggleFavorite}
               disabled={loading}
-              className="flex-1"
+              className="w-full"
             >
               <Star className={`h-4 w-4 mr-2 ${isFavorite ? "fill-current" : ""}`} />
               {isFavorite ? "Favori" : "Ajouter aux favoris"}
@@ -356,6 +349,32 @@ export const WineInteractionDialog = ({
                   Ces notes de dégustation restent personnelles et privées
                 </p>
               </div>
+
+              {/* Like/Dislike buttons */}
+              <div className="space-y-2">
+                <Label>Mon avis sur cette bouteille</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={liked === 1 ? "default" : "outline"}
+                    onClick={() => handleSetLikeStatus(1)}
+                    disabled={loading}
+                    className="flex-1"
+                  >
+                    <ThumbsUp className={`h-4 w-4 mr-2 ${liked === 1 ? "fill-current" : ""}`} />
+                    J'aime
+                  </Button>
+                  <Button
+                    variant={liked === -1 ? "default" : "outline"}
+                    onClick={() => handleSetLikeStatus(-1)}
+                    disabled={loading}
+                    className="flex-1"
+                  >
+                    <ThumbsDown className={`h-4 w-4 mr-2 ${liked === -1 ? "fill-current" : ""}`} />
+                    Je n'aime pas
+                  </Button>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div>
                   <Label>
