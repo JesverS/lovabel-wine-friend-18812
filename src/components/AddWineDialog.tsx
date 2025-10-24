@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Loader2, Upload, X, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { CreateDomainDialog } from './CreateDomainDialog';
 
 interface AddWineDialogProps {
   cellarId: string;
@@ -92,11 +93,6 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const handleSelectDomain = (domain: any) => {
     setSelectedDomain(domain);
     setDomainSearch(domain.name);
-    setShowDomainResults(false);
-  };
-
-  const handleCreateNewDomain = () => {
-    setSelectedDomain({ name: domainSearch, isNew: true });
     setShowDomainResults(false);
   };
 
@@ -282,30 +278,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
     setUploadingImages(true);
 
     try {
-      let finalDomainId = selectedDomain.id;
-
-      // If it's a new domain, create it first
-      if (selectedDomain.isNew) {
-        const { data: newDomain, error: domainError } = await supabase
-          .from('domain')
-          .insert({ name: selectedDomain.name })
-          .select()
-          .single();
-
-        if (domainError) throw domainError;
-        finalDomainId = newDomain.id;
-
-        // Link user to the newly created domain
-        const { error: userDomainError } = await supabase
-          .from('user_domain')
-          .insert({
-            user_id: user.id,
-            domain_id: finalDomainId,
-            role: 0 // Default role
-          });
-
-        if (userDomainError) throw userDomainError;
-      }
+      const finalDomainId = selectedDomain.id;
 
       // Upload to domain bucket
       const fileExt = labelFile.name.split('.').pop();
@@ -369,9 +342,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
 
       toast({
         title: 'Succès',
-        description: selectedDomain.isNew 
-          ? 'Domaine et vin créés, ajoutés à la cave'
-          : 'Vin créé et ajouté à la cave',
+        description: 'Vin créé et ajouté à la cave',
       });
 
       setOpen(false);
@@ -706,18 +677,14 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
                   ) : (
                     <div className="p-4 text-center space-y-3">
                       <p className="text-sm text-muted-foreground">
-                        Aucun domaine trouvé pour "{domainSearch}"
+                        Aucun domaine trouvé
                       </p>
-                      <Button
-                        type="button"
-                        onClick={handleCreateNewDomain}
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Créer le domaine "{domainSearch}"
-                      </Button>
+                      <CreateDomainDialog
+                        onDomainCreated={(newDomain) => {
+                          handleSelectDomain(newDomain);
+                        }}
+                        initialName={domainSearch}
+                      />
                     </div>
                   )}
                 </div>
@@ -725,8 +692,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
               
               {selectedDomain && (
                 <p className="text-sm text-muted-foreground">
-                  {selectedDomain.isNew ? '✨ Nouveau domaine: ' : 'Sélectionné: '}
-                  {selectedDomain.name}
+                  Sélectionné: {selectedDomain.name}
                 </p>
               )}
             </div>
