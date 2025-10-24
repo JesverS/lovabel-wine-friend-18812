@@ -356,7 +356,7 @@ export const WineDetailsDialog = ({
     setIsPostingComment(false);
   };
 
-  const handleRemoveFromFavorites = async () => {
+  const handleToggleFavorite = async () => {
     if (!user) {
       toast({
         title: "Connexion requise",
@@ -366,25 +366,50 @@ export const WineDetailsDialog = ({
       return;
     }
 
-    const { error } = await supabase
-      .from("user_favorite")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("wine_id", wine.id);
+    if (isFavorite) {
+      // Retirer des favoris
+      const { error } = await supabase
+        .from("user_favorite")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("wine_id", wine.id);
 
-    if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de retirer ce vin de vos favoris",
-        variant: "destructive",
-      });
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de retirer ce vin de vos favoris",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Retiré des favoris",
+        });
+        setIsFavorite(false);
+        if (onFavoriteRemoved) {
+          onFavoriteRemoved();
+        }
+      }
     } else {
-      toast({
-        title: "Retiré des favoris",
-      });
-      setIsFavorite(false);
-      if (onFavoriteRemoved) {
-        onFavoriteRemoved();
+      // Ajouter aux favoris
+      const { error } = await supabase
+        .from("user_favorite")
+        .insert({
+          user_id: user.id,
+          wine_id: wine.id,
+          domain_id: wine.domain_id,
+        });
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible d'ajouter ce vin à vos favoris",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Ajouté aux favoris",
+        });
+        setIsFavorite(true);
       }
     }
   };
@@ -521,15 +546,8 @@ export const WineDetailsDialog = ({
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="relative pb-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onClose}
-            className="absolute right-0 top-0"
-          >
-            <X className="h-5 w-5" />
-          </Button>
+        <DialogHeader className="pb-4">
+          <DialogTitle className="sr-only">Détails du vin</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -550,9 +568,15 @@ export const WineDetailsDialog = ({
             <div className="space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <h2 className="text-3xl font-serif">{wine.name}</h2>
-                {isFavorite && user && (
-                  <Button variant="outline" size="icon" onClick={handleRemoveFromFavorites}>
-                    <Heart className="h-5 w-5 fill-current" />
+                {user && (
+                  <Button 
+                    variant={isFavorite ? "default" : "outline"} 
+                    size="sm" 
+                    onClick={handleToggleFavorite}
+                    className="flex items-center gap-2"
+                  >
+                    <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                    {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
                   </Button>
                 )}
               </div>
