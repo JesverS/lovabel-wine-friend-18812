@@ -30,6 +30,8 @@ interface Wine {
   volume_ml: number | null;
   alcohol_percentage: number | null;
   characteristics: any;
+  uber_order_url: string | null;
+  website_order_url: string | null;
 }
 
 interface WineDetailsDialogProps {
@@ -519,50 +521,56 @@ export const WineDetailsDialog = ({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-3xl font-serif flex items-center justify-between">
-            <span>{wine.name}</span>
-            <div className="flex items-center gap-2">
-              {isFavorite && user && (
-                <Button variant="outline" size="icon" onClick={handleRemoveFromFavorites}>
-                  <Heart className="h-5 w-5 fill-current" />
-                </Button>
-              )}
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </DialogTitle>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="relative pb-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onClose}
+            className="absolute right-0 top-0"
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Wine Image and Basic Info */}
-          <div className="grid md:grid-cols-2 gap-6">
+          {/* Wine Image and Info - Logo à gauche, infos à droite */}
+          <div className="grid md:grid-cols-[300px_1fr] gap-8">
+            {/* Logo/Image à gauche */}
             {wine.label_url && (
-              <div className="flex items-center justify-center">
+              <div className="flex items-start justify-center">
                 <img
                   src={wine.label_url}
                   alt={wine.name}
-                  className="w-full max-h-96 object-contain rounded-lg"
+                  className="w-full max-w-[300px] object-contain rounded-lg"
                 />
               </div>
             )}
             
+            {/* Toutes les infos à droite */}
             <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <h2 className="text-3xl font-serif">{wine.name}</h2>
+                {isFavorite && user && (
+                  <Button variant="outline" size="icon" onClick={handleRemoveFromFavorites}>
+                    <Heart className="h-5 w-5 fill-current" />
+                  </Button>
+                )}
+              </div>
+
               {domain && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pb-2 border-b">
                   {domain.logo_url && (
-                    <img src={domain.logo_url} alt={domain.name} className="h-12 w-12 rounded-full object-cover" />
+                    <img src={domain.logo_url} alt={domain.name} className="h-10 w-10 rounded-full object-cover" />
                   )}
                   <div>
-                    <p className="text-sm text-muted-foreground">Domaine</p>
+                    <p className="text-xs text-muted-foreground">Domaine</p>
                     <button 
                       onClick={() => {
                         navigate(`/domain/${wine.domain_id}`);
                         onClose();
                       }}
-                      className="text-xl font-semibold hover:underline text-primary cursor-pointer"
+                      className="text-lg font-semibold hover:underline text-primary cursor-pointer"
                     >
                       {domain.name}
                     </button>
@@ -570,45 +578,69 @@ export const WineDetailsDialog = ({
                 </div>
               )}
 
-              {wine.year && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Millésime</p>
-                  <p className="text-lg font-medium">{wine.year}</p>
-                </div>
-              )}
+              <div className="grid grid-cols-2 gap-4">
+                {wine.year && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Millésime</p>
+                    <p className="text-base font-medium">{wine.year}</p>
+                  </div>
+                )}
 
-              {wine.price && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Prix moyen</p>
-                  <p className="text-lg font-medium">{wine.price} €</p>
-                </div>
-              )}
+                {wine.volume_ml && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Contenance</p>
+                    <p className="text-base font-medium">{wine.volume_ml} ml</p>
+                  </div>
+                )}
 
-              {wine.volume_ml && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Volume</p>
-                  <p className="text-lg font-medium">{wine.volume_ml} ml</p>
-                </div>
-              )}
+                {wine.price && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Prix</p>
+                    <p className="text-base font-medium">{wine.price} €</p>
+                  </div>
+                )}
 
-              {wine.alcohol_percentage && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Degré d'alcool</p>
-                  <p className="text-lg font-medium">{wine.alcohol_percentage}%</p>
+                {wine.alcohol_percentage && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Degré d'alcool</p>
+                    <p className="text-base font-medium">{wine.alcohol_percentage}%</p>
+                  </div>
+                )}
+              </div>
+
+              {(wine.uber_order_url || wine.website_order_url) && (
+                <div className="flex gap-3 pt-2">
+                  {wine.uber_order_url && (
+                    <Button 
+                      onClick={() => window.open(wine.uber_order_url!, '_blank')}
+                      className="flex-1"
+                    >
+                      Commander sur Uber Eats
+                    </Button>
+                  )}
+                  {wine.website_order_url && (
+                    <Button 
+                      onClick={() => window.open(wine.website_order_url!, '_blank')}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Commander sur le site
+                    </Button>
+                  )}
                 </div>
               )}
 
               {wine.description && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Description</p>
-                  <p className="text-base">{wine.description}</p>
+                <div className="pt-2">
+                  <p className="text-sm text-muted-foreground mb-1">Description</p>
+                  <p className="text-sm leading-relaxed">{wine.description}</p>
                 </div>
               )}
 
               {wine.characteristics && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Caractéristiques</p>
-                  <pre className="text-sm bg-muted p-2 rounded">
+                  <p className="text-sm text-muted-foreground mb-1">Caractéristiques</p>
+                  <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
                     {JSON.stringify(wine.characteristics, null, 2)}
                   </pre>
                 </div>

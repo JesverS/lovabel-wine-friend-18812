@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { WineInteractionDialog } from "@/components/WineInteractionDialog";
+import { WineDetailsDialog } from "@/components/WineDetailsDialog";
 import { AddDomainToEventDialog } from "@/components/AddDomainToEventDialog";
 import { AddWineToEventDialog } from "@/components/AddWineToEventDialog";
 import { toast } from "@/hooks/use-toast";
@@ -55,6 +55,12 @@ interface Wine {
   label_url: string | null;
   description: string | null;
   domain_id: string;
+  price: number | null;
+  volume_ml: number | null;
+  alcohol_percentage: number | null;
+  characteristics: any;
+  uber_order_url: string | null;
+  website_order_url: string | null;
 }
 
 interface DomainWithWines {
@@ -151,7 +157,13 @@ const EventDetails = () => {
                 year,
                 label_url,
                 description,
-                domain_id
+                domain_id,
+                price,
+                volume_ml,
+                alcohol_percentage,
+                characteristics,
+                uber_order_url,
+                website_order_url
               )
             `)
             .eq("event_id", id)
@@ -519,9 +531,8 @@ const EventDetails = () => {
       <Footer />
 
       {selectedWine && event && (
-        <WineInteractionDialog
+        <WineDetailsDialog
           wine={selectedWine}
-          eventId={event.id}
           onClose={() => setSelectedWine(null)}
         />
       )}
