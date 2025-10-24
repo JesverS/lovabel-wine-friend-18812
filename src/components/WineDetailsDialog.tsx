@@ -72,7 +72,7 @@ export const WineDetailsDialog = ({
   const [comments, setComments] = useState<UserComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isPostingComment, setIsPostingComment] = useState(false);
-  const [isTastingOpen, setIsTastingOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<'tasting' | 'comments'>('tasting');
   const [isFavorite, setIsFavorite] = useState(false);
   const [editingCommentUserId, setEditingCommentUserId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState("");
@@ -301,7 +301,6 @@ export const WineDetailsDialog = ({
       toast({
         title: "Dégustation enregistrée",
       });
-      setIsTastingOpen(false);
     }
 
     setLoading(false);
@@ -648,286 +647,295 @@ export const WineDetailsDialog = ({
             </div>
           </div>
 
-          {/* Private Tasting Notes - Collapsible */}
-          <Collapsible open={isTastingOpen} onOpenChange={setIsTastingOpen} className="border-t pt-6">
-            <div className="flex items-center justify-between">
-              <CollapsibleTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                  <span className="flex items-center gap-2">
-                    Mes impressions de dégustation
-                    <span className="text-xs text-muted-foreground">(privé 🔒)</span>
-                  </span>
-                  {isTastingOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
+          {/* Tabs for Tasting and Comments */}
+          <div className="border-t pt-6">
+            <div className="flex gap-2 mb-6">
+              <Button
+                variant={activeTab === 'tasting' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('tasting')}
+                className="flex-1"
+              >
+                Mes impressions de dégustation
+                <span className="ml-2 text-xs">(privé 🔒)</span>
+              </Button>
+              <Button
+                variant={activeTab === 'comments' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('comments')}
+                className="flex-1"
+              >
+                Commentaires
+              </Button>
             </div>
 
-            <CollapsibleContent className="mt-4 space-y-4">
-              <p className="text-xs text-muted-foreground italic">
-                Vos impressions de dégustation restent personnelles et privées.
-              </p>
+            {/* Tasting Tab Content */}
+            {activeTab === 'tasting' && (
+              <div className="space-y-4">
+                <p className="text-xs text-muted-foreground italic">
+                  Vos impressions de dégustation restent personnelles et privées.
+                </p>
 
-              {/* Like/Dislike buttons */}
-              <div className="space-y-2">
-                <Label>Mon avis sur cette bouteille</Label>
-                <div className="flex gap-2">
-                  <Button
-                    variant={liked === 1 ? "default" : "outline"}
-                    onClick={() => handleSetLikeStatus(1)}
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    <ThumbsUp className={`h-4 w-4 mr-2 ${liked === 1 ? "fill-current" : ""}`} />
-                    J'aime
-                  </Button>
-                  <Button
-                    variant={liked === -1 ? "default" : "outline"}
-                    onClick={() => handleSetLikeStatus(-1)}
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    <ThumbsDown className={`h-4 w-4 mr-2 ${liked === -1 ? "fill-current" : ""}`} />
-                    Je n'aime pas
-                  </Button>
+                {/* Like/Dislike buttons */}
+                <div className="space-y-2">
+                  <Label>Mon avis sur cette bouteille</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={liked === 1 ? "default" : "outline"}
+                      onClick={() => handleSetLikeStatus(1)}
+                      disabled={loading}
+                      className="flex-1"
+                    >
+                      <ThumbsUp className={`h-4 w-4 mr-2 ${liked === 1 ? "fill-current" : ""}`} />
+                      J'aime
+                    </Button>
+                    <Button
+                      variant={liked === -1 ? "default" : "outline"}
+                      onClick={() => handleSetLikeStatus(-1)}
+                      disabled={loading}
+                      className="flex-1"
+                    >
+                      <ThumbsDown className={`h-4 w-4 mr-2 ${liked === -1 ? "fill-current" : ""}`} />
+                      Je n'aime pas
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <Label>Acidité: {tastingDetails.acidity}/5</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  1 = Très faible • 5 = Très marquée
-                </p>
-                <Slider
-                  value={[tastingDetails.acidity]}
-                  onValueChange={([value]) =>
-                    setTastingDetails({ ...tastingDetails, acidity: value })
-                  }
-                  min={1}
-                  max={5}
-                  step={1}
-                />
-              </div>
+                <div>
+                  <Label>Acidité: {tastingDetails.acidity}/5</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    1 = Très faible • 5 = Très marquée
+                  </p>
+                  <Slider
+                    value={[tastingDetails.acidity]}
+                    onValueChange={([value]) =>
+                      setTastingDetails({ ...tastingDetails, acidity: value })
+                    }
+                    min={1}
+                    max={5}
+                    step={1}
+                  />
+                </div>
 
-              <div>
-                <Label>Tanins: {tastingDetails.tannins}/5</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  1 = Très doux • 5 = Très tannique
-                </p>
-                <Slider
-                  value={[tastingDetails.tannins]}
-                  onValueChange={([value]) =>
-                    setTastingDetails({ ...tastingDetails, tannins: value })
-                  }
-                  min={1}
-                  max={5}
-                  step={1}
-                />
-              </div>
+                <div>
+                  <Label>Tanins: {tastingDetails.tannins}/5</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    1 = Très doux • 5 = Très tannique
+                  </p>
+                  <Slider
+                    value={[tastingDetails.tannins]}
+                    onValueChange={([value]) =>
+                      setTastingDetails({ ...tastingDetails, tannins: value })
+                    }
+                    min={1}
+                    max={5}
+                    step={1}
+                  />
+                </div>
 
-              <div>
-                <Label>Corps: {tastingDetails.body}/5</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  1 = Très léger • 5 = Très corpulent
-                </p>
-                <Slider
-                  value={[tastingDetails.body]}
-                  onValueChange={([value]) =>
-                    setTastingDetails({ ...tastingDetails, body: value })
-                  }
-                  min={1}
-                  max={5}
-                  step={1}
-                />
-              </div>
+                <div>
+                  <Label>Corps: {tastingDetails.body}/5</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    1 = Très léger • 5 = Très corpulent
+                  </p>
+                  <Slider
+                    value={[tastingDetails.body]}
+                    onValueChange={([value]) =>
+                      setTastingDetails({ ...tastingDetails, body: value })
+                    }
+                    min={1}
+                    max={5}
+                    step={1}
+                  />
+                </div>
 
-              <div>
-                <Label>Douceur: {tastingDetails.sweetness}/5</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  1 = Très sec • 5 = Très sucré
-                </p>
-                <Slider
-                  value={[tastingDetails.sweetness]}
-                  onValueChange={([value]) =>
-                    setTastingDetails({ ...tastingDetails, sweetness: value })
-                  }
-                  min={1}
-                  max={5}
-                  step={1}
-                />
-              </div>
+                <div>
+                  <Label>Douceur: {tastingDetails.sweetness}/5</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    1 = Très sec • 5 = Très sucré
+                  </p>
+                  <Slider
+                    value={[tastingDetails.sweetness]}
+                    onValueChange={([value]) =>
+                      setTastingDetails({ ...tastingDetails, sweetness: value })
+                    }
+                    min={1}
+                    max={5}
+                    step={1}
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="remarks">Remarques supplémentaires</Label>
-                <Textarea
-                  id="remarks"
-                  placeholder="Autres observations..."
-                  value={tastingDetails.remarks}
-                  onChange={(e) =>
-                    setTastingDetails({
-                      ...tastingDetails,
-                      remarks: e.target.value,
-                    })
-                  }
-                  rows={3}
-                />
-              </div>
+                <div>
+                  <Label htmlFor="remarks">Remarques supplémentaires</Label>
+                  <Textarea
+                    id="remarks"
+                    placeholder="Autres observations..."
+                    value={tastingDetails.remarks}
+                    onChange={(e) =>
+                      setTastingDetails({
+                        ...tastingDetails,
+                        remarks: e.target.value,
+                      })
+                    }
+                    rows={3}
+                  />
+                </div>
 
-              <Button onClick={handleSaveTastingDetails} disabled={loading} className="w-full">
-                Enregistrer mes impressions
-              </Button>
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Public Comments Section */}
-          <div className="border-t pt-6">
-            <h3 className="text-xl font-semibold mb-4">Commentaires des utilisateurs</h3>
-            
-            {/* Form to add comment - Only show if user hasn't commented yet */}
-            {user && !comments.find(c => c.user_id === user.id) && (
-              <div className="mb-6 space-y-3">
-                <Label htmlFor="new-comment">Ajouter un commentaire</Label>
-                <Textarea
-                  id="new-comment"
-                  placeholder="Partagez votre avis sur ce vin..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  rows={3}
-                />
-                <Button 
-                  onClick={handlePostComment} 
-                  disabled={isPostingComment || !newComment.trim()}
-                  className="w-full"
-                >
-                  Publier mon commentaire
+                <Button onClick={handleSaveTastingDetails} disabled={loading} className="w-full">
+                  Enregistrer mes impressions
                 </Button>
               </div>
             )}
 
-            {comments.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                Aucun commentaire pour l'instant
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="border rounded-lg p-4 space-y-2">
-                    {editingCommentUserId === comment.user_id ? (
-                      <div className="space-y-3">
-                        <Textarea
-                          value={editCommentText}
-                          onChange={(e) => setEditCommentText(e.target.value)}
-                          rows={3}
-                        />
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => handleUpdateComment(comment.user_id)}
-                            size="sm"
-                          >
-                            Sauvegarder
-                          </Button>
-                          <Button 
-                            onClick={handleCancelEdit}
-                            variant="outline"
-                            size="sm"
-                          >
-                            Annuler
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => {
-                                navigate(`/user/${comment.user_id}`);
-                                onClose();
-                              }}
-                              className="cursor-pointer hover:opacity-80"
-                            >
-                              <Avatar>
-                                <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
-                                <AvatarFallback>
-                                  <User className="h-4 w-4" />
-                                </AvatarFallback>
-                              </Avatar>
-                            </button>
-                            <div>
-                              <button
-                                onClick={() => {
-                                  navigate(`/user/${comment.user_id}`);
-                                  onClose();
-                                }}
-                                className="font-medium hover:underline text-primary cursor-pointer"
+            {/* Comments Tab Content */}
+            {activeTab === 'comments' && (
+              <div>
+                {/* Form to add comment - Only show if user hasn't commented yet */}
+                {user && !comments.find(c => c.user_id === user.id) && (
+                  <div className="mb-6 space-y-3">
+                    <Label htmlFor="new-comment">Ajouter un commentaire</Label>
+                    <Textarea
+                      id="new-comment"
+                      placeholder="Partagez votre avis sur ce vin..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      rows={3}
+                    />
+                    <Button 
+                      onClick={handlePostComment} 
+                      disabled={isPostingComment || !newComment.trim()}
+                      className="w-full"
+                    >
+                      Publier mon commentaire
+                    </Button>
+                  </div>
+                )}
+
+                {comments.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    Aucun commentaire pour l'instant
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {comments.map((comment) => (
+                      <div key={comment.id} className="border rounded-lg p-4 space-y-2">
+                        {editingCommentUserId === comment.user_id ? (
+                          <div className="space-y-3">
+                            <Textarea
+                              value={editCommentText}
+                              onChange={(e) => setEditCommentText(e.target.value)}
+                              rows={3}
+                            />
+                            <div className="flex gap-2">
+                              <Button 
+                                onClick={() => handleUpdateComment(comment.user_id)}
+                                size="sm"
                               >
-                                {comment.user_profiles?.full_name || "Utilisateur"}
-                              </button>
-                              <p className="text-xs text-muted-foreground">
-                                {format(new Date(comment.created_at), "d MMMM yyyy", { locale: fr })}
-                              </p>
+                                Sauvegarder
+                              </Button>
+                              <Button 
+                                onClick={handleCancelEdit}
+                                variant="outline"
+                                size="sm"
+                              >
+                                Annuler
+                              </Button>
                             </div>
                           </div>
-                          {user && user.id === comment.user_id && (
-                            <div className="flex gap-2">
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => {
+                                    navigate(`/user/${comment.user_id}`);
+                                    onClose();
+                                  }}
+                                  className="cursor-pointer hover:opacity-80"
+                                >
+                                  <Avatar>
+                                    <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
+                                    <AvatarFallback>
+                                      <User className="h-4 w-4" />
+                                    </AvatarFallback>
+                                  </Avatar>
+                                </button>
+                                <div>
+                                  <button
+                                    onClick={() => {
+                                      navigate(`/user/${comment.user_id}`);
+                                      onClose();
+                                    }}
+                                    className="font-medium hover:underline text-primary cursor-pointer"
+                                  >
+                                    {comment.user_profiles?.full_name || "Utilisateur"}
+                                  </button>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(new Date(comment.created_at), "d MMMM yyyy", { locale: fr })}
+                                  </p>
+                                </div>
+                              </div>
+                              {user && user.id === comment.user_id && (
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditComment(comment.user_id, comment.comment)}
+                                    className="text-primary hover:text-primary"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteComment(comment.user_id)}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-sm">{comment.comment}</p>
+                            <div className="flex items-center gap-4 mt-2">
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditComment(comment.user_id, comment.comment)}
-                                className="text-primary hover:text-primary"
+                                size="sm"
+                                onClick={() => handleCommentReaction(comment.id, 1)}
+                                className={`h-8 ${commentReactions[comment.id]?.userReaction === 1 ? 'bg-primary/20' : ''}`}
                               >
-                                <Pencil className="h-4 w-4" />
+                                <ThumbsUp className={`h-4 w-4 mr-1 ${commentReactions[comment.id]?.userReaction === 1 ? 'fill-current' : ''}`} />
+                                {commentReactions[comment.id]?.likeCount || 0}
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteComment(comment.user_id)}
-                                className="text-destructive hover:text-destructive"
+                                size="sm"
+                                onClick={() => handleCommentReaction(comment.id, -1)}
+                                className={`h-8 ${commentReactions[comment.id]?.userReaction === -1 ? 'bg-muted' : ''}`}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <ThumbsDown className={`h-4 w-4 ${commentReactions[comment.id]?.userReaction === -1 ? 'fill-current' : ''}`} />
                               </Button>
                             </div>
-                          )}
-                        </div>
-                        <p className="text-sm">{comment.comment}</p>
-                        <div className="flex items-center gap-4 mt-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCommentReaction(comment.id, 1)}
-                            className={`h-8 ${commentReactions[comment.id]?.userReaction === 1 ? 'bg-primary/20' : ''}`}
-                          >
-                            <ThumbsUp className={`h-4 w-4 mr-1 ${commentReactions[comment.id]?.userReaction === 1 ? 'fill-current' : ''}`} />
-                            {commentReactions[comment.id]?.likeCount || 0}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCommentReaction(comment.id, -1)}
-                            className={`h-8 ${commentReactions[comment.id]?.userReaction === -1 ? 'bg-muted' : ''}`}
-                          >
-                            <ThumbsDown className={`h-4 w-4 ${commentReactions[comment.id]?.userReaction === -1 ? 'fill-current' : ''}`} />
-                          </Button>
-                        </div>
-                      </>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {hasMoreComments && (
+                      <Button
+                        onClick={loadMoreComments}
+                        variant="outline"
+                        className="w-full"
+                        disabled={isLoadingMoreComments}
+                      >
+                        {isLoadingMoreComments ? "Chargement..." : "Charger plus de commentaires"}
+                      </Button>
+                    )}
+                    
+                    {!hasMoreComments && comments.length > 0 && (
+                      <p className="text-center text-sm text-muted-foreground py-4">
+                        Tous les commentaires ont été chargés
+                      </p>
                     )}
                   </div>
-                ))}
-                
-                {hasMoreComments && (
-                  <Button
-                    onClick={loadMoreComments}
-                    variant="outline"
-                    className="w-full"
-                    disabled={isLoadingMoreComments}
-                  >
-                    {isLoadingMoreComments ? "Chargement..." : "Charger plus de commentaires"}
-                  </Button>
-                )}
-                
-                {!hasMoreComments && comments.length > 0 && (
-                  <p className="text-center text-sm text-muted-foreground py-4">
-                    Tous les commentaires ont été chargés
-                  </p>
                 )}
               </div>
             )}
