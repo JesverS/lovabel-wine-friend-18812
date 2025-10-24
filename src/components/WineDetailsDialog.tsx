@@ -699,68 +699,84 @@ export const WineDetailsDialog = ({
                   </div>
                 </div>
 
-                <div>
-                  <Label>Acidité: {tastingDetails.acidity}/5</Label>
-                  <p className="text-xs text-muted-foreground mb-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-4">
+                    <Label className="text-sm font-medium min-w-[120px]">Acidité</Label>
+                    <Slider
+                      value={[tastingDetails.acidity]}
+                      onValueChange={([value]) =>
+                        setTastingDetails({ ...tastingDetails, acidity: value })
+                      }
+                      min={1}
+                      max={5}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-semibold min-w-[30px] text-right text-primary">{tastingDetails.acidity}/5</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-[136px]">
                     1 = Très faible • 5 = Très marquée
                   </p>
-                  <Slider
-                    value={[tastingDetails.acidity]}
-                    onValueChange={([value]) =>
-                      setTastingDetails({ ...tastingDetails, acidity: value })
-                    }
-                    min={1}
-                    max={5}
-                    step={1}
-                  />
                 </div>
 
-                <div>
-                  <Label>Tanins: {tastingDetails.tannins}/5</Label>
-                  <p className="text-xs text-muted-foreground mb-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-4">
+                    <Label className="text-sm font-medium min-w-[120px]">Tanins</Label>
+                    <Slider
+                      value={[tastingDetails.tannins]}
+                      onValueChange={([value]) =>
+                        setTastingDetails({ ...tastingDetails, tannins: value })
+                      }
+                      min={1}
+                      max={5}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-semibold min-w-[30px] text-right text-primary">{tastingDetails.tannins}/5</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-[136px]">
                     1 = Très doux • 5 = Très tannique
                   </p>
-                  <Slider
-                    value={[tastingDetails.tannins]}
-                    onValueChange={([value]) =>
-                      setTastingDetails({ ...tastingDetails, tannins: value })
-                    }
-                    min={1}
-                    max={5}
-                    step={1}
-                  />
                 </div>
 
-                <div>
-                  <Label>Corps: {tastingDetails.body}/5</Label>
-                  <p className="text-xs text-muted-foreground mb-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-4">
+                    <Label className="text-sm font-medium min-w-[120px]">Corps</Label>
+                    <Slider
+                      value={[tastingDetails.body]}
+                      onValueChange={([value]) =>
+                        setTastingDetails({ ...tastingDetails, body: value })
+                      }
+                      min={1}
+                      max={5}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-semibold min-w-[30px] text-right text-primary">{tastingDetails.body}/5</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-[136px]">
                     1 = Très léger • 5 = Très corpulent
                   </p>
-                  <Slider
-                    value={[tastingDetails.body]}
-                    onValueChange={([value]) =>
-                      setTastingDetails({ ...tastingDetails, body: value })
-                    }
-                    min={1}
-                    max={5}
-                    step={1}
-                  />
                 </div>
 
-                <div>
-                  <Label>Douceur: {tastingDetails.sweetness}/5</Label>
-                  <p className="text-xs text-muted-foreground mb-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-4">
+                    <Label className="text-sm font-medium min-w-[120px]">Douceur</Label>
+                    <Slider
+                      value={[tastingDetails.sweetness]}
+                      onValueChange={([value]) =>
+                        setTastingDetails({ ...tastingDetails, sweetness: value })
+                      }
+                      min={1}
+                      max={5}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-semibold min-w-[30px] text-right text-primary">{tastingDetails.sweetness}/5</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-[136px]">
                     1 = Très sec • 5 = Très sucré
                   </p>
-                  <Slider
-                    value={[tastingDetails.sweetness]}
-                    onValueChange={([value]) =>
-                      setTastingDetails({ ...tastingDetails, sweetness: value })
-                    }
-                    min={1}
-                    max={5}
-                    step={1}
-                  />
                 </div>
 
                 <div>
