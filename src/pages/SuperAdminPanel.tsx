@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Shield } from 'lucide-react';
 import { Header } from '@/components/Header';
+import { DomainApplications } from '@/components/admin/DomainApplications';
 
 const SuperAdminPanel = () => {
   const navigate = useNavigate();
@@ -84,7 +85,14 @@ const SuperAdminPanel = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto p-8">
-        <h1 className="text-4xl font-bold text-center text-foreground">Super Admin Page</h1>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-foreground mb-2">Panneau Super Admin</h1>
+          <p className="text-muted-foreground">Gestion des demandes et administration de la plateforme</p>
+        </div>
+        
+        <div className="space-y-8">
+          <DomainApplications />
+        </div>
       </div>
     </div>
   );
