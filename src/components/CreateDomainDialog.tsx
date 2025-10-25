@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Plus, Upload, X, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CreateDomainDialogProps {
   onDomainCreated: () => void;
@@ -22,6 +23,7 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<number>(3); // Default: Employé
   const [name, setName] = useState(initialName || '');
   const [description, setDescription] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -52,28 +54,19 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
 
     setLoading(true);
     try {
-      // Vérifier si le domaine a déjà un propriétaire
-      const { data: existingOwners } = await supabase
-        .from('user_domain')
-        .select('role')
-        .eq('domain_id', domain.id);
-
-      const hasOwner = existingOwners?.some(owner => owner.role === 1);
-
-      // Créer une demande d'application
+      // Créer une demande d'application avec le rôle choisi
       const { error } = await supabase
         .from('user_domain_application')
         .insert({
           user_id: user.id,
           domain_id: domain.id,
-          role: hasOwner ? 3 : 1 // Si pas de propriétaire, demander propriétaire, sinon employé
+          role: selectedRole
         });
 
       if (error) throw error;
 
-      toast.success(hasOwner 
-        ? 'Demande envoyée au propriétaire du domaine' 
-        : 'Demande envoyée à l\'administration');
+      const roleLabel = selectedRole === 1 ? 'propriétaire' : selectedRole === 2 ? 'administrateur' : 'employé';
+      toast.success(`Demande de rôle ${roleLabel} envoyée`);
       setOpen(false);
       onDomainCreated();
     } catch (error: any) {
@@ -153,7 +146,7 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
         .insert({
           user_id: user.id,
           domain_id: domain.id,
-          role: 1 // Demande de propriétaire
+          role: selectedRole // Utiliser le rôle choisi
         });
 
       if (applicationError) throw applicationError;
@@ -209,6 +202,20 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
                   className="pl-9"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Rôle demandé</Label>
+              <Select value={selectedRole.toString()} onValueChange={(value) => setSelectedRole(parseInt(value))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Propriétaire</SelectItem>
+                  <SelectItem value="2">Administrateur</SelectItem>
+                  <SelectItem value="3">Employé</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {searchResults.length > 0 && (
