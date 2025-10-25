@@ -15,6 +15,7 @@ import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
 import DomainDetails from "./pages/DomainDetails";
 import SuperAdminPanel from "./pages/SuperAdminPanel";
+import CompleteProfile from "./pages/CompleteProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/event/:id" element={<EventDetails />} />
             <Route path="/domain/:id" element={<DomainDetails />} />
             <Route path="/super-admin" element={<SuperAdminPanel />} />
+            <Route path="/complete-profile" element={<CompleteProfile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

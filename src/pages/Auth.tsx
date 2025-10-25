@@ -71,11 +71,31 @@ export default function Auth() {
         setIsForgotPassword(false);
         setIsLogin(true);
       } else if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+        
+        // Vérifier si le profil est complet
+        if (data.user) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('full_name, last_name, city')
+            .eq('id', data.user.id)
+            .single();
+          
+          // Rediriger vers complete-profile si les champs obligatoires sont vides
+          if (!profile?.full_name || !profile?.last_name || !profile?.city) {
+            toast({ 
+              title: 'Bienvenue!',
+              description: 'Veuillez compléter votre profil'
+            });
+            navigate('/complete-profile');
+            return;
+          }
+        }
+        
         toast({ title: 'Connexion réussie!' });
         navigate('/');
       } else {
