@@ -61,13 +61,29 @@ const SuperAdminPanel = () => {
 
   const loadUsers = async () => {
     try {
-      const { data, error } = await supabase
+      // Charger les profils avec leurs rôles depuis user_roles
+      const { data: profiles, error: profilesError } = await supabase
         .from('user_profiles')
-        .select('id, full_name, role, created_at')
+        .select('id, full_name, created_at')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesError) throw profilesError;
+
+      // Charger tous les rôles
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) throw rolesError;
+
+      // Mapper les rôles aux profils (défaut: 'user')
+      const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+      const usersWithRoles = profiles?.map(p => ({
+        ...p,
+        role: rolesMap.get(p.id) || 'user'
+      })) || [];
+
+      setUsers(usersWithRoles);
     } catch (error: any) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
       toast.error('Erreur lors du chargement des utilisateurs');
@@ -88,12 +104,26 @@ const SuperAdminPanel = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
+      if (newRole === 'user') {
+        // Supprimer l'entrée de user_roles (rôle par défaut)
+        const { error } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Insérer ou mettre à jour dans user_roles
+        const { error } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: userId,
+            role: newRole as any,
+            updated_at: new Date().toISOString()
+          } as any);
+
+        if (error) throw error;
+      }
 
       toast.success('Rôle mis à jour avec succès');
       await loadUsers();
