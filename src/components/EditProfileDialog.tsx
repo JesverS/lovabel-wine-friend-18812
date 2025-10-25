@@ -26,7 +26,10 @@ const profileSchema = z.object({
   address: z.string().trim().max(200, 'Maximum 200 caractères').optional(),
   city: z.string().trim().max(100, 'Maximum 100 caractères').optional(),
   téléphone: z.string().trim().max(20, 'Maximum 20 caractères').optional(),
-  affiliate_link: z.string().trim().url('Lien invalide').optional().or(z.literal('')),
+  affiliate_link: z.string().trim().optional().refine(
+    (val) => !val || z.string().url().safeParse(val).success,
+    { message: 'Lien invalide' }
+  ),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -143,8 +146,8 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
           description: validated.description || null,
           address: validated.address || null,
           city: validated.city || null,
-          téléphone: validated.téléphone ? parseInt(validated.téléphone) : null,
-          affiliate_link: validated.affiliate_link || null,
+          téléphone: validated.téléphone && validated.téléphone.trim() ? parseInt(validated.téléphone) : null,
+          affiliate_link: validated.affiliate_link && validated.affiliate_link.trim() ? validated.affiliate_link : null,
           logo_adress: avatarPreview || null,
         })
         .eq('id', user.id);
