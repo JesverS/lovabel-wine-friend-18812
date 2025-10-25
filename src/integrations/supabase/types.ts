@@ -633,26 +633,31 @@ export type Database = {
       user_roles: {
         Row: {
           created_at: string | null
-          id: string
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
-          id?: string
           role: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
-          id?: string
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_wine_comment: {
         Row: {
