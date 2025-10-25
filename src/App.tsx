@@ -50,7 +50,7 @@ const AppRoutes = () => {
           user && profileComplete === false ? <CompleteProfile /> : <Navigate to="/" replace />
         } 
       />
-      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/" element={<Index />} />
       <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
       <Route path="/user/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
       <Route path="/wine/:id" element={<ProtectedRoute><WineDetails /></ProtectedRoute>} />
