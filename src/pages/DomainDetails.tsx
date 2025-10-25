@@ -12,6 +12,8 @@ import { Store, MapPin, Globe, Phone, Mail, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DomainAdministration } from '@/components/DomainAdministration';
 
 export default function DomainDetails() {
   const { id } = useParams();
@@ -19,7 +21,7 @@ export default function DomainDetails() {
   const [domain, setDomain] = useState<any>(null);
   const [wines, setWines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -70,7 +72,7 @@ export default function DomainDetails() {
       .eq('domain_id', id)
       .single();
 
-    setIsAdmin(!!data);
+    setUserRole(data?.role ?? null);
   };
 
   // Get unique years from wines
@@ -222,74 +224,157 @@ export default function DomainDetails() {
           </CardContent>
         </Card>
 
-        {/* Wines Section */}
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <CardTitle>Vins du domaine ({filteredAndSortedWines.length})</CardTitle>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Année" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes les années</SelectItem>
-                    {availableYears.map((year) => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year}
-                        {wineTypesByYear[year] && (
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            ({Array.from(wineTypesByYear[year]).join(', ')})
-                          </span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        {/* Content with Tabs */}
+        {userRole !== null && (userRole === 1 || userRole === 2) ? (
+          <Tabs defaultValue="wines" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="wines">Vins</TabsTrigger>
+              <TabsTrigger value="admin">Administrer</TabsTrigger>
+            </TabsList>
 
-                <Select value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Trier par" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="desc">Plus récent → Plus vieux</SelectItem>
-                    <SelectItem value="asc">Plus vieux → Plus récent</SelectItem>
-                  </SelectContent>
-                </Select>
+            <TabsContent value="wines">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <CardTitle>Vins du domaine ({filteredAndSortedWines.length})</CardTitle>
+                    
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Select value={selectedYear} onValueChange={setSelectedYear}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                          <SelectValue placeholder="Année" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Toutes les années</SelectItem>
+                          {availableYears.map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                              {wineTypesByYear[year] && (
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  ({Array.from(wineTypesByYear[year]).join(', ')})
+                                </span>
+                              )}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                          <SelectValue placeholder="Trier par" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="desc">Plus récent → Plus vieux</SelectItem>
+                          <SelectItem value="asc">Plus vieux → Plus récent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {filteredAndSortedWines.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground">
+                        {wines.length === 0 
+                          ? 'Aucun vin disponible pour ce domaine' 
+                          : 'Aucun vin trouvé pour cette année'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredAndSortedWines.map((wine) => (
+                        <Link key={wine.id} to={`/wine/${wine.id}`}>
+                          <WineCard
+                            name={wine.name}
+                            domain={domain.name}
+                            year={wine.year || 0}
+                            region={domain.address || ''}
+                            price={Number(wine.price) || 0}
+                            rating={4.5}
+                            imageUrl={wine.label_url}
+                            available={wine.stock > 0}
+                            tags={wine.characteristics?.type ? [wine.characteristics.type] : []}
+                          />
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="admin">
+              <DomainAdministration domainId={id!} userRole={userRole} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>Vins du domaine ({filteredAndSortedWines.length})</CardTitle>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Année" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes les années</SelectItem>
+                      {availableYears.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                          {wineTypesByYear[year] && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              ({Array.from(wineTypesByYear[year]).join(', ')})
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Trier par" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="desc">Plus récent → Plus vieux</SelectItem>
+                      <SelectItem value="asc">Plus vieux → Plus récent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {filteredAndSortedWines.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">
-                  {wines.length === 0 
-                    ? 'Aucun vin disponible pour ce domaine' 
-                    : 'Aucun vin trouvé pour cette année'}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredAndSortedWines.map((wine) => (
-                  <Link key={wine.id} to={`/wine/${wine.id}`}>
-                    <WineCard
-                      name={wine.name}
-                      domain={domain.name}
-                      year={wine.year || 0}
-                      region={domain.address || ''}
-                      price={Number(wine.price) || 0}
-                      rating={4.5}
-                      imageUrl={wine.label_url}
-                      available={wine.stock > 0}
-                      tags={wine.characteristics?.type ? [wine.characteristics.type] : []}
-                    />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {filteredAndSortedWines.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">
+                    {wines.length === 0 
+                      ? 'Aucun vin disponible pour ce domaine' 
+                      : 'Aucun vin trouvé pour cette année'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedWines.map((wine) => (
+                    <Link key={wine.id} to={`/wine/${wine.id}`}>
+                      <WineCard
+                        name={wine.name}
+                        domain={domain.name}
+                        year={wine.year || 0}
+                        region={domain.address || ''}
+                        price={Number(wine.price) || 0}
+                        rating={4.5}
+                        imageUrl={wine.label_url}
+                        available={wine.stock > 0}
+                        tags={wine.characteristics?.type ? [wine.characteristics.type] : []}
+                      />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </main>
       <Footer />
     </div>

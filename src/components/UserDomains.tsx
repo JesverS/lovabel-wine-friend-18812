@@ -11,6 +11,7 @@ import { CreateDomainDialog } from '@/components/CreateDomainDialog';
 export function UserDomains() {
   const { user } = useAuth();
   const [domains, setDomains] = useState<any[]>([]);
+  const [pendingApplications, setPendingApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,15 +25,27 @@ export function UserDomains() {
 
     setLoading(true);
     
+    // Récupérer les domaines validés
     const { data: userDomains } = await supabase
       .from('user_domain')
-      .select('domain_id, domain(*)')
+      .select('domain_id, domain(*), role')
       .eq('user_id', user.id);
 
     if (userDomains) {
-      const domainsList = userDomains.map((ud: any) => ud.domain).filter(Boolean);
+      const domainsList = userDomains.map((ud: any) => ({
+        ...ud.domain,
+        user_role: ud.role
+      })).filter(Boolean);
       setDomains(domainsList);
     }
+
+    // Récupérer les demandes en attente
+    const { data: applications } = await supabase
+      .from('user_domain_application')
+      .select('*, domain(*)')
+      .eq('user_id', user.id);
+
+    setPendingApplications(applications || []);
 
     setLoading(false);
   };
@@ -45,12 +58,52 @@ export function UserDomains() {
     );
   }
 
+  const getRoleLabel = (role: number) => {
+    switch (role) {
+      case 1: return 'Propriétaire';
+      case 2: return 'Administrateur';
+      case 3: return 'Employé';
+      default: return 'Inconnu';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Mes domaines</h2>
         <CreateDomainDialog onDomainCreated={fetchUserDomains} />
       </div>
+
+      {pendingApplications.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Demandes en attente de validation</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pendingApplications.map((app) => (
+              <Card key={app.domain.id} className="border-yellow-500/50">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={app.domain.logo_url || undefined} />
+                      <AvatarFallback>
+                        <Store className="w-6 h-6" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold truncate">{app.domain.name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Rôle demandé : {getRoleLabel(app.role)}
+                      </p>
+                      <p className="text-sm text-yellow-600 dark:text-yellow-500 mt-1">
+                        ⏳ En attente de validation
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {domains.length === 0 ? (
         <Card>
@@ -76,7 +129,12 @@ export function UserDomains() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg truncate mb-2">{domain.name}</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-lg truncate">{domain.name}</h3>
+                      <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                        {getRoleLabel(domain.user_role)}
+                      </span>
+                    </div>
                     {domain.address && (
                       <p className="text-sm text-muted-foreground mb-2">📍 {domain.address}</p>
                     )}

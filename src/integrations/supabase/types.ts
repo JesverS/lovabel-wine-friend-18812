@@ -455,6 +455,42 @@ export type Database = {
           },
         ]
       }
+      user_domain_application: {
+        Row: {
+          created_at: string
+          domain_id: string | null
+          role: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain_id?: string | null
+          role?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain_id?: string | null
+          role?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_domain_application_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "domain"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_domain_application_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_event: {
         Row: {
           created_at: string
@@ -769,7 +805,7 @@ export type Database = {
           description: string | null
           domain_id: string | null
           id: string
-          label_url: string | null
+          label_url: string
           name: string
           price: number | null
           stock: number | null
@@ -786,7 +822,7 @@ export type Database = {
           description?: string | null
           domain_id?: string | null
           id?: string
-          label_url?: string | null
+          label_url?: string
           name: string
           price?: number | null
           stock?: number | null
@@ -803,7 +839,7 @@ export type Database = {
           description?: string | null
           domain_id?: string | null
           id?: string
-          label_url?: string | null
+          label_url?: string
           name?: string
           price?: number | null
           stock?: number | null

@@ -165,8 +165,8 @@ export function AddDomainToEventDialog({ eventId, onDomainAdded }: AddDomainToEv
                       Aucun domaine trouvé
                     </p>
                     <CreateDomainDialog
-                      onDomainCreated={(newDomain) => {
-                        handleSelectDomain(newDomain);
+                      onDomainCreated={() => {
+                        searchDomains(domainSearch);
                         onDomainAdded();
                       }}
                       initialName={domainSearch}

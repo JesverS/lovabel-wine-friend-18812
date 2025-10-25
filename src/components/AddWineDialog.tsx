@@ -680,8 +680,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
                         Aucun domaine trouvé
                       </p>
                       <CreateDomainDialog
-                        onDomainCreated={(newDomain) => {
-                          handleSelectDomain(newDomain);
+                        onDomainCreated={() => {
+                          searchDomains(domainSearch);
                         }}
                         initialName={domainSearch}
                       />
