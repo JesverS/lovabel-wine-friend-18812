@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DomainAdministration } from '@/components/DomainAdministration';
+import { EditDomainDialog } from '@/components/EditDomainDialog';
+import { AddWineToDomainDialog } from '@/components/AddWineToDomainDialog';
 
 export default function DomainDetails() {
   const { id } = useParams();
@@ -173,7 +175,12 @@ export default function DomainDetails() {
               </Avatar>
 
               <div className="flex-1">
-                <h1 className="text-4xl font-bold mb-4">{domain.name}</h1>
+                <div className="flex items-start justify-between mb-4">
+                  <h1 className="text-4xl font-bold">{domain.name}</h1>
+                  {userRole !== null && (userRole === 1 || userRole === 2) && (
+                    <EditDomainDialog domain={domain} onDomainUpdated={fetchDomainDetails} />
+                  )}
+                </div>
                 
                 {domain.description && (
                   <p className="text-muted-foreground mb-6">{domain.description}</p>
@@ -238,7 +245,14 @@ export default function DomainDetails() {
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <CardTitle>Vins du domaine ({filteredAndSortedWines.length})</CardTitle>
                     
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3 items-end">
+                      {userRole !== null && (
+                        <AddWineToDomainDialog 
+                          domainId={id!} 
+                          onWineCreated={fetchDomainWines} 
+                        />
+                      )}
+                      
                       <Select value={selectedYear} onValueChange={setSelectedYear}>
                         <SelectTrigger className="w-full sm:w-[180px]">
                           <SelectValue placeholder="Année" />
@@ -312,7 +326,14 @@ export default function DomainDetails() {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <CardTitle>Vins du domaine ({filteredAndSortedWines.length})</CardTitle>
                 
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 items-end">
+                  {userRole !== null && (
+                    <AddWineToDomainDialog 
+                      domainId={id!} 
+                      onWineCreated={fetchDomainWines} 
+                    />
+                  )}
+                  
                   <Select value={selectedYear} onValueChange={setSelectedYear}>
                     <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Année" />
