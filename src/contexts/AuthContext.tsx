@@ -36,32 +36,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfileComplete(
         !!(profile?.full_name && profile?.last_name && profile?.city)
       );
+      setLoading(false);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await checkProfileComplete(session.user.id);
+          setTimeout(() => {
+            checkProfileComplete(session.user.id);
+          }, 0);
         } else {
           setProfileComplete(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        await checkProfileComplete(session.user.id);
+        checkProfileComplete(session.user.id);
+      } else {
+        setProfileComplete(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
