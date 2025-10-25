@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom';
 import { CreateCellarDialog } from '@/components/CreateCellarDialog';
 import { UserFavorites } from '@/components/UserFavorites';
 import { UserTastings } from '@/components/UserTastings';
+import { UserDomains } from '@/components/UserDomains';
 
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>();
@@ -200,6 +201,7 @@ export default function UserProfile() {
           <TabsList>
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="cellars">Mes caves</TabsTrigger>
+            <TabsTrigger value="domains">Mes domaines</TabsTrigger>
             <TabsTrigger value="events">Mes événements</TabsTrigger>
             <TabsTrigger value="tastings">Mes dégustations</TabsTrigger>
             <TabsTrigger value="favorites">Mes favoris</TabsTrigger>
@@ -269,6 +271,18 @@ export default function UserProfile() {
                   </Link>
                 ))}
               </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="domains" className="mt-6">
+            {isOwnProfile ? (
+              <UserDomains />
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">Les domaines ne sont visibles que par le propriétaire du profil</p>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 
