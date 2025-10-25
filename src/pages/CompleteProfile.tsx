@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Upload, User } from 'lucide-react';
+import { AvatarCropDialog } from '@/components/AvatarCropDialog';
 
 export default function CompleteProfile() {
   const { user } = useAuth();
@@ -16,6 +17,8 @@ export default function CompleteProfile() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -27,18 +30,47 @@ export default function CompleteProfile() {
     logo_adress: '',
   });
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Erreur',
+        description: 'Le fichier doit être une image',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Erreur',
+        description: 'L\'image ne doit pas dépasser 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedImage(reader.result as string);
+      setCropDialogOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (croppedImage: Blob) => {
+    if (!user) return;
+    
     setUploading(true);
+
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
+      const fileName = `${user.id}/avatar.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, croppedImage, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -47,7 +79,8 @@ export default function CompleteProfile() {
         .getPublicUrl(fileName);
 
       setFormData(prev => ({ ...prev, logo_adress: publicUrl }));
-      
+      setCropDialogOpen(false);
+
       toast({
         title: 'Image téléchargée',
         description: 'Votre photo de profil a été téléchargée avec succès',
@@ -159,7 +192,7 @@ export default function CompleteProfile() {
                   type="file"
                   id="avatar-upload"
                   accept="image/*"
-                  onChange={handleImageUpload}
+                  onChange={handleAvatarSelect}
                   className="hidden"
                   disabled={uploading}
                 />
@@ -260,6 +293,17 @@ export default function CompleteProfile() {
             * Champs obligatoires
           </p>
         </form>
+
+        {/* Crop Dialog */}
+        {selectedImage && (
+          <AvatarCropDialog
+            open={cropDialogOpen}
+            onOpenChange={setCropDialogOpen}
+            imageSrc={selectedImage}
+            onCropComplete={handleCropComplete}
+            loading={uploading}
+          />
+        )}
       </div>
     </div>
   );

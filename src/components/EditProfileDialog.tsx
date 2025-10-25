@@ -17,12 +17,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Pencil, Upload, Loader2 } from 'lucide-react';
+import { AvatarCropDialog } from './AvatarCropDialog';
 
 const profileSchema = z.object({
   full_name: z.string().trim().min(1, 'Le nom est requis').max(100, 'Maximum 100 caractères'),
   last_name: z.string().trim().max(100, 'Maximum 100 caractères').optional(),
   description: z.string().trim().max(500, 'Maximum 500 caractères').optional(),
   address: z.string().trim().max(200, 'Maximum 200 caractères').optional(),
+  city: z.string().trim().max(100, 'Maximum 100 caractères').optional(),
+  téléphone: z.string().trim().max(20, 'Maximum 20 caractères').optional(),
+  affiliate_link: z.string().trim().url('Lien invalide').optional().or(z.literal('')),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -39,17 +43,22 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.logo_adress || null);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<ProfileFormData>({
     full_name: profile?.full_name || '',
     last_name: profile?.last_name || '',
     description: profile?.description || '',
     address: profile?.address || '',
+    city: profile?.city || '',
+    téléphone: profile?.téléphone?.toString() || '',
+    affiliate_link: profile?.affiliate_link || '',
   });
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
 
     // Validation
     if (!file.type.startsWith('image/')) {
@@ -61,34 +70,44 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: 'L\'image ne doit pas dépasser 2MB',
+        description: 'L\'image ne doit pas dépasser 5MB',
       });
       return;
     }
 
+    // Read file as data URL for cropping
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedImage(reader.result as string);
+      setCropDialogOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (croppedImage: Blob) => {
+    if (!user) return;
+    
     setUploading(true);
 
     try {
-      // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
+      const fileName = `${user.id}/avatar.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, croppedImage, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
       setAvatarPreview(publicUrl);
+      setCropDialogOpen(false);
 
       toast({
         title: 'Succès',
@@ -123,6 +142,9 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
           last_name: validated.last_name || null,
           description: validated.description || null,
           address: validated.address || null,
+          city: validated.city || null,
+          téléphone: validated.téléphone ? parseInt(validated.téléphone) : null,
+          affiliate_link: validated.affiliate_link || null,
           logo_adress: avatarPreview || null,
         })
         .eq('id', user.id);
@@ -186,7 +208,7 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={handleAvatarUpload}
+                onChange={handleAvatarSelect}
                 disabled={uploading}
               />
               <Label htmlFor="avatar" className="cursor-pointer">
@@ -211,7 +233,7 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
                 </Button>
               </Label>
               <p className="text-xs text-muted-foreground mt-2">
-                JPG, PNG ou WEBP. Max 2MB.
+                JPG, PNG ou WEBP. Max 5MB.
               </p>
             </div>
           </div>
@@ -264,7 +286,42 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
               id="address"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Paris, France"
+              placeholder="123 Rue de la Paix"
+            />
+          </div>
+
+          {/* City */}
+          <div className="space-y-2">
+            <Label htmlFor="city">Ville</Label>
+            <Input
+              id="city"
+              value={formData.city}
+              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              placeholder="Paris"
+            />
+          </div>
+
+          {/* Phone */}
+          <div className="space-y-2">
+            <Label htmlFor="téléphone">Numéro de téléphone</Label>
+            <Input
+              id="téléphone"
+              type="tel"
+              value={formData.téléphone}
+              onChange={(e) => setFormData({ ...formData, téléphone: e.target.value })}
+              placeholder="+33 6 12 34 56 78"
+            />
+          </div>
+
+          {/* Affiliate Link */}
+          <div className="space-y-2">
+            <Label htmlFor="affiliate_link">Lien affilié</Label>
+            <Input
+              id="affiliate_link"
+              type="url"
+              value={formData.affiliate_link}
+              onChange={(e) => setFormData({ ...formData, affiliate_link: e.target.value })}
+              placeholder="https://..."
             />
           </div>
 
@@ -290,6 +347,17 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
             </Button>
           </div>
         </form>
+
+        {/* Crop Dialog */}
+        {selectedImage && (
+          <AvatarCropDialog
+            open={cropDialogOpen}
+            onOpenChange={setCropDialogOpen}
+            imageSrc={selectedImage}
+            onCropComplete={handleCropComplete}
+            loading={uploading}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
