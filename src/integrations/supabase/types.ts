@@ -600,6 +600,7 @@ export type Database = {
           latitude: number | null
           logo_adress: string | null
           longitude: number | null
+          role: string
           updated_at: string | null
         }
         Insert: {
@@ -613,6 +614,7 @@ export type Database = {
           latitude?: number | null
           logo_adress?: string | null
           longitude?: number | null
+          role?: string
           updated_at?: string | null
         }
         Update: {
@@ -626,6 +628,7 @@ export type Database = {
           latitude?: number | null
           logo_adress?: string | null
           longitude?: number | null
+          role?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -865,6 +868,8 @@ export type Database = {
     }
     Functions: {
       event_is_public: { Args: { _event_id: string }; Returns: boolean }
+      get_user_role: { Args: never; Returns: string }
+      is_super_admin: { Args: never; Returns: boolean }
       search_domains: {
         Args: { query: string }
         Returns: {
