@@ -13,6 +13,7 @@ import Cellars from "./pages/Cellars";
 import CellarDetails from "./pages/CellarDetails";
 import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
+import DomainDetails from "./pages/DomainDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/cellar/:id" element={<CellarDetails />} />
             <Route path="/events" element={<Events />} />
             <Route path="/event/:id" element={<EventDetails />} />
+            <Route path="/domain/:id" element={<DomainDetails />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

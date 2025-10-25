@@ -65,8 +65,9 @@ export function UserDomains() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {domains.map((domain) => (
-            <Card key={domain.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
+            <Link key={domain.id} to={`/domain/${domain.id}`}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <Avatar className="w-16 h-16">
                     <AvatarImage src={domain.logo_url || undefined} />
@@ -101,6 +102,7 @@ export function UserDomains() {
                 </div>
               </CardContent>
             </Card>
+            </Link>
           ))}
         </div>
       )}
