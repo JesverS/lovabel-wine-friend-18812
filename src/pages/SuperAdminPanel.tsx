@@ -7,12 +7,18 @@ import { Header } from '@/components/Header';
 
 const SuperAdminPanel = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const [checking, setChecking] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
     const checkAuthorization = async () => {
+      // Attendre que l'authentification soit chargée
+      if (authLoading) {
+        console.log('Auth still loading...');
+        return;
+      }
+
       console.log('Checking authorization for user:', user?.id);
       
       if (!user) {
@@ -49,21 +55,21 @@ const SuperAdminPanel = () => {
         console.error('Authorization error:', error);
         navigate('/');
       } finally {
-        setLoading(false);
+        setChecking(false);
       }
     };
 
     checkAuthorization();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
-  if (loading) {
+  if (authLoading || checking) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto p-8 flex items-center justify-center">
           <div className="text-center">
-            <Shield className="h-12 w-12 animate-pulse mx-auto mb-4" />
-            <p>Vérification des autorisations...</p>
+            <Shield className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
+            <p className="text-foreground">Vérification des autorisations...</p>
           </div>
         </div>
       </div>
@@ -75,10 +81,10 @@ const SuperAdminPanel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto p-8">
-        <h1 className="text-4xl font-bold text-center">Super Admin Page</h1>
+        <h1 className="text-4xl font-bold text-center text-foreground">Super Admin Page</h1>
       </div>
     </div>
   );
