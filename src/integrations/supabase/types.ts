@@ -453,6 +453,13 @@ export type Database = {
             referencedRelation: "domain"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_domain_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_domain_application: {
@@ -592,6 +599,7 @@ export type Database = {
         Row: {
           address: string | null
           affiliate_link: string | null
+          city: string | null
           created_at: string | null
           description: string | null
           full_name: string | null
@@ -600,11 +608,13 @@ export type Database = {
           latitude: number | null
           logo_adress: string | null
           longitude: number | null
+          téléphone: number | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
           affiliate_link?: string | null
+          city?: string | null
           created_at?: string | null
           description?: string | null
           full_name?: string | null
@@ -613,11 +623,13 @@ export type Database = {
           latitude?: number | null
           logo_adress?: string | null
           longitude?: number | null
+          téléphone?: number | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
           affiliate_link?: string | null
+          city?: string | null
           created_at?: string | null
           description?: string | null
           full_name?: string | null
@@ -626,6 +638,7 @@ export type Database = {
           latitude?: number | null
           logo_adress?: string | null
           longitude?: number | null
+          téléphone?: number | null
           updated_at?: string | null
         }
         Relationships: []

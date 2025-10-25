@@ -79,20 +79,23 @@ export default function Auth() {
         
         // Vérifier si le profil est complet
         if (data.user) {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('user_profiles')
-            .select('full_name, last_name, city')
+            .select('*')
             .eq('id', data.user.id)
-            .single();
+            .maybeSingle();
           
           // Rediriger vers complete-profile si les champs obligatoires sont vides
-          if (!profile?.full_name || !profile?.last_name || !profile?.city) {
-            toast({ 
-              title: 'Bienvenue!',
-              description: 'Veuillez compléter votre profil'
-            });
-            navigate('/complete-profile');
-            return;
+          if (!profileError && profile) {
+            const isComplete = profile.full_name && profile.last_name && profile.city;
+            if (!isComplete) {
+              toast({ 
+                title: 'Bienvenue!',
+                description: 'Veuillez compléter votre profil'
+              });
+              navigate('/complete-profile');
+              return;
+            }
           }
         }
         
