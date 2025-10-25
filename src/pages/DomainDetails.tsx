@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { WineCard } from '@/components/WineCard';
 import { Store, MapPin, Globe, Phone, Mail, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 export default function DomainDetails() {
   const { id } = useParams();
@@ -18,6 +20,8 @@ export default function DomainDetails() {
   const [wines, setWines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     if (id) {
@@ -68,6 +72,44 @@ export default function DomainDetails() {
 
     setIsAdmin(!!data);
   };
+
+  // Get unique years from wines
+  const availableYears = useMemo(() => {
+    const years = wines
+      .map(wine => wine.year)
+      .filter((year): year is number => year != null)
+      .sort((a, b) => b - a);
+    return Array.from(new Set(years));
+  }, [wines]);
+
+  // Filter and sort wines
+  const filteredAndSortedWines = useMemo(() => {
+    let filtered = wines;
+    
+    if (selectedYear !== 'all') {
+      filtered = wines.filter(wine => wine.year?.toString() === selectedYear);
+    }
+    
+    return filtered.sort((a, b) => {
+      const yearA = a.year || 0;
+      const yearB = b.year || 0;
+      return sortOrder === 'asc' ? yearA - yearB : yearB - yearA;
+    });
+  }, [wines, selectedYear, sortOrder]);
+
+  // Get wine types by year for indicators
+  const wineTypesByYear = useMemo(() => {
+    const typesByYear: Record<number, Set<string>> = {};
+    wines.forEach(wine => {
+      if (wine.year && wine.characteristics?.type) {
+        if (!typesByYear[wine.year]) {
+          typesByYear[wine.year] = new Set();
+        }
+        typesByYear[wine.year].add(wine.characteristics.type);
+      }
+    });
+    return typesByYear;
+  }, [wines]);
 
   if (loading) {
     return (
@@ -183,16 +225,53 @@ export default function DomainDetails() {
         {/* Wines Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Vins du domaine ({wines.length})</CardTitle>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <CardTitle>Vins du domaine ({filteredAndSortedWines.length})</CardTitle>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Année" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les années</SelectItem>
+                    {availableYears.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                        {wineTypesByYear[year] && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({Array.from(wineTypesByYear[year]).join(', ')})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Trier par" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">Plus récent → Plus vieux</SelectItem>
+                    <SelectItem value="asc">Plus vieux → Plus récent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {wines.length === 0 ? (
+            {filteredAndSortedWines.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">Aucun vin disponible pour ce domaine</p>
+                <p className="text-muted-foreground">
+                  {wines.length === 0 
+                    ? 'Aucun vin disponible pour ce domaine' 
+                    : 'Aucun vin trouvé pour cette année'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {wines.map((wine) => (
+                {filteredAndSortedWines.map((wine) => (
                   <Link key={wine.id} to={`/wine/${wine.id}`}>
                     <WineCard
                       name={wine.name}
