@@ -6,12 +6,14 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  profileComplete: boolean | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
+  profileComplete: null,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -20,19 +22,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
 
   useEffect(() => {
+    const checkProfileComplete = async (userId: string) => {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('full_name, last_name, city')
+        .eq('id', userId)
+        .single();
+
+      const profile = data as any;
+      setProfileComplete(
+        !!(profile?.full_name && profile?.last_name && profile?.city)
+      );
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await checkProfileComplete(session.user.id);
+        } else {
+          setProfileComplete(null);
+        }
+        
         setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await checkProfileComplete(session.user.id);
+      }
+      
       setLoading(false);
     });
 
@@ -40,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading }}>
+    <AuthContext.Provider value={{ user, session, loading, profileComplete }}>
       {children}
     </AuthContext.Provider>
   );
