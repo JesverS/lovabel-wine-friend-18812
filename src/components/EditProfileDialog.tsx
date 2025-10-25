@@ -26,10 +26,6 @@ const profileSchema = z.object({
   address: z.string().trim().max(200, 'Maximum 200 caractères').optional(),
   city: z.string().trim().max(100, 'Maximum 100 caractères').optional(),
   téléphone: z.string().trim().max(20, 'Maximum 20 caractères').optional(),
-  affiliate_link: z.string().trim().optional().refine(
-    (val) => !val || z.string().url().safeParse(val).success,
-    { message: 'Lien invalide' }
-  ),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -56,7 +52,6 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
     address: profile?.address || '',
     city: profile?.city || '',
     téléphone: profile?.téléphone?.toString() || '',
-    affiliate_link: profile?.affiliate_link || '',
   });
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,7 +142,6 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
           address: validated.address || null,
           city: validated.city || null,
           téléphone: validated.téléphone && validated.téléphone.trim() ? parseInt(validated.téléphone) : null,
-          affiliate_link: validated.affiliate_link && validated.affiliate_link.trim() ? validated.affiliate_link : null,
           logo_adress: avatarPreview || null,
         })
         .eq('id', user.id);
@@ -313,18 +307,6 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
               value={formData.téléphone}
               onChange={(e) => setFormData({ ...formData, téléphone: e.target.value })}
               placeholder="+33 6 12 34 56 78"
-            />
-          </div>
-
-          {/* Affiliate Link */}
-          <div className="space-y-2">
-            <Label htmlFor="affiliate_link">Lien affilié</Label>
-            <Input
-              id="affiliate_link"
-              type="url"
-              value={formData.affiliate_link}
-              onChange={(e) => setFormData({ ...formData, affiliate_link: e.target.value })}
-              placeholder="https://..."
             />
           </div>
 
