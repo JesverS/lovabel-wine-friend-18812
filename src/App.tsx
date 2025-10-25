@@ -23,7 +23,7 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, profileComplete } = useAuth();
 
-  if (loading) {
+  if (loading || profileComplete === null) {
     return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
   }
 
