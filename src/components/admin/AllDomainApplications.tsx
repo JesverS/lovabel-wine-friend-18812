@@ -64,8 +64,10 @@ export const AllDomainApplications = () => {
 
   const handleApprove = async (application: DomainApplication) => {
     try {
+      console.log('Attempting to approve application:', application);
+      
       // Créer l'entrée user_domain avec le rôle demandé
-      const { error: insertError } = await supabase
+      const { data: insertData, error: insertError } = await supabase
         .from('user_domain')
         .insert({
           user_id: application.user_id,
@@ -73,7 +75,12 @@ export const AllDomainApplications = () => {
           role: application.role,
         });
 
-      if (insertError) throw insertError;
+      console.log('Insert result:', { insertData, insertError });
+
+      if (insertError) {
+        console.error('Insert error details:', insertError);
+        throw insertError;
+      }
 
       // Supprimer l'application
       const { error: deleteError } = await supabase
