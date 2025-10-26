@@ -465,19 +465,19 @@ export type Database = {
       user_domain_application: {
         Row: {
           created_at: string
-          domain_id: string | null
+          domain_id: string
           role: number
           user_id: string
         }
         Insert: {
           created_at?: string
-          domain_id?: string | null
+          domain_id: string
           role?: number
           user_id: string
         }
         Update: {
           created_at?: string
-          domain_id?: string | null
+          domain_id?: string
           role?: number
           user_id?: string
         }
@@ -492,7 +492,7 @@ export type Database = {
           {
             foreignKeyName: "user_domain_application_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
@@ -598,7 +598,6 @@ export type Database = {
       user_profiles: {
         Row: {
           address: string | null
-          affiliate_link: string | null
           city: string | null
           created_at: string | null
           description: string | null
@@ -613,7 +612,6 @@ export type Database = {
         }
         Insert: {
           address?: string | null
-          affiliate_link?: string | null
           city?: string | null
           created_at?: string | null
           description?: string | null
@@ -628,7 +626,6 @@ export type Database = {
         }
         Update: {
           address?: string | null
-          affiliate_link?: string | null
           city?: string | null
           created_at?: string | null
           description?: string | null
@@ -907,6 +904,17 @@ export type Database = {
     }
     Functions: {
       event_is_public: { Args: { _event_id: string }; Returns: boolean }
+      get_team_applications_without_owner: {
+        Args: never
+        Returns: {
+          created_at: string
+          domain: Json
+          domain_id: string
+          role: number
+          user_id: string
+          user_profiles: Json
+        }[]
+      }
       get_user_role: { Args: never; Returns: string }
       has_role: {
         Args: {

@@ -29,14 +29,23 @@ export const AllDomainApplications = () => {
 
   const fetchApplications = async () => {
     try {
-      // Utiliser RPC pour filtrer les demandes où le domaine n'a pas de propriétaire
-      const { data: applicationsData, error: appsError } = await supabase.rpc(
-        'get_team_applications_without_owner'
-      );
+      // Utiliser la fonction SQL avec NOT EXISTS
+      const { data: rawData, error: appsError } = await supabase
+        .rpc('get_team_applications_without_owner');
 
       if (appsError) throw appsError;
 
-      setApplications(applicationsData || []);
+      // Transformer les données JSONB en objets TypeScript
+      const applicationsData = (rawData || []).map((app: any) => ({
+        user_id: app.user_id,
+        domain_id: app.domain_id,
+        role: app.role,
+        created_at: app.created_at,
+        domain: typeof app.domain === 'string' ? JSON.parse(app.domain) : app.domain,
+        user_profiles: typeof app.user_profiles === 'string' ? JSON.parse(app.user_profiles) : app.user_profiles,
+      }));
+
+      setApplications(applicationsData);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
