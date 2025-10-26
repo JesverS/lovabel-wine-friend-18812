@@ -31,15 +31,54 @@ export default function GameMultiplayer() {
       setSearchLoading(true);
 
       try {
-        const { data, error } = await (supabase as any).rpc('search_wines', {
-          query: searchQuery.trim()
-        });
+        const query = searchQuery.trim().toLowerCase();
+        
+        // Search wines by name or year
+        const { data: wineData, error: wineError } = await supabase
+          .from('wine')
+          .select('id, name, year, label_url, domain_id, volume_ml, price, description, uber_order_url, website_order_url, stock, alcohol_percentage, characteristics, created_at, updated_at')
+          .or(`name.ilike.%${query}%,year.eq.${parseInt(query) || 0}`)
+          .limit(50) as any;
 
-        if (error) throw error;
+        if (wineError) throw wineError;
 
-        // Filter only playable wines
-        const playableWines = (data || []).filter((wine: any) => wine.is_playable === true);
-        setSearchResults(playableWines);
+        // Filter playable wines manually
+        const wines = (wineData || []).filter((w: any) => w.is_playable === true);
+
+        // Get unique domain IDs
+        const domainIds = [...new Set(wines.map((w: any) => w.domain_id).filter(Boolean))] as string[];
+        
+        if (domainIds.length === 0) {
+          setSearchResults([]);
+          return;
+        }
+
+        // Fetch domains
+        const { data: domains, error: domainError } = await supabase
+          .from('domain')
+          .select('id, name, logo_url')
+          .in('id', domainIds);
+
+        if (domainError) throw domainError;
+
+        // Create domain map
+        const domainMap = new Map((domains || []).map((d: any) => [d.id, d]));
+
+        // Combine and filter results
+        const results = wines
+          .map((wine: any) => ({
+            ...wine,
+            domain: wine.domain_id ? domainMap.get(wine.domain_id) : null
+          }))
+          .filter((wine: any) => {
+            const nameMatch = wine.name.toLowerCase().includes(query);
+            const yearMatch = wine.year?.toString().includes(query);
+            const domainMatch = wine.domain?.name?.toLowerCase().includes(query);
+            return nameMatch || yearMatch || domainMatch;
+          })
+          .slice(0, 5);
+
+        setSearchResults(results);
       } catch (error: any) {
         console.error('Error searching wines:', error);
         toast({
