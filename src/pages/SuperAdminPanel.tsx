@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Shield } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { DomainApplications } from '@/components/admin/DomainApplications';
+import { AllDomainApplications } from '@/components/admin/AllDomainApplications';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const SuperAdminPanel = () => {
   const navigate = useNavigate();
@@ -90,9 +92,20 @@ const SuperAdminPanel = () => {
           <p className="text-muted-foreground">Gestion des demandes et administration de la plateforme</p>
         </div>
         
-        <div className="space-y-8">
-          <DomainApplications />
-        </div>
+        <Tabs defaultValue="owner" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="owner">Demandes de propriété</TabsTrigger>
+            <TabsTrigger value="team">Demandes d'équipe</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="owner">
+            <DomainApplications />
+          </TabsContent>
+          
+          <TabsContent value="team">
+            <AllDomainApplications />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
