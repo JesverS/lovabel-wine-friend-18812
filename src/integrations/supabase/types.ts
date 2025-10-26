@@ -431,25 +431,25 @@ export type Database = {
           created_at: string
           domain_id: string
           role: number | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
           domain_id: string
           role?: number | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string
           domain_id?: string
           role?: number | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "user_domain_domain_id_fkey"
             columns: ["domain_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "domain"
             referencedColumns: ["id"]
           },
