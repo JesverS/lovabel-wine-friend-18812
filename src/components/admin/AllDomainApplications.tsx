@@ -66,20 +66,22 @@ export const AllDomainApplications = () => {
     try {
       console.log('Attempting to approve application:', application);
       
-      // Créer l'entrée user_domain avec le rôle demandé
-      const { data: insertData, error: insertError } = await supabase
+      // Utiliser upsert pour gérer le cas où la relation existe déjà
+      const { data: upsertData, error: upsertError } = await supabase
         .from('user_domain')
-        .insert({
+        .upsert({
           user_id: application.user_id,
           domain_id: application.domain_id,
           role: application.role,
+        }, {
+          onConflict: 'user_id,domain_id'
         });
 
-      console.log('Insert result:', { insertData, insertError });
+      console.log('Upsert result:', { upsertData, upsertError });
 
-      if (insertError) {
-        console.error('Insert error details:', insertError);
-        throw insertError;
+      if (upsertError) {
+        console.error('Upsert error details:', upsertError);
+        throw upsertError;
       }
 
       // Supprimer l'application
