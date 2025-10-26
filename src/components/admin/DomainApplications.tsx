@@ -62,6 +62,7 @@ export const DomainApplications = () => {
               .eq('role', 1)
               .maybeSingle();
 
+            // Ne garder que si aucun propriétaire n'existe
             return ownerData ? null : app;
           })
         );

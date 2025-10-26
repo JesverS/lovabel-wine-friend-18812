@@ -23,6 +23,7 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedDomain, setSelectedDomain] = useState<any>(null);
   const [selectedRole, setSelectedRole] = useState<number>(3); // Default: Employé
   const [name, setName] = useState(initialName || '');
   const [description, setDescription] = useState('');
@@ -49,8 +50,8 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
     return () => clearTimeout(debounce);
   }, [searchQuery]);
 
-  const handleRequestDomain = async (domain: any) => {
-    if (!user) return;
+  const handleRequestDomain = async () => {
+    if (!user || !selectedDomain) return;
 
     setLoading(true);
     try {
@@ -59,7 +60,7 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
         .from('user_domain_application')
         .insert({
           user_id: user.id,
-          domain_id: domain.id,
+          domain_id: selectedDomain.id,
           role: selectedRole
         });
 
@@ -166,6 +167,7 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
     setSearchQuery('');
     setSearchResults([]);
     setShowCreateForm(false);
+    setSelectedDomain(null);
     setName(initialName || '');
     setDescription('');
     setLogoFile(null);
@@ -221,7 +223,11 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
             {searchResults.length > 0 && (
               <div className="space-y-2">
                 {searchResults.map((domain) => (
-                  <Card key={domain.id} className="cursor-pointer hover:bg-accent" onClick={() => handleRequestDomain(domain)}>
+                  <Card 
+                    key={domain.id} 
+                    className={`cursor-pointer hover:bg-accent ${selectedDomain?.id === domain.id ? 'border-primary border-2' : ''}`}
+                    onClick={() => setSelectedDomain(domain)}
+                  >
                     <CardContent className="p-4 flex items-center gap-3">
                       {domain.logo_url && (
                         <img src={domain.logo_url} alt={domain.name} className="w-12 h-12 rounded object-cover" />
@@ -236,6 +242,12 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
                   </Card>
                 ))}
               </div>
+            )}
+
+            {selectedDomain && (
+              <Button onClick={handleRequestDomain} disabled={loading} className="w-full">
+                {loading ? 'Envoi...' : 'Envoyer la demande'}
+              </Button>
             )}
 
             {searchQuery.length >= 2 && searchResults.length === 0 && (
