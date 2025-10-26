@@ -52,7 +52,28 @@ export const AllDomainApplications = () => {
 
       if (appsError) throw appsError;
 
-      setApplications(applicationsData || []);
+      // Filtrer pour n'afficher que les demandes pour les domaines sans propriétaire
+      const filteredApplications = [];
+      
+      for (const app of applicationsData || []) {
+        const { count, error: countError } = await supabase
+          .from('user_domain')
+          .select('*', { count: 'exact', head: true })
+          .eq('domain_id', app.domain_id)
+          .eq('role', 1);
+
+        if (countError) {
+          console.error('Error checking owner:', countError);
+          continue;
+        }
+
+        // N'ajouter que si aucun propriétaire (role = 1) n'existe
+        if (count === 0) {
+          filteredApplications.push(app);
+        }
+      }
+
+      setApplications(filteredApplications);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
