@@ -28,8 +28,8 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
   const fetchData = async () => {
     setLoading(true);
 
-    // Récupérer les demandes en attente
-    const { data: apps } = await supabase
+    // Récupérer les demandes en attente selon le rôle
+    let query = supabase
       .from('user_domain_application')
       .select(`
         *,
@@ -40,6 +40,14 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
       `)
       .eq('domain_id', domainId);
 
+    // Filtrage selon le rôle de l'utilisateur connecté
+    if (userRole === 2) {
+      // Administrateur : ne voit que les demandes de membres (rang 3)
+      query = query.eq('role', 3);
+    }
+    // Propriétaire (userRole === 1) : voit toutes les demandes (pas de filtre supplémentaire)
+
+    const { data: apps } = await query;
     setApplications(apps || []);
 
     // Récupérer les membres actuels
