@@ -29,7 +29,7 @@ export const DomainApplications = () => {
 
   const fetchApplications = async () => {
     try {
-      // Récupérer les applications pour les domaines sans propriétaire
+      // Récupérer uniquement les demandes de propriétaire pour des domaines sans propriétaire
       const { data: applicationsData, error: appsError } = await supabase
         .from('user_domain_application')
         .select(`
@@ -47,23 +47,23 @@ export const DomainApplications = () => {
             full_name
           )
         `)
+        .eq('role', 1)
         .order('created_at', { ascending: false });
 
       if (appsError) throw appsError;
 
-      // Filtrer pour ne garder que les applications pour des domaines sans propriétaire
+      // Filtrer pour ne garder que les demandes où aucun propriétaire n'existe
       if (applicationsData) {
         const filteredApps = await Promise.all(
           applicationsData.map(async (app) => {
-            const { data: ownerData } = await supabase
+            const { count } = await supabase
               .from('user_domain')
-              .select('role')
+              .select('*', { count: 'exact', head: true })
               .eq('domain_id', app.domain_id)
-              .eq('role', 1)
-              .maybeSingle();
+              .eq('role', 1);
 
             // Ne garder que si aucun propriétaire n'existe
-            return ownerData ? null : app;
+            return count === 0 ? app : null;
           })
         );
 
