@@ -29,51 +29,14 @@ export const AllDomainApplications = () => {
 
   const fetchApplications = async () => {
     try {
-      // Récupérer les demandes pour admin (2) et membre (3)
-      const { data: applicationsData, error: appsError } = await supabase
-        .from('user_domain_application')
-        .select(`
-          user_id,
-          domain_id,
-          role,
-          created_at,
-          domain:domain_id (
-            id,
-            name,
-            description
-          ),
-          user_profiles:user_id (
-            id,
-            full_name
-          )
-        `)
-        .in('role', [2, 3])
-        .order('created_at', { ascending: false });
+      // Utiliser RPC pour filtrer les demandes où le domaine n'a pas de propriétaire
+      const { data: applicationsData, error: appsError } = await supabase.rpc(
+        'get_team_applications_without_owner'
+      );
 
       if (appsError) throw appsError;
 
-      // Filtrer pour n'afficher que les demandes pour les domaines sans propriétaire
-      const filteredApplications = [];
-      
-      for (const app of applicationsData || []) {
-        const { count, error: countError } = await supabase
-          .from('user_domain')
-          .select('*', { count: 'exact', head: true })
-          .eq('domain_id', app.domain_id)
-          .eq('role', 1);
-
-        if (countError) {
-          console.error('Error checking owner:', countError);
-          continue;
-        }
-
-        // N'ajouter que si aucun propriétaire (role = 1) n'existe
-        if (count === 0) {
-          filteredApplications.push(app);
-        }
-      }
-
-      setApplications(filteredApplications);
+      setApplications(applicationsData || []);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
