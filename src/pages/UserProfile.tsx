@@ -149,7 +149,7 @@ export default function UserProfile() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-12 max-w-4xl">
+      <main className="container mx-auto px-4 py-12 max-w-4xl pt-32">
         {/* Profile Header */}
         <div className="bg-card rounded-lg border p-8 mb-8">
           <div className="flex items-start gap-6">
