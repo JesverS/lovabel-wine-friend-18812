@@ -104,6 +104,42 @@ export type Database = {
           },
         ]
       }
+      courses: {
+        Row: {
+          created_at: string
+          icon_emoji: string
+          icon_url: string | null
+          id: number
+          is_available: boolean
+          keywords: string[] | null
+          lesson_count: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          icon_emoji: string
+          icon_url?: string | null
+          id?: number
+          is_available?: boolean
+          keywords?: string[] | null
+          lesson_count?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          icon_emoji?: string
+          icon_url?: string | null
+          id?: number
+          is_available?: boolean
+          keywords?: string[] | null
+          lesson_count?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       domain: {
         Row: {
           address: string | null
@@ -287,6 +323,65 @@ export type Database = {
             columns: ["wine_id"]
             isOneToOne: false
             referencedRelation: "wine"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_question: {
+        Row: {
+          created_at: string
+          id: number
+          question: string | null
+          reply: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          question?: string | null
+          reply?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          question?: string | null
+          reply?: Json | null
+        }
+        Relationships: []
+      }
+      lessons: {
+        Row: {
+          course_id: number
+          created_at: string
+          id: number
+          lesson_number: number
+          pages: Json
+          quizzes: Json | null
+          updated_at: string
+        }
+        Insert: {
+          course_id: number
+          created_at?: string
+          id?: number
+          lesson_number: number
+          pages: Json
+          quizzes?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          course_id?: number
+          created_at?: string
+          id?: number
+          lesson_number?: number
+          pages?: Json
+          quizzes?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
             referencedColumns: ["id"]
           },
         ]
@@ -844,6 +939,7 @@ export type Database = {
           description: string | null
           domain_id: string | null
           id: string
+          is_playable: boolean
           label_url: string
           name: string
           price: number | null
@@ -861,6 +957,7 @@ export type Database = {
           description?: string | null
           domain_id?: string | null
           id?: string
+          is_playable?: boolean
           label_url?: string
           name: string
           price?: number | null
@@ -878,6 +975,7 @@ export type Database = {
           description?: string | null
           domain_id?: string | null
           id?: string
+          is_playable?: boolean
           label_url?: string
           name?: string
           price?: number | null
@@ -953,6 +1051,16 @@ export type Database = {
           volume_ml: number
           website_order_url: string
           year: number
+        }[]
+      }
+      search_wines_game: {
+        Args: { query: string }
+        Returns: {
+          domain_name: string
+          id: string
+          similarity_score: number
+          wine_name: string
+          wine_year: number
         }[]
       }
       show_limit: { Args: never; Returns: number }
