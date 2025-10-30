@@ -19,6 +19,7 @@ import CompleteProfile from "./pages/CompleteProfile";
 import Learning from "./pages/Learning";
 import CourseDetails from "./pages/CourseDetails";
 import CourseLocked from "./pages/CourseLocked";
+import LessonDetails from "./pages/LessonDetails";
 import GameMultiplayer from "./pages/GameMultiplayer";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/learning" element={<Learning />} />
             <Route path="/course/:id" element={<CourseDetails />} />
             <Route path="/course/locked/:id" element={<CourseLocked />} />
+            <Route path="/course/:courseId/lesson/:lessonId" element={<LessonDetails />} />
             <Route path="/game" element={<GameMultiplayer />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

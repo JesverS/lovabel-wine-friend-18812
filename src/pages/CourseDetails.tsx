@@ -186,7 +186,7 @@ const CourseDetails = () => {
                           )}
                         </div>
                         <Button
-                          onClick={() => navigate(`/lesson/${lesson.id}`)}
+                          onClick={() => navigate(`/course/${id}/lesson/${lesson.id}`)}
                           className="shrink-0"
                         >
                           Commencer
