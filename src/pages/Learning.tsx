@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Award, Trophy, Sparkles, Lock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Course {
@@ -22,6 +23,7 @@ interface Course {
 }
 
 export default function Learning() {
+  const navigate = useNavigate();
   const [userPoints] = useState(0);
   const [userLevel] = useState(1);
 
@@ -133,6 +135,11 @@ export default function Learning() {
                         : 'bg-gradient-wine hover:opacity-90'
                     }`}
                     disabled={!course.is_available}
+                    onClick={() => {
+                      if (course.is_available) {
+                        navigate(`/course/${course.id}`);
+                      }
+                    }}
                   >
                     {!course.is_available ? 'Bientôt disponible' : 'Commencer'}
                   </Button>

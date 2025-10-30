@@ -17,6 +17,8 @@ import DomainDetails from "./pages/DomainDetails";
 import SuperAdminPanel from "./pages/SuperAdminPanel";
 import CompleteProfile from "./pages/CompleteProfile";
 import Learning from "./pages/Learning";
+import CourseDetails from "./pages/CourseDetails";
+import CourseLocked from "./pages/CourseLocked";
 import GameMultiplayer from "./pages/GameMultiplayer";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +45,8 @@ const App = () => (
             <Route path="/super-admin" element={<SuperAdminPanel />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />
             <Route path="/learning" element={<Learning />} />
+            <Route path="/course/:id" element={<CourseDetails />} />
+            <Route path="/course/locked/:id" element={<CourseLocked />} />
             <Route path="/game" element={<GameMultiplayer />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
