@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Course {
   id: number;
@@ -23,8 +25,9 @@ interface Lesson {
   pages: Record<string, string>;
   quizzes: Record<string, {
     question: string;
+    text?: string;
     answers: string[];
-    correct_answer: number;
+    correct_answer: string;
   }>;
 }
 
@@ -33,7 +36,7 @@ const LessonDetails = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [showQuiz, setShowQuiz] = useState(false);
-  const [quizAnswers, setQuizAnswers] = useState<Record<string, number | null>>({});
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, string | null>>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
 
   const { data: course } = useQuery({
@@ -128,11 +131,11 @@ const LessonDetails = () => {
     }
   };
 
-  const handleQuizAnswer = (quizKey: string, answerIndex: number) => {
+  const handleQuizAnswer = (quizKey: string, answer: string) => {
     const quiz = lesson.quizzes[quizKey];
-    setQuizAnswers({ ...quizAnswers, [quizKey]: answerIndex });
+    setQuizAnswers({ ...quizAnswers, [quizKey]: answer });
 
-    if (answerIndex === quiz.correct_answer) {
+    if (answer === quiz.correct_answer) {
       toast.success("Bravo ! 🎉", {
         description: "Bonne réponse !"
       });
@@ -198,10 +201,11 @@ const LessonDetails = () => {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {!showQuiz && !quizCompleted && (
           <Card className="p-8 mb-6 animate-fade-in">
-            <div 
-              className="prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: pages[currentPage - 1] }}
-            />
+            <div className="prose prose-lg max-w-none dark:prose-invert">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {pages[currentPage - 1]}
+              </ReactMarkdown>
+            </div>
           </Card>
         )}
 
@@ -218,19 +222,19 @@ const LessonDetails = () => {
                   Question {index + 1}: {quiz.question}
                 </h3>
                 <div className="grid gap-3">
-                  {quiz.answers.map((answer, answerIndex) => {
-                    const isSelected = quizAnswers[key] === answerIndex;
-                    const isCorrect = answerIndex === quiz.correct_answer;
+                  {quiz.answers.map((answer) => {
+                    const isSelected = quizAnswers[key] === answer;
+                    const isCorrect = answer === quiz.correct_answer;
                     const showFeedback = isSelected;
 
                     return (
                       <Button
-                        key={answerIndex}
+                        key={answer}
                         variant={isSelected ? (isCorrect ? "default" : "destructive") : "outline"}
                         className={`justify-start text-left h-auto py-4 px-6 ${
                           showFeedback && isCorrect ? "bg-green-500 hover:bg-green-600" : ""
                         }`}
-                        onClick={() => handleQuizAnswer(key, answerIndex)}
+                        onClick={() => handleQuizAnswer(key, answer)}
                       >
                         <span className="flex items-center gap-3 flex-1">
                           {showFeedback && (
