@@ -352,28 +352,34 @@ export type Database = {
         Row: {
           course_id: number
           created_at: string
+          estimated_time: string | null
           id: number
           lesson_number: number
           pages: Json
           quizzes: Json | null
+          title: string | null
           updated_at: string
         }
         Insert: {
           course_id: number
           created_at?: string
+          estimated_time?: string | null
           id?: number
           lesson_number: number
           pages: Json
           quizzes?: Json | null
+          title?: string | null
           updated_at?: string
         }
         Update: {
           course_id?: number
           created_at?: string
+          estimated_time?: string | null
           id?: number
           lesson_number?: number
           pages?: Json
           quizzes?: Json | null
+          title?: string | null
           updated_at?: string
         }
         Relationships: [

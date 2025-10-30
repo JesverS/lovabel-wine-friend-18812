@@ -38,9 +38,13 @@ export default function Learning() {
     }
   }) as { data: Course[] | undefined; isLoading: boolean };
 
-  // Identifier les 2 cours les plus récents (IDs les plus élevés)
+  // Identifier les 2 cours les plus récents disponibles (IDs les plus élevés parmi les disponibles)
   const maxIds = courses ? 
-    [...courses].sort((a, b) => b.id - a.id).slice(0, 2).map(c => c.id) : [];
+    [...courses]
+      .filter(c => c.is_available)
+      .sort((a, b) => b.id - a.id)
+      .slice(0, 2)
+      .map(c => c.id) : [];
 
   const totalLessons = courses?.reduce((sum, course) => sum + course.lesson_count, 0) || 0;
 
