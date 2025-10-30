@@ -203,7 +203,7 @@ const LessonDetails = () => {
           <Card className="p-8 mb-6 animate-fade-in">
             <div className="prose prose-lg max-w-none dark:prose-invert">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {pages[currentPage - 1]}
+                {pages[currentPage - 1].replace(/\\n/g, '\n')}
               </ReactMarkdown>
             </div>
           </Card>
