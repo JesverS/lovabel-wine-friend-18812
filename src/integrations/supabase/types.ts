@@ -845,44 +845,6 @@ export type Database = {
           },
         ]
       }
-      user_wine_inventory: {
-        Row: {
-          location: string | null
-          notes: string | null
-          purchase_date: string | null
-          purchase_price: number | null
-          quantity: number | null
-          user_id: string
-          vin_id: string
-        }
-        Insert: {
-          location?: string | null
-          notes?: string | null
-          purchase_date?: string | null
-          purchase_price?: number | null
-          quantity?: number | null
-          user_id: string
-          vin_id: string
-        }
-        Update: {
-          location?: string | null
-          notes?: string | null
-          purchase_date?: string | null
-          purchase_price?: number | null
-          quantity?: number | null
-          user_id?: string
-          vin_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_vin_inventory_vin_id_fkey"
-            columns: ["vin_id"]
-            isOneToOne: false
-            referencedRelation: "wine"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_wine_notice: {
         Row: {
           comment: string | null
