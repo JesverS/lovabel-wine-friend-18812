@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -38,6 +38,11 @@ const LessonDetails = () => {
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string | null>>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
+
+  // Scroll to top when page or quiz changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage, showQuiz, quizCompleted]);
 
   const { data: course } = useQuery({
     queryKey: ["course", courseId],
