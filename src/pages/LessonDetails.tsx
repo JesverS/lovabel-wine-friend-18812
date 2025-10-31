@@ -226,6 +226,7 @@ const LessonDetails = () => {
                     const isSelected = quizAnswers[key] === answer;
                     const isCorrect = answer === quiz.correct_answer;
                     const showFeedback = isSelected;
+                    const isAnswered = quizAnswers[key] !== null && quizAnswers[key] !== undefined;
 
                     return (
                       <Button
@@ -235,6 +236,7 @@ const LessonDetails = () => {
                           showFeedback && isCorrect ? "bg-green-500 hover:bg-green-600" : ""
                         }`}
                         onClick={() => handleQuizAnswer(key, answer)}
+                        disabled={isAnswered}
                       >
                         <span className="flex items-center gap-3 flex-1">
                           {showFeedback && (
