@@ -323,6 +323,7 @@ export default function GameMultiplayer() {
           <Button
             size="lg"
             disabled={!canStartGame}
+            onClick={() => navigate("/game/play", { state: { players, wine: selectedWine } })}
             className="bg-gradient-wine hover:opacity-90 px-12 text-lg h-14 disabled:opacity-50"
           >
             <Play className="h-5 w-5 mr-2" />

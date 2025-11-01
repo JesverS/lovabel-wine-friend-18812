@@ -22,6 +22,7 @@ import CourseDetails from "./pages/CourseDetails";
 import CourseLocked from "./pages/CourseLocked";
 import LessonDetails from "./pages/LessonDetails";
 import GameMultiplayer from "./pages/GameMultiplayer";
+import GamePlay from "./pages/GamePlay";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/course/locked/:id" element={<CourseLocked />} />
             <Route path="/course/:courseId/lesson/:lessonId" element={<LessonDetails />} />
             <Route path="/game" element={<GameMultiplayer />} />
+            <Route path="/game/play" element={<GamePlay />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
