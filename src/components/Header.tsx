@@ -18,7 +18,7 @@ export const Header = () => {
       <div className="container mx-auto px-4 h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
           <Wine className="h-8 w-8 text-primary group-hover:text-primary-light transition-colors" />
-          <span className="font-serif text-2xl font-bold text-gradient-wine">Lovabel</span>
+          <span className="font-serif text-2xl font-bold text-gradient-wine">WineNote</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
