@@ -7,10 +7,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Calendar, MapPin, Search } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface Event {
   id: string;
@@ -119,26 +122,29 @@ const Events = () => {
                   />
                 </div>
 
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={searchDate ? format(searchDate, "d MMMM yyyy", { locale: fr }) : "Sélectionner une date"}
-                    value={searchDate ? format(searchDate, "d MMMM yyyy", { locale: fr }) : ""}
-                    readOnly
-                    className="pl-10 cursor-pointer"
-                  />
-                  <input
-                    type="date"
-                    className="absolute opacity-0 w-full h-full top-0 left-0 cursor-pointer"
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setSearchDate(new Date(e.target.value));
-                      } else {
-                        setSearchDate(undefined);
-                      }
-                    }}
-                  />
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal pl-10",
+                        !searchDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="absolute left-3 h-4 w-4" />
+                      {searchDate ? format(searchDate, "d MMMM yyyy", { locale: fr }) : "Sélectionner une date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={searchDate}
+                      onSelect={setSearchDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {(searchName || searchCity || searchDate) && (
