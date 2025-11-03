@@ -193,7 +193,7 @@ const Events = () => {
                           )}
                           <div className="flex flex-wrap gap-4 text-sm">
                             <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-primary" />
+                              <CalendarIcon className="h-4 w-4 text-primary" />
                               <span>
                                 {format(new Date(event.start_date), "PPP", { locale: fr })}
                                 {event.end_date && 
