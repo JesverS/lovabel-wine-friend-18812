@@ -108,7 +108,7 @@ const CourseDetails = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-12">
+      <main className="flex-1 min-h-screen container mx-auto px-4 py-12">
         <Button
           variant="ghost"
           onClick={() => navigate("/learning")}

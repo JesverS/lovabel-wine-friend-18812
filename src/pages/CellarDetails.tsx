@@ -91,7 +91,7 @@ export default function CellarDetails() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
-      <main className="container mx-auto px-4 py-24 flex-grow">
+      <main className="container mx-auto px-4 py-24 flex-grow min-h-screen">
         {/* Banner */}
         {cellar.banner_url && (
           <div className="relative w-full h-64 mb-8 rounded-lg overflow-hidden">

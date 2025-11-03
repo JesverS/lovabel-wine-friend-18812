@@ -155,7 +155,7 @@ export default function DomainDetails() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 min-h-screen container mx-auto px-4 py-8">
         <Button variant="ghost" asChild className="mb-6">
           <Link to={user ? `/user/${user.id}` : '/search'}>
             <ArrowLeft className="w-4 h-4 mr-2" />

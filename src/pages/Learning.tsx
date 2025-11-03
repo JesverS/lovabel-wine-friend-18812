@@ -52,7 +52,7 @@ export default function Learning() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-8 pt-32 flex-grow">
+      <main className="container mx-auto px-4 py-8 pt-32 flex-grow min-h-screen">
         {/* Header Section */}
         <div className="mb-12 animate-fade-up">
           <div className="flex items-center justify-between mb-6">

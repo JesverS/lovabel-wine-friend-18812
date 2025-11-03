@@ -85,7 +85,7 @@ const Search = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="pt-24 pb-16 flex-grow">
+      <main className="pt-24 pb-16 flex-grow min-h-screen">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="max-w-3xl mx-auto mb-8 text-center animate-fade-up">

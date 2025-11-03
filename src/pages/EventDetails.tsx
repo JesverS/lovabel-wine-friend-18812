@@ -329,7 +329,7 @@ const EventDetails = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="pt-20 container mx-auto px-4 py-16 flex-grow">
+        <main className="pt-20 container mx-auto px-4 py-16 flex-grow min-h-screen">
           <div className="text-center">Chargement...</div>
         </main>
         <Footer />
@@ -341,7 +341,7 @@ const EventDetails = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="pt-20 container mx-auto px-4 py-16 flex-grow">
+        <main className="pt-20 container mx-auto px-4 py-16 flex-grow min-h-screen">
           <div className="text-center">Événement non trouvé</div>
         </main>
         <Footer />
@@ -352,7 +352,7 @@ const EventDetails = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="pt-20 flex-grow">
+      <main className="pt-20 flex-grow min-h-screen">
         {event.banner_url && (
           <div className="w-full h-64 md:h-96">
             <img

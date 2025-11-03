@@ -86,7 +86,7 @@ const SuperAdminPanel = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <div className="container mx-auto p-8 flex-grow">
+      <div className="container mx-auto p-8 flex-grow min-h-screen">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">Panneau Super Admin</h1>
           <p className="text-muted-foreground">Gestion des demandes et administration de la plateforme</p>

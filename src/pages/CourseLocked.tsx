@@ -41,7 +41,7 @@ const CourseLocked = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-12 flex items-center justify-center">
+      <main className="flex-1 min-h-screen container mx-auto px-4 py-12 flex items-center justify-center">
         <Card className="max-w-2xl w-full shadow-xl border-2">
           <CardContent className="p-12 text-center space-y-6">
             {/* Émoji du cours */}
