@@ -439,9 +439,24 @@ const EventDetails = () => {
                                 className="w-12 h-12 object-cover rounded"
                               />
                             )}
-                            <h3 className="text-2xl font-serif font-bold text-left">
-                              {domain.name}
-                            </h3>
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-2xl font-serif font-bold text-left">
+                                {domain.name}
+                              </h3>
+                              <Link
+                                to={`/domain/${domain.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Voir le domaine
+                                  <ExternalLink className="ml-2 h-3 w-3" />
+                                </Button>
+                              </Link>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {canEdit && (

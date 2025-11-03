@@ -566,19 +566,32 @@ export const WineDetailsDialog = ({
             
             {/* Toutes les infos à droite */}
             <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <h2 className="text-3xl font-serif">{wine.name}</h2>
-                {user && (
-                  <Button 
-                    variant={isFavorite ? "default" : "outline"} 
-                    size="sm" 
-                    onClick={handleToggleFavorite}
-                    className="flex items-center gap-2"
-                  >
-                    <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
-                    {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-                  </Button>
-                )}
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <h2 className="text-3xl font-serif">{wine.name}</h2>
+                  {user && (
+                    <Button 
+                      variant={isFavorite ? "default" : "outline"} 
+                      size="sm" 
+                      onClick={handleToggleFavorite}
+                      className="flex items-center gap-2"
+                    >
+                      <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                      {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                    </Button>
+                  )}
+                </div>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigate(`/wine/${wine.id}`);
+                    onClose();
+                  }}
+                  className="w-full"
+                >
+                  Voir la page complète de ce vin
+                </Button>
               </div>
 
               {domain && (
