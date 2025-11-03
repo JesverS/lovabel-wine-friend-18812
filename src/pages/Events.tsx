@@ -127,11 +127,11 @@ const Events = () => {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal pl-10",
+                        "w-full justify-start text-left font-normal relative pl-10",
                         !searchDate && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="absolute left-3 h-4 w-4" />
+                      <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
                       {searchDate ? format(searchDate, "d MMMM yyyy", { locale: fr }) : "Sélectionner une date"}
                     </Button>
                   </PopoverTrigger>
