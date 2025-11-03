@@ -87,10 +87,10 @@ export default function GameMultiplayer() {
   const canStartGame = players.length >= 1 && selectedWine;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-8 pt-32">
+      <main className="container mx-auto px-4 py-8 pt-32 flex-grow">
         {/* Hero Section */}
         <div className="text-center mb-12 animate-fade-up">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/20 backdrop-blur-sm border border-secondary/30 mb-4">

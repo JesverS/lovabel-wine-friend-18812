@@ -65,9 +65,9 @@ export default function CellarDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <div className="container mx-auto px-4 py-24 flex items-center justify-center">
+        <div className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
           <p>Chargement...</p>
         </div>
         <Footer />
@@ -77,9 +77,9 @@ export default function CellarDetails() {
 
   if (!cellar) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <div className="container mx-auto px-4 py-24 flex items-center justify-center">
+        <div className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
           <p>Caviste introuvable</p>
         </div>
         <Footer />
@@ -88,10 +88,10 @@ export default function CellarDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
-      <main className="container mx-auto px-4 py-24">
+      <main className="container mx-auto px-4 py-24 flex-grow">
         {/* Banner */}
         {cellar.banner_url && (
           <div className="relative w-full h-64 mb-8 rounded-lg overflow-hidden">

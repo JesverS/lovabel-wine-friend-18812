@@ -118,9 +118,9 @@ export default function Cellars() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <div className="container mx-auto px-4 py-24 flex items-center justify-center">
+        <div className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
           <p>Chargement des cavistes...</p>
         </div>
         <Footer />
@@ -129,10 +129,10 @@ export default function Cellars() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
-      <main className="container mx-auto px-4 py-24">
+      <main className="container mx-auto px-4 py-24 flex-grow">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Cavistes près de vous</h1>
           <p className="text-muted-foreground">

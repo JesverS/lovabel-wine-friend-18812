@@ -67,9 +67,9 @@ const SuperAdminPanel = () => {
 
   if (authLoading || checking) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <div className="container mx-auto p-8 flex items-center justify-center">
+        <div className="container mx-auto p-8 flex items-center justify-center flex-grow">
           <div className="text-center">
             <Shield className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
             <p className="text-foreground">Vérification des autorisations...</p>
@@ -84,9 +84,9 @@ const SuperAdminPanel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <div className="container mx-auto p-8">
+      <div className="container mx-auto p-8 flex-grow">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">Panneau Super Admin</h1>
           <p className="text-muted-foreground">Gestion des demandes et administration de la plateforme</p>

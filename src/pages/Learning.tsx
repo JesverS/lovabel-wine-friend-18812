@@ -49,10 +49,10 @@ export default function Learning() {
   const totalLessons = courses?.reduce((sum, course) => sum + course.lesson_count, 0) || 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-8 pt-32">
+      <main className="container mx-auto px-4 py-8 pt-32 flex-grow">
         {/* Header Section */}
         <div className="mb-12 animate-fade-up">
           <div className="flex items-center justify-between mb-6">

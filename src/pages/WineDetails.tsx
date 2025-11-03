@@ -69,10 +69,10 @@ export default function WineDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-12 pt-32">
+      <main className="container mx-auto px-4 py-12 pt-32 flex-grow">
         {/* Wine Header */}
         <div className="grid md:grid-cols-2 gap-12 mb-12">
           <div className="flex justify-center">
