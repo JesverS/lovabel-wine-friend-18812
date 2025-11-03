@@ -132,7 +132,7 @@ export default function Cellars() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
-      <main className="container mx-auto px-4 py-24 flex-grow">
+      <main className="container mx-auto px-4 py-24 flex-grow min-h-screen">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Cavistes près de vous</h1>
           <p className="text-muted-foreground">
