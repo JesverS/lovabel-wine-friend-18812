@@ -31,6 +31,12 @@ export const Header = () => {
           <Link to="/cellars" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             Cavistes
           </Link>
+          <Link to="/learning" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            Cours
+          </Link>
+          <Link to="/game" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            Game
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3">
