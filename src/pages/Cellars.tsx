@@ -160,99 +160,126 @@ export default function Cellars() {
       <Header />
 
       <main className="container mx-auto px-4 py-24 flex-grow min-h-screen">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Cavistes près de vous</h1>
-          <p className="text-muted-foreground">
-            Découvrez les meilleurs cavistes de votre région
-          </p>
-        </div>
-
-        {/* Search and Filters Section */}
-        <div className="mb-12 space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Nom du caviste"
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Adresse"
-                value={searchAddress}
-                onChange={(e) => setSearchAddress(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12 animate-fade-up">
+            <h1 className="text-5xl md:text-6xl font-serif font-bold mb-4 text-gradient-wine">
+              Cavistes près de vous
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Découvrez les meilleurs cavistes de votre région et explorez leurs sélections exceptionnelles
+            </p>
           </div>
 
-          {(searchName || searchAddress) && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchName("");
-                setSearchAddress("");
-              }}
-            >
-              Réinitialiser les filtres
-            </Button>
-          )}
-        </div>
+          {/* Search and Filters Section */}
+          <Card className="mb-12 border-2 shadow-lg animate-fade-up">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary" />
+                    <Input
+                      placeholder="Nom du caviste"
+                      value={searchName}
+                      onChange={(e) => setSearchName(e.target.value)}
+                      className="pl-12 h-12 text-base border-2 focus:border-primary"
+                    />
+                  </div>
+                  
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary" />
+                    <Input
+                      placeholder="Adresse"
+                      value={searchAddress}
+                      onChange={(e) => setSearchAddress(e.target.value)}
+                      className="pl-12 h-12 text-base border-2 focus:border-primary"
+                    />
+                  </div>
+                </div>
 
-        {cellars.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Store className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">Aucun caviste trouvé pour le moment</p>
+                {(searchName || searchAddress) && (
+                  <div className="flex justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchName("");
+                        setSearchAddress("");
+                      }}
+                      className="border-2"
+                    >
+                      Réinitialiser les filtres
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cellars.map((cellar) => (
-              <Link key={cellar.id} to={`/cellar/${cellar.id}`}>
-                <Card className="hover:shadow-lg transition-shadow h-full">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4 mb-4">
-                      <Avatar className="w-16 h-16">
-                        <AvatarImage src={cellar.logo_url || undefined} />
-                        <AvatarFallback>
-                          <Store className="w-8 h-8" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg truncate">{cellar.name}</h3>
-                        {cellar.location && (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {cellar.location}
-                          </p>
-                        )}
-                        {cellar.distance !== undefined && (
-                          <p className="text-sm text-primary font-medium mt-1">
-                            {cellar.distance.toFixed(1)} km
-                          </p>
-                        )}
+
+          {cellars.length === 0 ? (
+            <Card className="border-2 shadow-lg">
+              <CardContent className="p-12 text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
+                  <Store className="w-10 h-10 text-primary" />
+                </div>
+                <p className="text-xl text-muted-foreground">Aucun caviste trouvé pour le moment</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {cellars.map((cellar, index) => (
+                <Link 
+                  key={cellar.id} 
+                  to={`/cellar/${cellar.id}`}
+                  className="animate-scale-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <Card className="group hover-lift h-full border-2 hover:border-primary/50 transition-all duration-300 overflow-hidden">
+                    <div className="h-2 bg-gradient-wine"></div>
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4 mb-6">
+                        <div className="relative">
+                          <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
+                            <AvatarImage src={cellar.logo_url || undefined} />
+                            <AvatarFallback className="bg-gradient-wine text-primary-foreground">
+                              <Store className="w-10 h-10" />
+                            </AvatarFallback>
+                          </Avatar>
+                          {cellar.distance !== undefined && (
+                            <div className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full shadow-md">
+                              {cellar.distance.toFixed(1)} km
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-serif font-bold text-xl mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                            {cellar.name}
+                          </h3>
+                          {cellar.location && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                              <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                              <span className="line-clamp-1">{cellar.location}</span>
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {cellar.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {cellar.description}
-                      </p>
-                    )}
-                    <Button variant="outline" className="w-full mt-4">
-                      Voir le catalogue
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
+                      {cellar.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-3 mb-6 leading-relaxed">
+                          {cellar.description}
+                        </p>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        className="w-full border-2 group-hover:bg-gradient-wine group-hover:text-primary-foreground group-hover:border-transparent transition-all"
+                      >
+                        <Store className="w-4 h-4 mr-2" />
+                        Voir le catalogue
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
       <Footer />
