@@ -225,12 +225,10 @@ export default function Cellars() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {cellars.map((cellar, index) => (
+              {cellars.map((cellar) => (
                 <Link 
                   key={cellar.id} 
                   to={`/cellar/${cellar.id}`}
-                  className="animate-scale-in"
-                  style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <Card className="group hover-lift h-full border-2 hover:border-primary/50 transition-all duration-300 overflow-hidden">
                     <div className="h-2 bg-gradient-wine"></div>
