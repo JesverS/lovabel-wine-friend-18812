@@ -31,7 +31,13 @@ export default function Cellars() {
 
   useEffect(() => {
     fetchUserLocationAndCellars();
-  }, [user, searchName, searchAddress]);
+  }, [user]);
+
+  useEffect(() => {
+    if (!loading) {
+      fetchCellars();
+    }
+  }, [searchName, searchAddress]);
 
   const fetchUserLocationAndCellars = async () => {
     setLoading(true);
@@ -56,6 +62,27 @@ export default function Cellars() {
     }
 
     setLoading(false);
+  };
+
+  const fetchCellars = async () => {
+    // Get user location from profile if not already set
+    if (user && !userLocation) {
+      const { data: profile } = await supabase
+        .from('user_profiles' as any)
+        .select('latitude, longitude')
+        .eq('id', user.id)
+        .single();
+
+      if ((profile as any)?.latitude && (profile as any)?.longitude) {
+        await fetchNearbyCellars((profile as any).latitude, (profile as any).longitude);
+      } else {
+        await fetchAllCellars();
+      }
+    } else if (userLocation) {
+      await fetchNearbyCellars(userLocation.lat, userLocation.lng);
+    } else {
+      await fetchAllCellars();
+    }
   };
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
