@@ -6,8 +6,9 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MapPin, Store } from 'lucide-react';
+import { MapPin, Store, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface Cellar {
   id: string;
@@ -25,10 +26,12 @@ export default function Cellars() {
   const [cellars, setCellars] = useState<Cellar[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchName, setSearchName] = useState("");
+  const [searchAddress, setSearchAddress] = useState("");
 
   useEffect(() => {
     fetchUserLocationAndCellars();
-  }, [user]);
+  }, [user, searchName, searchAddress]);
 
   const fetchUserLocationAndCellars = async () => {
     setLoading(true);
@@ -70,13 +73,25 @@ export default function Cellars() {
   };
 
   const fetchNearbyCellars = async (userLat: number, userLng: number) => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('cellar' as any)
       .select('*')
       .eq('is_public', true)
       .eq('is_seller', true)
       .not('latitude', 'is', null)
       .not('longitude', 'is', null);
+
+    // Filter by name
+    if (searchName.trim()) {
+      query = query.ilike('name', `%${searchName}%`);
+    }
+
+    // Filter by address/location
+    if (searchAddress.trim()) {
+      query = query.ilike('location', `%${searchAddress}%`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching cellars:', error);
@@ -101,12 +116,24 @@ export default function Cellars() {
   };
 
   const fetchAllCellars = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('cellar' as any)
       .select('*')
       .eq('is_public', true)
       .eq('is_seller', true)
       .limit(10);
+
+    // Filter by name
+    if (searchName.trim()) {
+      query = query.ilike('name', `%${searchName}%`);
+    }
+
+    // Filter by address/location
+    if (searchAddress.trim()) {
+      query = query.ilike('location', `%${searchAddress}%`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching cellars:', error);
@@ -138,6 +165,43 @@ export default function Cellars() {
           <p className="text-muted-foreground">
             Découvrez les meilleurs cavistes de votre région
           </p>
+        </div>
+
+        {/* Search and Filters Section */}
+        <div className="mb-12 space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Nom du caviste"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Adresse"
+                value={searchAddress}
+                onChange={(e) => setSearchAddress(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {(searchName || searchAddress) && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchName("");
+                setSearchAddress("");
+              }}
+            >
+              Réinitialiser les filtres
+            </Button>
+          )}
         </div>
 
         {cellars.length === 0 ? (
