@@ -31,6 +31,7 @@ export const AddressAutocomplete = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const justSelectedRef = useRef(false);
 
   // Fermer les suggestions quand on clique en dehors
   useEffect(() => {
@@ -47,6 +48,12 @@ export const AddressAutocomplete = ({
   // Rechercher les adresses
   useEffect(() => {
     const searchAddress = async () => {
+      // Ne pas rechercher si on vient de sélectionner une adresse
+      if (justSelectedRef.current) {
+        justSelectedRef.current = false;
+        return;
+      }
+
       if (value.length < 3) {
         setSuggestions([]);
         return;
@@ -76,6 +83,7 @@ export const AddressAutocomplete = ({
     const address = feature.properties.label;
     const [longitude, latitude] = feature.geometry.coordinates;
     
+    justSelectedRef.current = true;
     onChange(address, { latitude, longitude });
     setSuggestions([]);
     setShowSuggestions(false);
