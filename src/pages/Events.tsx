@@ -33,7 +33,6 @@ const Events = () => {
   const [searchName, setSearchName] = useState("");
   const [searchCity, setSearchCity] = useState("");
   const [searchDate, setSearchDate] = useState<Date | undefined>(undefined);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchEvents();
@@ -93,9 +92,9 @@ const Events = () => {
                 </p>
               </div>
               {user && (
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
-                  Créer un événement
-                </Button>
+                <CreateEventDialog 
+                  onEventCreated={fetchEvents}
+                />
               )}
             </div>
 
@@ -219,15 +218,6 @@ const Events = () => {
         </section>
       </main>
       <Footer />
-      
-      {isCreateDialogOpen && (
-        <CreateEventDialog 
-          onEventCreated={() => {
-            fetchEvents();
-            setIsCreateDialogOpen(false);
-          }} 
-        />
-      )}
     </div>
   );
 };
