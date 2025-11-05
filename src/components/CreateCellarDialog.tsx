@@ -418,7 +418,7 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
             onCropComplete={handleLogoCropComplete}
             loading={uploadingImages}
             aspect={1}
-            cropShape="rect"
+            cropShape="round"
             title="Ajuster le logo"
           />
         )}

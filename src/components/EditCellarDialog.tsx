@@ -425,7 +425,7 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
             onCropComplete={handleLogoCropComplete}
             loading={uploadingImages}
             aspect={1}
-            cropShape="rect"
+            cropShape="round"
             title="Ajuster le logo"
           />
         )}
