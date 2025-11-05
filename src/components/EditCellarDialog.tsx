@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { geocodeAddress } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -37,16 +38,27 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
 
     setLoading(true);
 
+    // Geocode address if provided
+    let updateData: any = {
+      name,
+      description,
+      location,
+      is_public: isPublic,
+      is_seller: isSeller,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (location) {
+      const coords = await geocodeAddress(location);
+      if (coords) {
+        updateData.latitude = coords.latitude;
+        updateData.longitude = coords.longitude;
+      }
+    }
+
     const { error } = await supabase
       .from('cellar' as any)
-      .update({
-        name,
-        description,
-        location,
-        is_public: isPublic,
-        is_seller: isSeller,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', cellar.id);
 
     if (error) {
@@ -107,6 +119,9 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
               value={location}
               onChange={(e) => setLocation(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Les coordonnées seront calculées automatiquement à partir de l'adresse
+            </p>
           </div>
 
           <div className="flex items-center justify-between">

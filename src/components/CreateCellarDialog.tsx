@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { geocodeAddress } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,8 +29,6 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -154,6 +153,17 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
 
       setUploadingImages(false);
 
+      // Geocode address if provided
+      let latitude = null;
+      let longitude = null;
+      if (location) {
+        const coords = await geocodeAddress(location);
+        if (coords) {
+          latitude = coords.latitude;
+          longitude = coords.longitude;
+        }
+      }
+
       // Create cellar with all data including image URLs
       const { data: cellarData, error: cellarError } = await supabase
         .from('cellar' as any)
@@ -161,8 +171,8 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
           name,
           description: description || null,
           location: location || null,
-          latitude: latitude ? parseFloat(latitude) : null,
-          longitude: longitude ? parseFloat(longitude) : null,
+          latitude,
+          longitude,
           is_public: isPublic,
           is_seller: isSeller,
           logo_url: logoUrl,
@@ -211,8 +221,6 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
     setName('');
     setDescription('');
     setLocation('');
-    setLatitude('');
-    setLongitude('');
     setIsPublic(false);
     setIsSeller(false);
     setLogoFile(null);
@@ -264,31 +272,9 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
               onChange={(e) => setLocation(e.target.value)}
               placeholder="123 Rue du Vin, 75001 Paris"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="latitude">Latitude</Label>
-              <Input
-                id="latitude"
-                type="number"
-                step="any"
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-                placeholder="48.8566"
-              />
-            </div>
-            <div>
-              <Label htmlFor="longitude">Longitude</Label>
-              <Input
-                id="longitude"
-                type="number"
-                step="any"
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-                placeholder="2.3522"
-              />
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Les coordonnées seront calculées automatiquement à partir de l'adresse
+            </p>
           </div>
 
           <div className="space-y-2">
