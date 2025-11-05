@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -14,16 +14,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarPlus, Upload } from 'lucide-react';
+import { Pencil, Upload } from 'lucide-react';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
 
-interface CreateEventDialogProps {
-  onEventCreated?: () => void;
+interface EditEventDialogProps {
+  eventId: string;
+  onEventUpdated?: () => void;
   triggerButton?: React.ReactNode;
 }
 
-export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEventDialogProps) {
+export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: EditEventDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -47,6 +48,49 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     registration_link: '',
     is_public: true,
   });
+
+  useEffect(() => {
+    if (open) {
+      loadEventData();
+    }
+  }, [open]);
+
+  const loadEventData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('event')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData({
+          name: data.name || '',
+          description: data.description || '',
+          start_date: data.start_date || '',
+          end_date: data.end_date || '',
+          address: data.address || '',
+          city: data.city || '',
+          category: data.category || '',
+          registration_link: data.registration_link || '',
+          is_public: data.is_public ?? true,
+        });
+        setLatitude(data.latitude);
+        setLongitude(data.longitude);
+        if (data.banner_url) {
+          setImagePreview(data.banner_url);
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de charger les données de l\'événement.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -89,10 +133,10 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     setLoading(true);
 
     try {
-      // Créer l'événement
-      const { data: eventData, error: eventError } = await supabase
+      // Mettre à jour l'événement
+      const { error: eventError } = await supabase
         .from('event')
-        .insert({
+        .update({
           name: formData.name,
           description: formData.description,
           start_date: formData.start_date,
@@ -103,30 +147,17 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
           category: formData.category || null,
           registration_link: formData.registration_link || null,
           is_public: formData.is_public,
-          organizer_id: user.id,
           latitude,
           longitude,
         })
-        .select()
-        .single();
+        .eq('id', eventId);
 
       if (eventError) throw eventError;
 
-      // Ajouter le créateur dans user_event
-      const { error: userEventError } = await supabase
-        .from('user_event')
-        .insert({
-          user_id: user.id,
-          event_id: eventData.id,
-          role: 'admin',
-        });
-
-      if (userEventError) throw userEventError;
-
-      // Upload de l'image si présente
-      if (imageFile && eventData) {
+      // Upload de l'image si une nouvelle est présente
+      if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${eventData.id}/banner.${fileExt}`;
+        const fileName = `${eventId}/banner.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('event')
@@ -146,38 +177,24 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
         await supabase
           .from('event')
           .update({ banner_url: publicUrlData.publicUrl })
-          .eq('id', eventData.id);
+          .eq('id', eventId);
       }
 
       toast({
-        title: 'Événement créé',
-        description: 'Votre événement a été créé avec succès.',
+        title: 'Événement modifié',
+        description: 'Votre événement a été modifié avec succès.',
       });
 
       setOpen(false);
-      setFormData({
-        name: '',
-        description: '',
-        start_date: '',
-        end_date: '',
-        address: '',
-        city: '',
-        category: '',
-        registration_link: '',
-        is_public: true,
-      });
       setImageFile(null);
-      setImagePreview(null);
-      setLatitude(null);
-      setLongitude(null);
 
-      if (onEventCreated) {
-        onEventCreated();
+      if (onEventUpdated) {
+        onEventUpdated();
       }
     } catch (error: any) {
       toast({
         title: 'Erreur',
-        description: error.message || 'Une erreur est survenue lors de la création de l\'événement.',
+        description: error.message || 'Une erreur est survenue lors de la modification de l\'événement.',
         variant: 'destructive',
       });
     } finally {
@@ -189,17 +206,17 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {triggerButton || (
-          <Button>
-            <CalendarPlus className="w-4 h-4 mr-2" />
-            Créer un événement
+          <Button variant="outline" size="sm">
+            <Pencil className="w-4 h-4 mr-2" />
+            Modifier
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Créer un événement</DialogTitle>
+          <DialogTitle>Modifier l'événement</DialogTitle>
           <DialogDescription>
-            Organisez un événement autour du vin et partagez-le avec la communauté
+            Modifiez les informations de votre événement
           </DialogDescription>
         </DialogHeader>
 
@@ -302,7 +319,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
                 onClick={() => document.getElementById('image')?.click()}
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Choisir une image
+                Changer l'image
               </Button>
               <Input
                 id="image"
@@ -340,7 +357,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
               Annuler
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Création...' : 'Créer l\'événement'}
+              {loading ? 'Modification...' : 'Modifier l\'événement'}
             </Button>
           </div>
         </form>
