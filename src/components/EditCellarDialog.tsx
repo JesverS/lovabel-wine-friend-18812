@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { geocodeAddress } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Settings, Upload, X, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ImageCropDialog } from './ImageCropDialog';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 interface EditCellarDialogProps {
   cellar: any;
@@ -31,6 +31,8 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
   const [name, setName] = useState(cellar.name);
   const [description, setDescription] = useState(cellar.description || '');
   const [location, setLocation] = useState(cellar.location || '');
+  const [latitude, setLatitude] = useState<number | null>(cellar.latitude);
+  const [longitude, setLongitude] = useState<number | null>(cellar.longitude);
   const [isPublic, setIsPublic] = useState(cellar.is_public);
   const [isSeller, setIsSeller] = useState(cellar.is_seller);
   
@@ -199,25 +201,19 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
 
       setUploadingImages(false);
 
-      // Geocode address if provided
+      // Prepare update data
       let updateData: any = {
         name,
         description,
         location,
+        latitude,
+        longitude,
         is_public: isPublic,
         is_seller: isSeller,
         logo_url: logoUrl || null,
         banner_url: bannerUrl || null,
         updated_at: new Date().toISOString(),
       };
-
-      if (location) {
-        const coords = await geocodeAddress(location);
-        if (coords) {
-          updateData.latitude = coords.latitude;
-          updateData.longitude = coords.longitude;
-        }
-      }
 
       const { error } = await supabase
         .from('cellar' as any)
@@ -279,13 +275,20 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
 
           <div>
             <Label htmlFor="location">Adresse</Label>
-            <Input
-              id="location"
+            <AddressAutocomplete
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(address, coordinates) => {
+                setLocation(address);
+                if (coordinates) {
+                  setLatitude(coordinates.latitude);
+                  setLongitude(coordinates.longitude);
+                }
+              }}
+              placeholder="Rechercher une adresse..."
+              disabled={loading}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Les coordonnées seront calculées automatiquement à partir de l'adresse
+              Sélectionnez une adresse dans la liste pour géolocaliser automatiquement
             </p>
           </div>
 
