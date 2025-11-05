@@ -164,37 +164,21 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
         }
       }
 
-      // Create cellar with all data including image URLs
-      const { data: cellarData, error: cellarError } = await supabase
-        .from('cellar' as any)
-        .insert({
-          name,
-          description: description || null,
-          location: location || null,
-          latitude,
-          longitude,
-          is_public: isPublic,
-          is_seller: isSeller,
-          logo_url: logoUrl,
-          banner_url: bannerUrl,
-        })
-        .select()
-        .single();
-
-      if (cellarError) throw cellarError;
-
-      const cellarId = (cellarData as any).id;
-
-      // Create user_cellar relationship with owner role
-      const { error: userCellarError } = await supabase
-        .from('user_cellar' as any)
-        .insert({
-          user_id: user.id,
-          user_cellar_id: cellarId,
-          role: 'owner',
+      // Create cellar and user_cellar relationship atomically
+      const { data: cellarId, error: cellarError } = await supabase
+        .rpc('create_cellar_with_owner', {
+          p_name: name,
+          p_description: description || null,
+          p_location: location || null,
+          p_latitude: latitude,
+          p_longitude: longitude,
+          p_is_public: isPublic,
+          p_is_seller: isSeller,
+          p_logo_url: logoUrl,
+          p_banner_url: bannerUrl,
         });
 
-      if (userCellarError) throw userCellarError;
+      if (cellarError) throw cellarError;
 
       toast({
         title: 'Succès',

@@ -969,6 +969,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_cellar_with_owner: {
+        Args: {
+          p_banner_url: string
+          p_description: string
+          p_is_public: boolean
+          p_is_seller: boolean
+          p_latitude: number
+          p_location: string
+          p_logo_url: string
+          p_longitude: number
+          p_name: string
+        }
+        Returns: string
+      }
       event_is_public: { Args: { _event_id: string }; Returns: boolean }
       get_team_applications_without_owner: {
         Args: never
