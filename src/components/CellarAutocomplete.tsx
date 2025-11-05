@@ -7,6 +7,8 @@ import { Loader2 } from 'lucide-react';
 interface Cellar {
   id: string;
   name: string;
+  location: string | null;
+  logo_url: string | null;
 }
 
 interface CellarAutocompleteProps {
@@ -28,6 +30,7 @@ export const CellarAutocomplete = ({
   const [isLoading, setIsLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const justSelectedRef = useRef(false);
+  const hasLoadedInitial = useRef(false);
 
   // Fermer les suggestions quand on clique en dehors
   useEffect(() => {
@@ -39,6 +42,54 @@ export const CellarAutocomplete = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Charger les caves de l'utilisateur
+  const loadUserCellars = async (searchQuery = '') => {
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setSuggestions([]);
+        return;
+      }
+
+      // Rechercher uniquement les caves de l'utilisateur
+      const { data: userCellars, error: cellarError } = await supabase
+        .from('user_cellar')
+        .select('user_cellar_id')
+        .eq('user_id', user.id);
+
+      if (cellarError) throw cellarError;
+      
+      const cellarIds = userCellars?.map(uc => uc.user_cellar_id) || [];
+      
+      if (cellarIds.length === 0) {
+        setSuggestions([]);
+        return;
+      }
+
+      let query = supabase
+        .from('cellar')
+        .select('id, name, location, logo_url')
+        .in('id', cellarIds)
+        .limit(5);
+
+      if (searchQuery) {
+        query = query.ilike('name', `%${searchQuery}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setSuggestions(data || []);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error('Erreur recherche caves:', error);
+      setSuggestions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Rechercher les caves
   useEffect(() => {
@@ -54,50 +105,20 @@ export const CellarAutocomplete = ({
         return;
       }
 
-      setIsLoading(true);
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setSuggestions([]);
-          return;
-        }
-
-        // Rechercher uniquement les caves de l'utilisateur
-        const { data: userCellars, error: cellarError } = await supabase
-          .from('user_cellar')
-          .select('user_cellar_id')
-          .eq('user_id', user.id);
-
-        if (cellarError) throw cellarError;
-        
-        const cellarIds = userCellars?.map(uc => uc.user_cellar_id) || [];
-        
-        if (cellarIds.length === 0) {
-          setSuggestions([]);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('cellar')
-          .select('id, name')
-          .in('id', cellarIds)
-          .ilike('name', `%${inputValue}%`)
-          .limit(5);
-
-        if (error) throw error;
-        setSuggestions(data || []);
-        setShowSuggestions(true);
-      } catch (error) {
-        console.error('Erreur recherche caves:', error);
-        setSuggestions([]);
-      } finally {
-        setIsLoading(false);
-      }
+      await loadUserCellars(inputValue);
     };
 
     const timeoutId = setTimeout(searchCellars, 300);
     return () => clearTimeout(timeoutId);
   }, [inputValue]);
+
+  // Charger les caves au focus si pas encore fait
+  const handleFocus = () => {
+    if (!hasLoadedInitial.current && inputValue.length < 2) {
+      hasLoadedInitial.current = true;
+      loadUserCellars();
+    }
+  };
 
   const handleSelectCellar = (cellar: Cellar) => {
     justSelectedRef.current = true;
@@ -132,6 +153,7 @@ export const CellarAutocomplete = ({
           type="text"
           value={inputValue}
           onChange={handleInputChange}
+          onFocus={handleFocus}
           placeholder="Rechercher une cave..."
           className="w-full"
         />
@@ -148,24 +170,40 @@ export const CellarAutocomplete = ({
           </button>
         )}
         {showSuggestions && suggestions.length > 0 && (
-          <ul className="absolute z-10 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+          <ul className="absolute z-10 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-80 overflow-auto">
             {suggestions.map((cellar) => (
               <li
                 key={cellar.id}
                 onClick={() => handleSelectCellar(cellar)}
-                className="px-4 py-2 hover:bg-accent cursor-pointer"
+                className="px-4 py-3 hover:bg-accent cursor-pointer flex items-center gap-3"
               >
-                {cellar.name}
+                {cellar.logo_url ? (
+                  <img 
+                    src={cellar.logo_url} 
+                    alt={cellar.name}
+                    className="w-12 h-12 object-cover rounded-md flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-muted rounded-md flex-shrink-0 flex items-center justify-center">
+                    <span className="text-muted-foreground text-xs">Logo</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-foreground">{cellar.name}</div>
+                  {cellar.location && (
+                    <div className="text-sm text-muted-foreground truncate">
+                      {cellar.location}
+                    </div>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
         )}
       </div>
-      {inputValue.length > 0 && inputValue.length < 2 && (
-        <p className="text-sm text-muted-foreground">
-          Entrez au moins 2 caractères pour rechercher
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground">
+        Seules vos caves peuvent être affiliées à l'événement
+      </p>
     </div>
   );
 };
