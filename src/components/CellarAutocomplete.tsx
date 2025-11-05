@@ -32,6 +32,11 @@ export const CellarAutocomplete = ({
   const justSelectedRef = useRef(false);
   const hasLoadedInitial = useRef(false);
 
+  // Synchroniser l'input avec la prop value
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
   // Fermer les suggestions quand on clique en dehors
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
