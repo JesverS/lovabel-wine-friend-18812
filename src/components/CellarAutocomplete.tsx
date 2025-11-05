@@ -117,12 +117,9 @@ export const CellarAutocomplete = ({
     return () => clearTimeout(timeoutId);
   }, [inputValue]);
 
-  // Charger les caves au focus si pas encore fait
+  // Ne rien faire au focus, attendre que l'utilisateur tape
   const handleFocus = () => {
-    if (!hasLoadedInitial.current && inputValue.length < 2) {
-      hasLoadedInitial.current = true;
-      loadUserCellars();
-    }
+    // Les suggestions apparaîtront uniquement quand l'utilisateur tape
   };
 
   const handleSelectCellar = (cellar: Cellar) => {
