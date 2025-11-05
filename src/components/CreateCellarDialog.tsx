@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Upload, X, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { ImageCropDialog } from './ImageCropDialog';
 
 interface CreateCellarDialogProps {
   onCellarCreated: () => void;
@@ -31,10 +32,14 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
   const [location, setLocation] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string>('');
+  const [selectedLogoImage, setSelectedLogoImage] = useState<string | null>(null);
+  const [selectedBannerImage, setSelectedBannerImage] = useState<string | null>(null);
+  const [cropLogoDialogOpen, setCropLogoDialogOpen] = useState(false);
+  const [cropBannerDialogOpen, setCropBannerDialogOpen] = useState(false);
+  const [newLogoBlob, setNewLogoBlob] = useState<Blob | null>(null);
+  const [newBannerBlob, setNewBannerBlob] = useState<Blob | null>(null);
 
   const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,13 +58,17 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: 'L\'image ne doit pas dépasser 5 Mo',
+        description: "L'image ne doit pas dépasser 5 Mo",
       });
       return;
     }
 
-    setLogoFile(file);
-    setLogoPreview(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedLogoImage(reader.result as string);
+      setCropLogoDialogOpen(true);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleBannerSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,23 +88,39 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: 'L\'image ne doit pas dépasser 5 Mo',
+        description: "L'image ne doit pas dépasser 5 Mo",
       });
       return;
     }
 
-    setBannerFile(file);
-    setBannerPreview(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedBannerImage(reader.result as string);
+      setCropBannerDialogOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoCropComplete = async (croppedImage: Blob) => {
+    setNewLogoBlob(croppedImage);
+    setLogoPreview(URL.createObjectURL(croppedImage));
+    setCropLogoDialogOpen(false);
+  };
+
+  const handleBannerCropComplete = async (croppedImage: Blob) => {
+    setNewBannerBlob(croppedImage);
+    setBannerPreview(URL.createObjectURL(croppedImage));
+    setCropBannerDialogOpen(false);
   };
 
   const handleRemoveLogo = () => {
-    setLogoFile(null);
     setLogoPreview('');
+    setNewLogoBlob(null);
   };
 
   const handleRemoveBanner = () => {
-    setBannerFile(null);
     setBannerPreview('');
+    setNewBannerBlob(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,44 +134,40 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
       let bannerUrl = null;
 
       // Upload images first if provided
-      if (logoFile || bannerFile) {
+      if (newLogoBlob || newBannerBlob) {
         setUploadingImages(true);
       }
 
       // Upload logo if provided
-      if (logoFile) {
-        const fileExt = logoFile.name.split('.').pop();
-        const fileName = `${Date.now()}-logo.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+      if (newLogoBlob) {
+        const fileName = `${user.id}/${Date.now()}-logo.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from('cellar')
-          .upload(filePath, logoFile);
+          .upload(fileName, newLogoBlob);
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
           .from('cellar')
-          .getPublicUrl(filePath);
+          .getPublicUrl(fileName);
 
         logoUrl = urlData.publicUrl;
       }
 
       // Upload banner if provided
-      if (bannerFile) {
-        const fileExt = bannerFile.name.split('.').pop();
-        const fileName = `${Date.now()}-banner.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+      if (newBannerBlob) {
+        const fileName = `${user.id}/${Date.now()}-banner.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from('cellar')
-          .upload(filePath, bannerFile);
+          .upload(fileName, newBannerBlob);
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
           .from('cellar')
-          .getPublicUrl(filePath);
+          .getPublicUrl(fileName);
 
         bannerUrl = urlData.publicUrl;
       }
@@ -207,10 +228,10 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
     setLocation('');
     setIsPublic(false);
     setIsSeller(false);
-    setLogoFile(null);
     setLogoPreview('');
-    setBannerFile(null);
     setBannerPreview('');
+    setNewLogoBlob(null);
+    setNewBannerBlob(null);
   };
 
   return (
@@ -387,6 +408,32 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
             </Button>
           </div>
         </form>
+
+        {/* Crop Dialogs */}
+        {selectedLogoImage && (
+          <ImageCropDialog
+            open={cropLogoDialogOpen}
+            onOpenChange={setCropLogoDialogOpen}
+            imageSrc={selectedLogoImage}
+            onCropComplete={handleLogoCropComplete}
+            loading={uploadingImages}
+            aspect={1}
+            cropShape="rect"
+            title="Ajuster le logo"
+          />
+        )}
+        {selectedBannerImage && (
+          <ImageCropDialog
+            open={cropBannerDialogOpen}
+            onOpenChange={setCropBannerDialogOpen}
+            imageSrc={selectedBannerImage}
+            onCropComplete={handleBannerCropComplete}
+            loading={uploadingImages}
+            aspect={21 / 9}
+            cropShape="rect"
+            title="Ajuster la bannière"
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
