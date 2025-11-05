@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Pencil, Upload } from 'lucide-react';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
+import { CellarAutocomplete } from './CellarAutocomplete';
 
 interface EditEventDialogProps {
   eventId: string;
@@ -47,6 +48,8 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
     category: '',
     registration_link: '',
     is_public: true,
+    cellarId: null as string | null,
+    cellarName: '',
   });
 
   useEffect(() => {
@@ -66,6 +69,20 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
       if (error) throw error;
 
       if (data) {
+        // Charger les données de la cave si elle existe
+        let cellarName = '';
+        if ((data as any).cellar_id) {
+          const { data: cellarData } = await supabase
+            .from('cellar')
+            .select('name')
+            .eq('id', (data as any).cellar_id)
+            .single();
+          
+          if (cellarData) {
+            cellarName = cellarData.name;
+          }
+        }
+
         setFormData({
           name: data.name || '',
           description: data.description || '',
@@ -76,6 +93,8 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
           category: data.category || '',
           registration_link: data.registration_link || '',
           is_public: data.is_public ?? true,
+          cellarId: (data as any).cellar_id || null,
+          cellarName: cellarName,
         });
         setLatitude(data.latitude);
         setLongitude(data.longitude);
@@ -149,6 +168,7 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
           is_public: formData.is_public,
           latitude,
           longitude,
+          cellar_id: formData.cellarId,
         })
         .eq('id', eventId);
 
@@ -309,6 +329,15 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
               placeholder="https://..."
             />
           </div>
+
+          <CellarAutocomplete
+            value={formData.cellarName}
+            cellarId={formData.cellarId}
+            onSelect={(cellarId, cellarName) => 
+              setFormData({ ...formData, cellarId, cellarName })
+            }
+            label="Cave associée (optionnel)"
+          />
 
           <div className="space-y-2">
             <Label htmlFor="image">Image de l'événement</Label>

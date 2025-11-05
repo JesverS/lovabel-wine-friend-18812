@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CalendarPlus, Upload } from 'lucide-react';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
+import { CellarAutocomplete } from './CellarAutocomplete';
 
 interface CreateEventDialogProps {
   onEventCreated?: () => void;
@@ -46,6 +47,8 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     category: '',
     registration_link: '',
     is_public: true,
+    cellarId: null as string | null,
+    cellarName: '',
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,6 +109,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
           organizer_id: user.id,
           latitude,
           longitude,
+          cellar_id: formData.cellarId,
         })
         .select()
         .single();
@@ -165,6 +169,8 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
         category: '',
         registration_link: '',
         is_public: true,
+        cellarId: null,
+        cellarName: '',
       });
       setImageFile(null);
       setImagePreview(null);
@@ -292,6 +298,15 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
               placeholder="https://..."
             />
           </div>
+
+          <CellarAutocomplete
+            value={formData.cellarName}
+            cellarId={formData.cellarId}
+            onSelect={(cellarId, cellarName) => 
+              setFormData({ ...formData, cellarId, cellarName })
+            }
+            label="Cave associée (optionnel)"
+          />
 
           <div className="space-y-2">
             <Label htmlFor="image">Image de l'événement</Label>
