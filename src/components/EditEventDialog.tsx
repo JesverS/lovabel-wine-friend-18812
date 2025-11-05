@@ -83,11 +83,18 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
           }
         }
 
+        // Formatter les dates pour l'input datetime-local
+        const formatDateForInput = (dateString: string | null) => {
+          if (!dateString) return '';
+          // Convertir "2024-01-15T10:00:00+00:00" en "2024-01-15T10:00"
+          return dateString.slice(0, 16);
+        };
+
         setFormData({
           name: data.name || '',
           description: data.description || '',
-          start_date: data.start_date || '',
-          end_date: data.end_date || '',
+          start_date: formatDateForInput(data.start_date),
+          end_date: formatDateForInput(data.end_date),
           address: data.address || '',
           city: data.city || '',
           category: data.category || '',
