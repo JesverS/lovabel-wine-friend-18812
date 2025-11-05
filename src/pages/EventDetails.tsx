@@ -12,6 +12,7 @@ import { fr } from "date-fns/locale";
 import { WineDetailsDialog } from "@/components/WineDetailsDialog";
 import { AddDomainToEventDialog } from "@/components/AddDomainToEventDialog";
 import { AddWineToEventDialog } from "@/components/AddWineToEventDialog";
+import { EditEventDialog } from "@/components/EditEventDialog";
 import { toast } from "@/hooks/use-toast";
 import {
   Collapsible,
@@ -187,6 +188,17 @@ const EventDetails = () => {
 
   const refetchData = async () => {
     if (!id) return;
+
+    // Refetch event data
+    const { data: eventData } = await supabase
+      .from("event")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (eventData) {
+      setEvent(eventData);
+    }
 
     // Fetch domains
     const { data: eventDomainsData } = await supabase
@@ -365,9 +377,17 @@ const EventDetails = () => {
 
         <section className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">
-              {event.name}
-            </h1>
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-4xl md:text-5xl font-serif font-bold">
+                {event.name}
+              </h1>
+              {canEdit && (
+                <EditEventDialog 
+                  eventId={id!} 
+                  onEventUpdated={refetchData}
+                />
+              )}
+            </div>
 
             <div className="flex flex-wrap gap-4 mb-6 text-muted-foreground">
               <div className="flex items-center gap-2">
