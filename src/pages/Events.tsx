@@ -56,16 +56,17 @@ const Events = () => {
       query = query.ilike("city", `%${searchCity}%`);
     }
 
-    // Filter by date
+    // Filter by date - check if the search date falls within the event's date range
     if (searchDate) {
       const startOfDay = new Date(searchDate);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(searchDate);
       endOfDay.setHours(23, 59, 59, 999);
       
+      // Event should appear if: start_date <= searchDate AND (end_date >= searchDate OR end_date is null)
       query = query
-        .gte("start_date", startOfDay.toISOString())
-        .lte("start_date", endOfDay.toISOString());
+        .lte("start_date", endOfDay.toISOString())
+        .or(`end_date.gte.${startOfDay.toISOString()},end_date.is.null`);
     }
 
     const { data, error } = await query;
