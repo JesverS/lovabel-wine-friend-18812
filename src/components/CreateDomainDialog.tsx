@@ -124,23 +124,21 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
 
       if (domainError) throw domainError;
 
-      // 2. Attendre un peu pour que le bucket soit créé par le trigger
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 3. Uploader l'image dans le bucket du domaine si elle existe
+      // 2. Uploader l'image dans le bucket 'domain' si elle existe
       let logoUrl = null;
       if (logoFile) {
         const fileExt = logoFile.name.split('.').pop();
-        const fileName = `logo.${fileExt}`;
+        const filePath = `${domain.id}/logo.${fileExt}`;
+        
         const { error: uploadError } = await supabase.storage
-          .from(domain.id)
-          .upload(fileName, logoFile);
+          .from('domain')
+          .upload(filePath, logoFile);
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
-          .from(domain.id)
-          .getPublicUrl(fileName);
+          .from('domain')
+          .getPublicUrl(filePath);
 
         logoUrl = publicUrl;
 
