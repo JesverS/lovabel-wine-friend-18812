@@ -111,7 +111,7 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
     setLoading(true);
 
     try {
-      // 1. Créer d'abord le domaine pour obtenir son UUID
+      // 1. Créer d'abord le domaine (le bucket sera créé automatiquement par le trigger)
       const { data: domain, error: domainError } = await supabase
         .from('domain')
         .insert({
@@ -124,16 +124,8 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
 
       if (domainError) throw domainError;
 
-      // 2. Créer le bucket storage avec l'UUID du domaine
-      const { error: bucketError } = await supabase.storage.createBucket(domain.id, {
-        public: true,
-        fileSizeLimit: 5242880, // 5MB
-      });
-
-      // Ignorer l'erreur si le bucket existe déjà
-      if (bucketError && !bucketError.message.includes('already exists')) {
-        console.error('Erreur création bucket:', bucketError);
-      }
+      // 2. Attendre un peu pour que le bucket soit créé par le trigger
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // 3. Uploader l'image dans le bucket du domaine si elle existe
       let logoUrl = null;

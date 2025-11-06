@@ -187,6 +187,7 @@ export type Database = {
           address: string | null
           banner_url: string | null
           category: string | null
+          cellar_id: string | null
           city: string | null
           created_at: string | null
           description: string | null
@@ -206,6 +207,7 @@ export type Database = {
           address?: string | null
           banner_url?: string | null
           category?: string | null
+          cellar_id?: string | null
           city?: string | null
           created_at?: string | null
           description?: string | null
@@ -225,6 +227,7 @@ export type Database = {
           address?: string | null
           banner_url?: string | null
           category?: string | null
+          cellar_id?: string | null
           city?: string | null
           created_at?: string | null
           description?: string | null
@@ -240,7 +243,15 @@ export type Database = {
           start_date?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "event_cellar_id_fkey"
+            columns: ["cellar_id"]
+            isOneToOne: false
+            referencedRelation: "cellar"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event_domain: {
         Row: {
