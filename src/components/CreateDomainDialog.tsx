@@ -111,35 +111,55 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
     setLoading(true);
 
     try {
-      let logoUrl = null;
-
-      if (logoFile) {
-        const fileExt = logoFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('domain')
-          .upload(fileName, logoFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('domain')
-          .getPublicUrl(fileName);
-
-        logoUrl = publicUrl;
-      }
-
+      // 1. Créer d'abord le domaine pour obtenir son UUID
       const { data: domain, error: domainError } = await supabase
         .from('domain')
         .insert({
           name: name.trim(),
           description: description.trim() || null,
-          logo_url: logoUrl,
+          logo_url: null,
         })
         .select()
         .single();
 
       if (domainError) throw domainError;
+
+      // 2. Créer le bucket storage avec l'UUID du domaine
+      const { error: bucketError } = await supabase.storage.createBucket(domain.id, {
+        public: true,
+        fileSizeLimit: 5242880, // 5MB
+      });
+
+      // Ignorer l'erreur si le bucket existe déjà
+      if (bucketError && !bucketError.message.includes('already exists')) {
+        console.error('Erreur création bucket:', bucketError);
+      }
+
+      // 3. Uploader l'image dans le bucket du domaine si elle existe
+      let logoUrl = null;
+      if (logoFile) {
+        const fileExt = logoFile.name.split('.').pop();
+        const fileName = `logo.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from(domain.id)
+          .upload(fileName, logoFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from(domain.id)
+          .getPublicUrl(fileName);
+
+        logoUrl = publicUrl;
+
+        // Mettre à jour le domaine avec l'URL du logo
+        const { error: updateError } = await supabase
+          .from('domain')
+          .update({ logo_url: logoUrl })
+          .eq('id', domain.id);
+
+        if (updateError) throw updateError;
+      }
 
       // Créer une demande au lieu d'ajouter directement
       const { error: applicationError } = await supabase
