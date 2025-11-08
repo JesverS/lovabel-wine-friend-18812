@@ -349,7 +349,7 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
                 <img
                   src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
                   alt={wine.wine?.name}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
                 {isOwner && (
                   <div className="absolute top-2 right-2 bg-background/80 px-2 py-1 rounded text-sm">
