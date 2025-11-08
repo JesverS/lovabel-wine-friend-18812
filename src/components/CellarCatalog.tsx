@@ -1,30 +1,41 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Wine, Search, ShoppingCart } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Wine, Plus, Pencil, ShoppingCart } from 'lucide-react';
 import { AddWineDialog } from './AddWineDialog';
 import { EditWineInCellarDialog } from './EditWineInCellarDialog';
+import { WineSearchFilter, WineFilters } from './wine/WineSearchFilter';
 
-interface Wine {
+interface WineData {
   wine_id: string;
   cellar_id: string;
-  quantity: number;
-  label_url: string | null;
-  description: string | null;
+  quantity: number | null;
   price: number | null;
+  description: string | null;
+  label_url: string | null;
+  added_at: string | null;
   wine: {
     id: string;
     name: string;
     year: number | null;
-    volume_ml: number | null;
+    label_url: string;
+    domain_id: string | null;
+    type: number | null;
+    mode_culture: number | null;
+    wine_classification: number | null;
     price: number | null;
-    description: string | null;
-    label_url: string | null;
+    volume_ml: number | null;
     uber_order_url: string | null;
     website_order_url: string | null;
-  };
+    description: string | null;
+    domain: {
+      name: string;
+    } | null;
+    wine_type: {
+      type: string;
+    } | null;
+  } | null;
 }
 
 interface CellarCatalogProps {
@@ -32,146 +43,233 @@ interface CellarCatalogProps {
   isOwner: boolean;
 }
 
+const DEFAULT_IMAGE = 'https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png';
+
 export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
-  const [wines, setWines] = useState<Wine[]>([]);
+  const [wines, setWines] = useState<WineData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<WineFilters>({
+    searchQuery: '',
+    wineTypeId: null,
+    modeCultureId: null,
+    classificationId: null,
+    sortBy: 'name',
+    sortOrder: 'asc',
+  });
 
   useEffect(() => {
     fetchWines();
   }, [cellarId]);
 
   const fetchWines = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('cellar_wine' as any)
-      .select(`
-        wine_id,
-        cellar_id,
-        quantity,
-        label_url,
-        description,
-        price,
-        wine:wine_id (
-          id,
-          name,
-          year,
-          volume_ml,
-          price,
-          description,
-          label_url,
-          uber_order_url,
-          website_order_url
-        )
-      `)
-      .eq('cellar_id', cellarId);
+    try {
+      const { data, error } = await supabase
+        .from('cellar_wine')
+        .select(`
+          *,
+          wine:wine_id (
+            id,
+            name,
+            year,
+            label_url,
+            domain_id,
+            type,
+            mode_culture,
+            wine_classification,
+            price,
+            volume_ml,
+            uber_order_url,
+            website_order_url,
+            description,
+            domain:domain_id (
+              name
+            )
+          )
+        `)
+        .eq('cellar_id', cellarId)
+        .order('added_at', { ascending: false });
 
-    if (error) {
+      if (error) throw error;
+
+      // Enrich with wine types
+      const enrichedData = await Promise.all(
+        (data || []).map(async (item: any) => {
+          if (item.wine?.type) {
+            const { data: typeData } = await supabase
+              .from('wine_type')
+              .select('type')
+              .eq('id', item.wine.type)
+              .maybeSingle();
+            
+            return {
+              ...item,
+              wine: {
+                ...item.wine,
+                wine_type: typeData
+              }
+            };
+          }
+          return item;
+        })
+      );
+
+      setWines(enrichedData);
+    } catch (error) {
       console.error('Error fetching wines:', error);
-    } else {
-      setWines(data as any || []);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  const filteredWines = wines.filter((wine) => {
+    // Recherche textuelle
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
+      const matchesSearch = 
+        wine.wine?.name.toLowerCase().includes(query) ||
+        wine.wine?.domain?.name.toLowerCase().includes(query) ||
+        wine.wine?.year?.toString().includes(query);
+      
+      if (!matchesSearch) return false;
+    }
+
+    // Filtre par type de vin
+    if (filters.wineTypeId && wine.wine?.type?.toString() !== filters.wineTypeId) {
+      return false;
+    }
+
+    // Filtre par mode de culture
+    if (filters.modeCultureId && wine.wine?.mode_culture?.toString() !== filters.modeCultureId) {
+      return false;
+    }
+
+    // Filtre par classification
+    if (filters.classificationId && wine.wine?.wine_classification?.toString() !== filters.classificationId) {
+      return false;
+    }
+
+    return true;
+  }).sort((a, b) => {
+    // Tri
+    let comparison = 0;
+    
+    switch (filters.sortBy) {
+      case 'name':
+        comparison = (a.wine?.name || '').localeCompare(b.wine?.name || '');
+        break;
+      case 'year':
+        comparison = (a.wine?.year || 0) - (b.wine?.year || 0);
+        break;
+      case 'domain':
+        comparison = (a.wine?.domain?.name || '').localeCompare(b.wine?.domain?.name || '');
+        break;
+      case 'price':
+        comparison = (a.price || 0) - (b.price || 0);
+        break;
+    }
+
+    return filters.sortOrder === 'asc' ? comparison : -comparison;
+  });
 
   if (loading) {
     return <p>Chargement du catalogue...</p>;
   }
 
   return (
-    <div>
-      {/* AI Search Prompt */}
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Pour quelle occasion cherchez-vous un vin ?"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button>
-              <Search className="w-4 h-4 mr-2" />
-              Rechercher
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            Décrivez votre besoin et nous vous suggérerons les meilleurs vins
-          </p>
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        {isOwner && <AddWineDialog cellarId={cellarId} onWineAdded={fetchWines} />}
+      </div>
 
-      {/* Add Wine Button (Owner Only) */}
-      {isOwner && (
-        <div className="mb-6">
-          <AddWineDialog cellarId={cellarId} onWineAdded={fetchWines} />
-        </div>
-      )}
+      <WineSearchFilter
+        onFilterChange={setFilters}
+        showDomainFilter={true}
+      />
 
-      {/* Wine Catalog */}
-      {wines.length === 0 ? (
+      {filteredWines.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <Wine className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">Aucun vin dans le catalogue</p>
+            <p className="text-muted-foreground">
+              {filters.searchQuery || filters.wineTypeId || filters.modeCultureId || filters.classificationId
+                ? 'Aucun vin ne correspond à vos critères'
+                : 'Aucun vin dans le catalogue'}
+            </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {wines.map((item) => (
-            <Card key={item.wine_id} className="overflow-hidden">
+          {filteredWines.map((wine) => (
+            <Card key={wine.wine_id} className="overflow-hidden">
               <div className="aspect-[3/4] relative overflow-hidden bg-muted">
                 <img
-                  src={item.label_url || item.wine.label_url || '/placeholder.svg'}
-                  alt={item.wine.name}
-                  className="w-full h-full object-cover"
+                  src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
+                  alt={wine.wine?.name}
+                  className="w-full h-48 object-contain"
                 />
                 {isOwner && (
                   <div className="absolute top-2 right-2 bg-background/80 px-2 py-1 rounded text-sm">
-                    Stock: {item.quantity}
+                    Stock: {wine.quantity || 0}
                   </div>
                 )}
               </div>
               <CardContent className="p-4">
-                <h3 className="font-semibold text-lg mb-1">{item.wine.name}</h3>
-                {item.wine.year && (
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Année: {item.wine.year}
-                  </p>
-                )}
-                {(item.description || item.wine.description) && (
-                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                    {item.description || item.wine.description}
-                  </p>
-                )}
-                {item.wine.volume_ml && (
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {item.wine.volume_ml}ml
-                  </p>
-                )}
-                {(item.price || item.wine.price) && (
-                  <p className="text-lg font-bold text-primary mb-4">
-                    {item.price || item.wine.price}€
-                  </p>
-                )}
-                <div className="flex flex-col gap-2">
-                  {isOwner && (
-                    <EditWineInCellarDialog wineData={item} onUpdated={fetchWines} />
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{wine.wine?.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {wine.wine?.domain?.name}
+                      </p>
+                      {wine.wine?.wine_type && (
+                        <span className="text-xs text-muted-foreground">
+                          {wine.wine.wine_type.type.charAt(0).toUpperCase() + wine.wine.wine_type.type.slice(1)}
+                        </span>
+                      )}
+                    </div>
+                    {wine.wine?.year && (
+                      <span className="text-sm font-medium">
+                        {wine.wine.year}
+                      </span>
+                    )}
+                  </div>
+
+                  {(wine.description || wine.wine?.description) && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {wine.description || wine.wine?.description}
+                    </p>
                   )}
-                  {item.wine.uber_order_url && (
+
+                  {wine.wine?.volume_ml && (
+                    <p className="text-xs text-muted-foreground">
+                      {wine.wine.volume_ml}ml
+                    </p>
+                  )}
+
+                  {(wine.price || wine.wine?.price) && (
+                    <p className="text-lg font-bold text-primary">
+                      {wine.price || wine.wine?.price}€
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 mt-4">
+                  {isOwner && (
+                    <EditWineInCellarDialog wineData={wine as any} onUpdated={fetchWines} />
+                  )}
+                  {wine.wine?.uber_order_url && (
                     <Button variant="outline" size="sm" asChild>
-                      <a href={item.wine.uber_order_url} target="_blank" rel="noopener noreferrer">
+                      <a href={wine.wine.uber_order_url} target="_blank" rel="noopener noreferrer">
                         <ShoppingCart className="w-4 h-4 mr-2" />
-                        Acheter sur Uber Eats
+                        Uber Eats
                       </a>
                     </Button>
                   )}
-                  {item.wine.website_order_url && (
+                  {wine.wine?.website_order_url && (
                     <Button variant="outline" size="sm" asChild>
-                      <a href={item.wine.website_order_url} target="_blank" rel="noopener noreferrer">
+                      <a href={wine.wine.website_order_url} target="_blank" rel="noopener noreferrer">
                         <ShoppingCart className="w-4 h-4 mr-2" />
-                        Acheter sur le site
+                        Commander
                       </a>
                     </Button>
                   )}
