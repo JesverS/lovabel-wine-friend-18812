@@ -64,6 +64,8 @@ interface Wine {
   mode_culture: number | null;
   wine_classification: number | null;
   website_order_url: string | null;
+  wine_type?: { type: string } | null;
+  wine_classification_data?: { nom: string } | null;
 }
 
 interface DomainWithWines {
@@ -168,7 +170,9 @@ const EventDetails = () => {
                 type,
                 mode_culture,
                 wine_classification,
-                website_order_url
+                website_order_url,
+                wine_type:type(type),
+                wine_classification_data:wine_classification(nom)
               )
             `)
             .eq("event_id", id)
@@ -248,7 +252,9 @@ const EventDetails = () => {
               type,
               mode_culture,
               wine_classification,
-              website_order_url
+              website_order_url,
+              wine_type:type(type),
+              wine_classification_data:wine_classification(nom)
             )
           `)
           .eq("event_id", id)
@@ -553,15 +559,30 @@ const EventDetails = () => {
                                   <img
                                     src={wine.label_url}
                                     alt={wine.name}
-                                    className="w-full h-32 object-contain mb-3"
+                                    className="w-full h-48 object-contain mb-3"
                                   />
                                 )}
-                                <h4 className="font-semibold">{wine.name}</h4>
-                                {wine.year && (
-                                  <p className="text-sm text-muted-foreground">
-                                    {wine.year}
-                                  </p>
-                                )}
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-semibold">{wine.name}</h4>
+                                    {wine.year && (
+                                      <span className="text-sm text-muted-foreground">{wine.year}</span>
+                                    )}
+                                  </div>
+                                  {(wine.wine_type?.type || wine.wine_classification_data?.nom) && (
+                                    <p className="text-sm text-muted-foreground">
+                                      {wine.wine_type?.type && (
+                                        <span className="capitalize">{wine.wine_type.type}</span>
+                                      )}
+                                      {wine.wine_type?.type && wine.wine_classification_data?.nom && (
+                                        <span> - </span>
+                                      )}
+                                      {wine.wine_classification_data?.nom && (
+                                        <span>{wine.wine_classification_data.nom}</span>
+                                      )}
+                                    </p>
+                                  )}
+                                </div>
                               </Card>
                             ))}
                           </div>

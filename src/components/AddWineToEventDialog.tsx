@@ -209,34 +209,30 @@ export function AddWineToEventDialog({ eventId, domainId, domainName, onWineAdde
                   />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
                   {searchResults.map((wine) => (
                     <div
                       key={wine.id}
                       onClick={() => handleAddWine(wine)}
-                      className="border rounded-lg p-3 cursor-pointer hover:border-primary transition-colors"
+                      className="border rounded-lg p-3 cursor-pointer hover:border-primary transition-colors flex gap-4"
                     >
                       {wine.label_url && (
                         <img
                           src={wine.label_url}
                           alt={wine.name}
-                          className="w-full h-32 object-contain mb-2"
+                          className="w-24 h-24 object-contain flex-shrink-0"
                         />
                       )}
-                      <h4 className="font-semibold text-sm">{wine.name}</h4>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {wine.year && <span>{wine.year}</span>}
+                      <div className="flex flex-col justify-center gap-1 min-w-0">
+                        <h4 className="font-semibold text-sm">{wine.name}</h4>
+                        {wine.year && (
+                          <p className="text-sm text-muted-foreground">{wine.year}</p>
+                        )}
                         {wine.wine_type?.type && (
-                          <>
-                            {wine.year && <span>•</span>}
-                            <span className="capitalize">{wine.wine_type.type}</span>
-                          </>
+                          <p className="text-sm text-muted-foreground capitalize">{wine.wine_type.type}</p>
                         )}
                         {wine.wine_classification?.nom && (
-                          <>
-                            <span>•</span>
-                            <span>{wine.wine_classification.nom}</span>
-                          </>
+                          <p className="text-sm text-muted-foreground">{wine.wine_classification.nom}</p>
                         )}
                       </div>
                     </div>
