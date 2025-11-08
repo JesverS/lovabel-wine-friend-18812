@@ -60,7 +60,9 @@ interface Wine {
   volume_ml: number | null;
   alcohol_percentage: number | null;
   characteristics: any;
-  uber_order_url: string | null;
+  type: number | null;
+  mode_culture: number | null;
+  wine_classification: number | null;
   website_order_url: string | null;
 }
 
@@ -163,7 +165,9 @@ const EventDetails = () => {
                 volume_ml,
                 alcohol_percentage,
                 characteristics,
-                uber_order_url,
+                type,
+                mode_culture,
+                wine_classification,
                 website_order_url
               )
             `)
@@ -236,7 +240,15 @@ const EventDetails = () => {
               year,
               label_url,
               description,
-              domain_id
+              domain_id,
+              price,
+              volume_ml,
+              alcohol_percentage,
+              characteristics,
+              type,
+              mode_culture,
+              wine_classification,
+              website_order_url
             )
           `)
           .eq("event_id", id)

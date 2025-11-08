@@ -150,10 +150,10 @@ export default function WineDetails() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              {wine.uber_order_url && (
+              {wine.website_order_url && (
                 <Button asChild size="lg" className="flex-1">
-                  <a href={wine.uber_order_url} target="_blank" rel="noopener noreferrer">
-                    Commander via Merit (Uber Eats)
+                  <a href={wine.website_order_url} target="_blank" rel="noopener noreferrer">
+                    Commander sur le site
                   </a>
                 </Button>
               )}

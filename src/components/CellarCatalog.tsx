@@ -26,7 +26,6 @@ interface WineData {
     wine_classification: number | null;
     price: number | null;
     volume_ml: number | null;
-    uber_order_url: string | null;
     website_order_url: string | null;
     description: string | null;
     domain: {
@@ -78,7 +77,6 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
             wine_classification,
             price,
             volume_ml,
-            uber_order_url,
             website_order_url,
             description,
             domain:domain_id (
@@ -256,14 +254,6 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
                 <div className="flex flex-col gap-2 mt-4">
                   {isOwner && (
                     <EditWineInCellarDialog wineData={wine as any} onUpdated={fetchWines} />
-                  )}
-                  {wine.wine?.uber_order_url && (
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={wine.wine.uber_order_url} target="_blank" rel="noopener noreferrer">
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Uber Eats
-                      </a>
-                    </Button>
                   )}
                   {wine.wine?.website_order_url && (
                     <Button variant="outline" size="sm" asChild>

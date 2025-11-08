@@ -30,7 +30,9 @@ interface Wine {
   volume_ml: number | null;
   alcohol_percentage: number | null;
   characteristics: any;
-  uber_order_url: string | null;
+  type: number | null;
+  mode_culture: number | null;
+  wine_classification: number | null;
   website_order_url: string | null;
 }
 
@@ -644,25 +646,14 @@ export const WineDetailsDialog = ({
                 )}
               </div>
 
-              {(wine.uber_order_url || wine.website_order_url) && (
-                <div className="flex gap-3 pt-2">
-                  {wine.uber_order_url && (
-                    <Button 
-                      onClick={() => window.open(wine.uber_order_url!, '_blank')}
-                      className="flex-1"
-                    >
-                      Commander sur Uber Eats
-                    </Button>
-                  )}
-                  {wine.website_order_url && (
-                    <Button 
-                      onClick={() => window.open(wine.website_order_url!, '_blank')}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      Commander sur le site
-                    </Button>
-                  )}
+              {wine.website_order_url && (
+                <div className="pt-2">
+                  <Button 
+                    onClick={() => window.open(wine.website_order_url!, '_blank')}
+                    className="w-full"
+                  >
+                    Commander sur le site
+                  </Button>
                 </div>
               )}
 
