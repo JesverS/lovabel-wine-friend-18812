@@ -51,6 +51,9 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
   const [viewMode, setViewMode] = useState<'all' | 'by-domain'>('all');
   const [domains, setDomains] = useState<any[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+  const [domainsLoading, setDomainsLoading] = useState(false);
+  const [domainsOffset, setDomainsOffset] = useState(0);
+  const [hasMoreDomains, setHasMoreDomains] = useState(true);
   const [filters, setFilters] = useState<WineFilters>({
     searchQuery: '',
     wineTypeId: null,
@@ -67,25 +70,49 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
     }
   }, [cellarId]);
 
-  const fetchDomains = async () => {
+  const fetchDomains = async (offset: number = 0) => {
+    if (domainsLoading) return;
+    
+    setDomainsLoading(true);
     try {
-      const { data: cellarWines } = await supabase
+      // Get distinct domain_ids from cellar_wine
+      const { data: distinctDomains } = await supabase
         .from('cellar_wine')
-        .select('wine_id, wine:wine_id(domain_id, domain:domain_id(id, name, logo_url))')
-        .eq('cellar_id', cellarId);
+        .select('domain_id')
+        .eq('cellar_id', cellarId)
+        .not('domain_id', 'is', null);
 
-      if (cellarWines) {
-        const uniqueDomains = new Map();
-        cellarWines.forEach((cw: any) => {
-          const domain = cw.wine?.domain;
-          if (domain && !uniqueDomains.has(domain.id)) {
-            uniqueDomains.set(domain.id, domain);
+      if (distinctDomains) {
+        const uniqueDomainIds = [...new Set(distinctDomains.map((d: any) => d.domain_id))];
+        
+        // Fetch domain details with pagination
+        const { data: domainData } = await supabase
+          .from('domain')
+          .select('id, name, logo_url')
+          .in('id', uniqueDomainIds)
+          .order('name', { ascending: true })
+          .range(offset, offset + 19);
+
+        if (domainData) {
+          if (offset === 0) {
+            setDomains(domainData);
+          } else {
+            setDomains(prev => [...prev, ...domainData]);
           }
-        });
-        setDomains(Array.from(uniqueDomains.values()));
+          setHasMoreDomains(domainData.length === 20);
+          setDomainsOffset(offset + domainData.length);
+        }
       }
     } catch (error) {
       console.error('Error fetching domains:', error);
+    } finally {
+      setDomainsLoading(false);
+    }
+  };
+
+  const loadMoreDomains = () => {
+    if (!domainsLoading && hasMoreDomains) {
+      fetchDomains(domainsOffset);
     }
   };
 
@@ -239,28 +266,50 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
       </div>
 
       {viewMode === 'by-domain' && !selectedDomain && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {domains.map((domain) => (
-            <Card
-              key={domain.id}
-              className="cursor-pointer hover:border-primary transition-colors"
-              onClick={() => setSelectedDomain(domain.id)}
-            >
-              <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-                {domain.logo_url ? (
-                  <Avatar className="w-20 h-20">
-                    <AvatarImage src={domain.logo_url} alt={domain.name} />
-                    <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <Avatar className="w-20 h-20">
-                    <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                )}
-                <h3 className="font-semibold text-sm">{domain.name}</h3>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {domains.map((domain) => (
+              <Card
+                key={domain.id}
+                className="cursor-pointer hover:border-primary transition-colors"
+                onClick={() => setSelectedDomain(domain.id)}
+              >
+                <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                  {domain.logo_url ? (
+                    <Avatar className="w-20 h-20">
+                      <AvatarImage src={domain.logo_url} alt={domain.name} />
+                      <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <Avatar className="w-20 h-20">
+                      <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  )}
+                  <h3 className="font-semibold text-sm">{domain.name}</h3>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          {domainsLoading && (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">Chargement...</p>
+            </div>
+          )}
+          
+          {!domainsLoading && hasMoreDomains && domains.length > 0 && (
+            <div className="text-center">
+              <Button onClick={loadMoreDomains} variant="outline">
+                Charger plus de domaines
+              </Button>
+            </div>
+          )}
+          
+          {!hasMoreDomains && domains.length > 0 && (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">Tous les domaines ont été chargés</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -296,11 +345,11 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredWines.map((wine) => (
             <Card key={wine.wine_id} className="overflow-hidden">
-              <div className="aspect-[3/4] relative overflow-hidden bg-muted">
+              <div className="aspect-[2/3] relative overflow-hidden bg-muted">
                 <img
                   src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
                   alt={wine.wine?.name}
-                  className="w-full h-48 object-contain"
+                  className="w-full h-full object-contain"
                 />
                 {isOwner && (
                   <div className="absolute top-2 right-2 bg-background/80 px-2 py-1 rounded text-sm">

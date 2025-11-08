@@ -247,6 +247,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
         .insert({
           cellar_id: cellarId,
           wine_id: foundWine.id,
+          domain_id: foundWine.domain_id,
           quantity: parseInt(quantity),
           label_url: cellarLabelUrl,
           price: cellarPrice ? parseFloat(cellarPrice) : null,
@@ -339,6 +340,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
         .insert({
           cellar_id: cellarId,
           wine_id: wineData.id,
+          domain_id: finalDomainId,
           quantity: parseInt(quantity),
           label_url: cellarUrlData.publicUrl,
         });
