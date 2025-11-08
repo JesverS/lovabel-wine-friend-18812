@@ -1207,6 +1207,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
       upsert_wine_notice_with_event: {
         Args: {
           p_details: Json
