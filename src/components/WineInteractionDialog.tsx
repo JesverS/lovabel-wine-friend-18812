@@ -215,14 +215,14 @@ export const WineInteractionDialog = ({
     setLoading(true);
     const newLiked = liked === status ? 0 : status;
 
-    const { error } = await supabase.from("user_wine_notice").upsert({
+    const { data: noticeData, error } = await supabase.from("user_wine_notice").upsert({
       user_id: user.id,
       wine_id: wine.id,
       liked: newLiked as any,
       details: tastingDetails as any,
     } as any, {
       onConflict: 'user_id,wine_id'
-    });
+    }).select().single();
 
     if (error) {
       toast({
@@ -231,6 +231,22 @@ export const WineInteractionDialog = ({
         variant: "destructive",
       });
     } else {
+      // Create link between notice and event
+      if (noticeData && eventId) {
+        const { error: linkError } = await supabase
+          .from("user_wine_notice_event" as any)
+          .upsert({
+            user_wine_notice_id: noticeData.id,
+            event_id: eventId,
+          } as any, {
+            onConflict: 'user_wine_notice_id,event_id'
+          });
+
+        if (linkError) {
+          console.error("Error linking notice to event:", linkError);
+        }
+      }
+
       setLiked(newLiked);
       toast({
         title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
@@ -391,14 +407,14 @@ export const WineInteractionDialog = ({
 
     setLoading(true);
 
-    const { error } = await supabase.from("user_wine_notice").upsert({
+    const { data: noticeData, error } = await supabase.from("user_wine_notice").upsert({
       user_id: user.id,
       wine_id: wine.id,
       details: tastingDetails as any,
       liked: liked as any,
     } as any, {
       onConflict: 'user_id,wine_id'
-    });
+    }).select().single();
 
     if (error) {
       toast({
@@ -407,6 +423,22 @@ export const WineInteractionDialog = ({
         variant: "destructive",
       });
     } else {
+      // Create link between notice and event
+      if (noticeData && eventId) {
+        const { error: linkError } = await supabase
+          .from("user_wine_notice_event" as any)
+          .upsert({
+            user_wine_notice_id: noticeData.id,
+            event_id: eventId,
+          } as any, {
+            onConflict: 'user_wine_notice_id,event_id'
+          });
+
+        if (linkError) {
+          console.error("Error linking notice to event:", linkError);
+        }
+      }
+
       toast({
         title: "Dégustation enregistrée",
       });
