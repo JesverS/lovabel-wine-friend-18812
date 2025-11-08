@@ -79,7 +79,6 @@ export const WineInteractionDialog = ({
         .select("*")
         .eq("user_id", user.id)
         .eq("wine_id", wine.id)
-        .eq("event_id", eventId)
         .maybeSingle();
 
       if (noticeData) {
@@ -219,11 +218,10 @@ export const WineInteractionDialog = ({
     const { error } = await supabase.from("user_wine_notice").upsert({
       user_id: user.id,
       wine_id: wine.id,
-      event_id: eventId,
       liked: newLiked as any,
       details: tastingDetails as any,
     } as any, {
-      onConflict: 'user_id,wine_id,event_id'
+      onConflict: 'user_id,wine_id'
     });
 
     if (error) {
@@ -396,11 +394,10 @@ export const WineInteractionDialog = ({
     const { error } = await supabase.from("user_wine_notice").upsert({
       user_id: user.id,
       wine_id: wine.id,
-      event_id: eventId,
       details: tastingDetails as any,
       liked: liked as any,
     } as any, {
-      onConflict: 'user_id,wine_id,event_id'
+      onConflict: 'user_id,wine_id'
     });
 
     if (error) {
