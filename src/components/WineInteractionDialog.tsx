@@ -226,7 +226,9 @@ export const WineInteractionDialog = ({
         onConflict: 'user_id,wine_id'
       })
       .select()
-      .single();
+      .maybeSingle();
+
+    console.log("DEBUG - Like upsert result:", { noticeData, error, hasId: !!noticeData?.id });
 
     if (error) {
       toast({
@@ -235,16 +237,23 @@ export const WineInteractionDialog = ({
         variant: "destructive",
       });
       console.error("Error upserting notice:", error);
-    } else {
-      // Create link between notice and event
-      console.log("DEBUG - About to link like:", {
-        hasNoticeId: !!noticeData?.id,
-        noticeId: noticeData?.id,
-        hasEventId: !!eventId,
-        eventId: eventId
-      });
+      setLoading(false);
+      return;
+    }
 
-      if (noticeData?.id && eventId) {
+    if (!noticeData?.id) {
+      console.error("ERROR - No notice ID returned after upsert");
+      toast({
+        title: "Erreur",
+        description: "ID de l'avis non retourné",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Create link between notice and event
+    if (eventId) {
         console.log("DEBUG - Attempting insert into user_wine_notice_event:", {
           user_wine_notice_id: noticeData.id,
           event_id: eventId
@@ -269,21 +278,15 @@ export const WineInteractionDialog = ({
             description: `${linkError.message}`,
             variant: "destructive",
           });
-        } else {
-          console.log("SUCCESS - Linked notice to event:", linkData);
-        }
       } else {
-        console.warn("SKIP - Missing data:", {
-          hasNoticeId: !!noticeData?.id,
-          hasEventId: !!eventId
-        });
+        console.log("SUCCESS - Linked notice to event:", linkData);
       }
-
-      setLiked(newLiked);
-      toast({
-        title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
-      });
     }
+
+    setLiked(newLiked);
+    toast({
+      title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
+    });
 
     setLoading(false);
   };
@@ -450,7 +453,9 @@ export const WineInteractionDialog = ({
         onConflict: 'user_id,wine_id'
       })
       .select()
-      .single();
+      .maybeSingle();
+
+    console.log("DEBUG - Tasting upsert result:", { noticeData, error, hasId: !!noticeData?.id });
 
     if (error) {
       toast({
@@ -459,16 +464,23 @@ export const WineInteractionDialog = ({
         variant: "destructive",
       });
       console.error("Error upserting tasting:", error);
-    } else {
-      // Create link between notice and event
-      console.log("DEBUG - About to link:", {
-        hasNoticeId: !!noticeData?.id,
-        noticeId: noticeData?.id,
-        hasEventId: !!eventId,
-        eventId: eventId
-      });
+      setLoading(false);
+      return;
+    }
 
-      if (noticeData?.id && eventId) {
+    if (!noticeData?.id) {
+      console.error("ERROR - No notice ID returned after upsert");
+      toast({
+        title: "Erreur",
+        description: "ID de l'avis non retourné",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Create link between notice and event
+    if (eventId) {
         console.log("DEBUG - Attempting insert into user_wine_notice_event:", {
           user_wine_notice_id: noticeData.id,
           event_id: eventId
@@ -493,20 +505,14 @@ export const WineInteractionDialog = ({
             description: `${linkError.message}`,
             variant: "destructive",
           });
-        } else {
-          console.log("SUCCESS - Linked tasting to event:", linkData);
-        }
       } else {
-        console.warn("SKIP - Missing data:", {
-          hasNoticeId: !!noticeData?.id,
-          hasEventId: !!eventId
-        });
+        console.log("SUCCESS - Linked tasting to event:", linkData);
       }
-
-      toast({
-        title: "Dégustation enregistrée",
-      });
     }
+
+    toast({
+      title: "Dégustation enregistrée",
+    });
 
     setLoading(false);
   };
