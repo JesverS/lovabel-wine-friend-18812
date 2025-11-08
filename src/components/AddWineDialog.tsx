@@ -42,6 +42,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const [imageChoice, setImageChoice] = useState<'default' | 'custom'>('default');
   const [customLabelFile, setCustomLabelFile] = useState<File | null>(null);
   const [customLabelPreview, setCustomLabelPreview] = useState<string>('');
+  const [cellarPrice, setCellarPrice] = useState('');
+  const [cellarDescription, setCellarDescription] = useState('');
   
   // Create wine fields
   const [selectedDomain, setSelectedDomain] = useState<any>(null);
@@ -56,6 +58,22 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const [labelFile, setLabelFile] = useState<File | null>(null);
   const [labelPreview, setLabelPreview] = useState<string>('');
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  // Live search with debounce
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      setDisplayedResults([]);
+      setStep('search');
+      return;
+    }
+
+    const delaySearch = setTimeout(() => {
+      handleSearchWine();
+    }, 500);
+
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery]);
 
   const searchDomains = async (query: string) => {
     if (!query.trim() || query.trim().length < 2) {
@@ -97,12 +115,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   };
 
   const handleSearchWine = async () => {
-    if (!searchQuery.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Veuillez entrer un nom de vin, domaine ou année',
-      });
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
       return;
     }
 
@@ -121,11 +134,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
       setHasMoreResults((data || []).length > RESULTS_PER_PAGE);
       setStep('results');
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: error.message,
-      });
+      console.error('Search error:', error);
     } finally {
       setSearchLoading(false);
     }
@@ -146,12 +155,6 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
 
   const handleCreateNewWine = () => {
     setStep('create');
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !searchLoading) {
-      handleSearchWine();
-    }
   };
 
   const handleCustomLabelSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -246,6 +249,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
           wine_id: foundWine.id,
           quantity: parseInt(quantity),
           label_url: cellarLabelUrl,
+          price: cellarPrice ? parseFloat(cellarPrice) : null,
+          description: cellarDescription || null,
         });
 
       if (cellarWineError) throw cellarWineError;
@@ -371,6 +376,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
     setImageChoice('default');
     setCustomLabelFile(null);
     setCustomLabelPreview('');
+    setCellarPrice('');
+    setCellarDescription('');
     setSelectedDomain(null);
     setDomainSearch('');
     setDomainResults([]);
@@ -414,29 +421,20 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
                 id="search-query"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
                 placeholder="Nom du vin, domaine ou année..."
-                required
+                autoFocus
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Appuyez sur Entrée pour rechercher
+                La recherche se lance automatiquement
               </p>
             </div>
 
-            <Button
-              onClick={handleSearchWine}
-              disabled={searchLoading || !searchQuery.trim()}
-              className="w-full"
-            >
-              {searchLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Recherche...
-                </>
-              ) : (
-                'Rechercher'
-              )}
-            </Button>
+            {searchLoading && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <span className="ml-2 text-sm text-muted-foreground">Recherche en cours...</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -550,6 +548,35 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
                 required
                 min="1"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="cellar-price">Prix de vente (€)</Label>
+              <Input
+                id="cellar-price"
+                type="number"
+                step="0.01"
+                value={cellarPrice}
+                onChange={(e) => setCellarPrice(e.target.value)}
+                placeholder="15.00"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Facultatif - Prix auquel vous vendez ce vin
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="cellar-description">Description du domaine</Label>
+              <Textarea
+                id="cellar-description"
+                value={cellarDescription}
+                onChange={(e) => setCellarDescription(e.target.value)}
+                rows={3}
+                placeholder="Quelques mots sur le domaine producteur..."
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Facultatif - Informations complémentaires sur le producteur
+              </p>
             </div>
 
             <div className="space-y-3">

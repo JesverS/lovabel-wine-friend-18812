@@ -22,7 +22,7 @@ export interface WineFilters {
   wineTypeId: string | null;
   modeCultureId: string | null;
   classificationId: string | null;
-  sortBy: 'name' | 'year' | 'domain' | 'price';
+  sortBy: 'name' | 'year' | 'domain' | 'price' | 'added_at';
   sortOrder: 'asc' | 'desc';
 }
 
@@ -35,8 +35,8 @@ export function WineSearchFilter({
   const [wineTypeId, setWineTypeId] = useState<string | null>(null);
   const [modeCultureId, setModeCultureId] = useState<string | null>(null);
   const [classificationId, setClassificationId] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'name' | 'year' | 'domain' | 'price'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<'name' | 'year' | 'domain' | 'price' | 'added_at'>('added_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isOpen, setIsOpen] = useState(false);
 
   const [wineTypes, setWineTypes] = useState<any[]>([]);
@@ -79,8 +79,8 @@ export function WineSearchFilter({
     setWineTypeId(null);
     setModeCultureId(null);
     setClassificationId(null);
-    setSortBy('name');
-    setSortOrder('asc');
+    setSortBy('added_at');
+    setSortOrder('desc');
   };
 
   const hasActiveFilters = searchQuery || wineTypeId || modeCultureId || classificationId;
@@ -184,6 +184,7 @@ export function WineSearchFilter({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="added_at">Date d'ajout</SelectItem>
                   <SelectItem value="name">Nom</SelectItem>
                   <SelectItem value="year">Millésime</SelectItem>
                   {showDomainFilter && <SelectItem value="domain">Domaine</SelectItem>}

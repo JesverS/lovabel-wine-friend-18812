@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Wine, Plus, Pencil, ShoppingCart } from 'lucide-react';
 import { AddWineDialog } from './AddWineDialog';
 import { EditWineInCellarDialog } from './EditWineInCellarDialog';
@@ -47,18 +48,46 @@ const DEFAULT_IMAGE = 'https://amzutunyjouejovlrlah.supabase.co/storage/v1/objec
 export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
   const [wines, setWines] = useState<WineData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'all' | 'by-domain'>('all');
+  const [domains, setDomains] = useState<any[]>([]);
+  const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [filters, setFilters] = useState<WineFilters>({
     searchQuery: '',
     wineTypeId: null,
     modeCultureId: null,
     classificationId: null,
-    sortBy: 'name',
-    sortOrder: 'asc',
+    sortBy: 'added_at',
+    sortOrder: 'desc',
   });
 
   useEffect(() => {
-    fetchWines();
+    if (cellarId) {
+      fetchWines();
+      fetchDomains();
+    }
   }, [cellarId]);
+
+  const fetchDomains = async () => {
+    try {
+      const { data: cellarWines } = await supabase
+        .from('cellar_wine')
+        .select('wine_id, wine:wine_id(domain_id, domain:domain_id(id, name, logo_url))')
+        .eq('cellar_id', cellarId);
+
+      if (cellarWines) {
+        const uniqueDomains = new Map();
+        cellarWines.forEach((cw: any) => {
+          const domain = cw.wine?.domain;
+          if (domain && !uniqueDomains.has(domain.id)) {
+            uniqueDomains.set(domain.id, domain);
+          }
+        });
+        setDomains(Array.from(uniqueDomains.values()));
+      }
+    } catch (error) {
+      console.error('Error fetching domains:', error);
+    }
+  };
 
   const fetchWines = async () => {
     try {
@@ -120,6 +149,11 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
   };
 
   const filteredWines = wines.filter((wine) => {
+    // Domain filter when viewing by domain
+    if (viewMode === 'by-domain' && selectedDomain && wine.wine?.domain_id !== selectedDomain) {
+      return false;
+    }
+
     // Recherche textuelle
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
@@ -164,6 +198,9 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
       case 'price':
         comparison = (a.price || 0) - (b.price || 0);
         break;
+      case 'added_at':
+        comparison = new Date(a.added_at || 0).getTime() - new Date(b.added_at || 0).getTime();
+        break;
     }
 
     return filters.sortOrder === 'asc' ? comparison : -comparison;
@@ -174,17 +211,77 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        {isOwner && <AddWineDialog cellarId={cellarId} onWineAdded={fetchWines} />}
+    <div className="space-y-6">
+      {isOwner && (
+        <div className="flex justify-end">
+          <AddWineDialog cellarId={cellarId} onWineAdded={fetchWines} />
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex gap-2">
+          <Button
+            variant={viewMode === 'all' ? 'default' : 'outline'}
+            onClick={() => {
+              setViewMode('all');
+              setSelectedDomain(null);
+            }}
+          >
+            Tous les vins
+          </Button>
+          <Button
+            variant={viewMode === 'by-domain' ? 'default' : 'outline'}
+            onClick={() => setViewMode('by-domain')}
+          >
+            Par domaine
+          </Button>
+        </div>
       </div>
 
-      <WineSearchFilter
-        onFilterChange={setFilters}
-        showDomainFilter={true}
-      />
+      {viewMode === 'by-domain' && !selectedDomain && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {domains.map((domain) => (
+            <Card
+              key={domain.id}
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => setSelectedDomain(domain.id)}
+            >
+              <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                {domain.logo_url ? (
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={domain.logo_url} alt={domain.name} />
+                    <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <Avatar className="w-20 h-20">
+                    <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                )}
+                <h3 className="font-semibold text-sm">{domain.name}</h3>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {filteredWines.length === 0 ? (
+      {viewMode === 'by-domain' && selectedDomain && (
+        <Button
+          variant="outline"
+          onClick={() => setSelectedDomain(null)}
+          className="mb-4"
+        >
+          ← Retour aux domaines
+        </Button>
+      )}
+
+      {(viewMode === 'all' || selectedDomain) && (
+        <WineSearchFilter
+          onFilterChange={setFilters}
+          showDomainFilter={true}
+        />
+      )}
+
+      {(viewMode === 'all' || selectedDomain) && filteredWines.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <Wine className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -195,7 +292,7 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
             </p>
           </CardContent>
         </Card>
-      ) : (
+      ) : (viewMode === 'all' || selectedDomain) && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredWines.map((wine) => (
             <Card key={wine.wine_id} className="overflow-hidden">
