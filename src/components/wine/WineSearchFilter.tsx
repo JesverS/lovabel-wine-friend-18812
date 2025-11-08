@@ -61,9 +61,9 @@ export function WineSearchFilter({
   const fetchFilterOptions = async () => {
     try {
       const [typesRes, culturesRes, classificationsRes] = await Promise.all([
-        supabase.from('wine_type').select('*').order('type'),
-        supabase.from('mode_culture').select('*').order('nom'),
-        supabase.from('wine_classification').select('*').order('nom'),
+        supabase.from('wine_type' as any).select('*').order('type'),
+        supabase.from('mode_culture' as any).select('*').order('nom'),
+        supabase.from('wine_classification' as any).select('*').order('nom'),
       ]);
 
       if (typesRes.data) setWineTypes(typesRes.data);

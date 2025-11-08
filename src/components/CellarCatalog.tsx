@@ -91,12 +91,12 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
 
       if (error) throw error;
 
-      // Enrich with wine types
+      // Fetch wine types separately
       const enrichedData = await Promise.all(
         (data || []).map(async (item: any) => {
           if (item.wine?.type) {
             const { data: typeData } = await supabase
-              .from('wine_type')
+              .from('wine_type' as any)
               .select('type')
               .eq('id', item.wine.type)
               .maybeSingle();
