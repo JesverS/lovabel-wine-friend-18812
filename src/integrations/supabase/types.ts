@@ -1207,6 +1207,16 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      upsert_wine_notice_with_event: {
+        Args: {
+          p_details: Json
+          p_event_id: string
+          p_liked: number
+          p_user_id: string
+          p_wine_id: string
+        }
+        Returns: string
+      }
       user_is_event_organizer: {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean

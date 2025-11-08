@@ -215,77 +215,63 @@ export const WineInteractionDialog = ({
     setLoading(true);
     const newLiked = liked === status ? 0 : status;
 
-    const { data: noticeData, error } = await supabase
-      .from("user_wine_notice")
-      .upsert({
-        user_id: user.id,
-        wine_id: wine.id,
-        liked: newLiked as any,
-        details: tastingDetails as any,
-      } as any, {
-        onConflict: 'user_id,wine_id'
-      })
-      .select()
-      .maybeSingle();
-
-    console.log("DEBUG - Like upsert result:", { noticeData, error, hasId: !!noticeData?.id });
-
-    if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible d'enregistrer votre avis",
-        variant: "destructive",
-      });
-      console.error("Error upserting notice:", error);
-      setLoading(false);
-      return;
-    }
-
-    if (!noticeData?.id) {
-      console.error("ERROR - No notice ID returned after upsert");
-      toast({
-        title: "Erreur",
-        description: "ID de l'avis non retourné",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
-    // Create link between notice and event
     if (eventId) {
-        console.log("DEBUG - Attempting insert into user_wine_notice_event:", {
-          user_wine_notice_id: noticeData.id,
-          event_id: eventId
+      const { data: noticeId, error } = await supabase
+        .rpc('upsert_wine_notice_with_event', {
+          p_user_id: user.id,
+          p_wine_id: wine.id,
+          p_event_id: eventId,
+          p_liked: newLiked,
+          p_details: tastingDetails as any,
+        } as any);
+
+      console.log('DEBUG - RPC upsert like result:', { noticeId, error });
+
+      if (error) {
+        toast({
+          title: 'Erreur',
+          description: "Impossible d'enregistrer votre avis",
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!noticeId) {
+        toast({
+          title: 'Erreur',
+          description: "ID de l'avis non retourné",
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+    } else {
+      const { error } = await supabase
+        .from('user_wine_notice')
+        .upsert({
+          user_id: user.id,
+          wine_id: wine.id,
+          liked: newLiked as any,
+          details: tastingDetails as any,
+        } as any, {
+          onConflict: 'user_id,wine_id'
         });
 
-        const { data: linkData, error: linkError } = await supabase
-          .from("user_wine_notice_event" as any)
-          .upsert({
-            user_wine_notice_id: noticeData.id,
-            event_id: eventId,
-          } as any, {
-            onConflict: 'user_wine_notice_id,event_id'
-          })
-          .select();
-
-        console.log("DEBUG - Link result:", { linkData, linkError });
-
-        if (linkError) {
-          console.error("Error linking notice to event:", linkError);
-          toast({
-            title: "Erreur liaison",
-            description: `${linkError.message}`,
-            variant: "destructive",
-          });
-      } else {
-        console.log("SUCCESS - Linked notice to event:", linkData);
+      if (error) {
+        toast({
+          title: 'Erreur',
+          description: "Impossible d'enregistrer votre avis",
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
       }
     }
 
     setLiked(newLiked);
     toast({
-      title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
+      title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : 'Avis retiré',
     });
 
     setLoading(false);
