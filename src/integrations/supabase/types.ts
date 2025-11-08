@@ -96,7 +96,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cav_vin_vin_id_fkey"
+            foreignKeyName: "cellar_wine_wine_id_fkey"
             columns: ["wine_id"]
             isOneToOne: false
             referencedRelation: "wine"
@@ -151,6 +151,7 @@ export type Database = {
           logo_url: string | null
           name: string
           phone: string | null
+          region: Database["public"]["Enums"]["domain_region"] | null
           updated_at: string | null
           website_url: string | null
         }
@@ -164,6 +165,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           phone?: string | null
+          region?: Database["public"]["Enums"]["domain_region"] | null
           updated_at?: string | null
           website_url?: string | null
         }
@@ -177,6 +179,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           phone?: string | null
+          region?: Database["public"]["Enums"]["domain_region"] | null
           updated_at?: string | null
           website_url?: string | null
         }
@@ -402,6 +405,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mode_culture: {
+        Row: {
+          description: string | null
+          id: number
+          nom: string
+        }
+        Insert: {
+          description?: string | null
+          id?: number
+          nom: string
+        }
+        Update: {
+          description?: string | null
+          id?: number
+          nom?: string
+        }
+        Relationships: []
       }
       post: {
         Row: {
@@ -913,6 +934,7 @@ export type Database = {
       wine: {
         Row: {
           alcohol_percentage: number | null
+          cepages: Json | null
           characteristics: Json | null
           created_at: string | null
           description: string | null
@@ -920,17 +942,19 @@ export type Database = {
           id: string
           is_playable: boolean
           label_url: string
+          mode_culture: number | null
           name: string
           price: number | null
-          stock: number | null
-          uber_order_url: string | null
+          type: number | null
           updated_at: string | null
           volume_ml: number | null
           website_order_url: string | null
+          wine_classification: number | null
           year: number | null
         }
         Insert: {
           alcohol_percentage?: number | null
+          cepages?: Json | null
           characteristics?: Json | null
           created_at?: string | null
           description?: string | null
@@ -938,17 +962,19 @@ export type Database = {
           id?: string
           is_playable?: boolean
           label_url?: string
+          mode_culture?: number | null
           name: string
           price?: number | null
-          stock?: number | null
-          uber_order_url?: string | null
+          type?: number | null
           updated_at?: string | null
           volume_ml?: number | null
           website_order_url?: string | null
+          wine_classification?: number | null
           year?: number | null
         }
         Update: {
           alcohol_percentage?: number | null
+          cepages?: Json | null
           characteristics?: Json | null
           created_at?: string | null
           description?: string | null
@@ -956,24 +982,82 @@ export type Database = {
           id?: string
           is_playable?: boolean
           label_url?: string
+          mode_culture?: number | null
           name?: string
           price?: number | null
-          stock?: number | null
-          uber_order_url?: string | null
+          type?: number | null
           updated_at?: string | null
           volume_ml?: number | null
           website_order_url?: string | null
+          wine_classification?: number | null
           year?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "vin_domaine_id_fkey"
+            foreignKeyName: "wine_domain_id_fkey"
             columns: ["domain_id"]
             isOneToOne: false
             referencedRelation: "domain"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "wine_mode_culture_fkey"
+            columns: ["mode_culture"]
+            isOneToOne: false
+            referencedRelation: "mode_culture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wine_type_fkey"
+            columns: ["type"]
+            isOneToOne: false
+            referencedRelation: "wine_type"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wine_wine_classification_fkey"
+            columns: ["wine_classification"]
+            isOneToOne: false
+            referencedRelation: "wine_classification"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      wine_classification: {
+        Row: {
+          description: string | null
+          id: number
+          nom: string
+          region: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: number
+          nom: string
+          region?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: number
+          nom?: string
+          region?: string | null
+        }
+        Relationships: []
+      }
+      wine_type: {
+        Row: {
+          id: number
+          type: Database["public"]["Enums"]["wine_type_enum"]
+        }
+        Insert: {
+          id?: number
+          type: Database["public"]["Enums"]["wine_type_enum"]
+        }
+        Update: {
+          id?: number
+          type?: Database["public"]["Enums"]["wine_type_enum"]
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -1038,8 +1122,6 @@ export type Database = {
           label_url: string
           name: string
           price: number
-          stock: number
-          uber_order_url: string
           updated_at: string
           volume_ml: number
           website_order_url: string
@@ -1069,6 +1151,27 @@ export type Database = {
     }
     Enums: {
       app_role: "user" | "admin" | "super_admin"
+      domain_region:
+        | "Champagne"
+        | "Loire"
+        | "Rhône"
+        | "Alsace"
+        | "Bourgogne"
+        | "Bordeaux"
+        | "Jura"
+        | "Beaujolais"
+        | "Languedoc-Roussillon"
+        | "Sud-Ouest"
+        | "Corse"
+        | "Provence"
+      wine_type_enum:
+        | "champagne"
+        | "crémant"
+        | "blanc"
+        | "rouge"
+        | "prosecco"
+        | "rosé"
+        | "autre"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1197,6 +1300,29 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["user", "admin", "super_admin"],
+      domain_region: [
+        "Champagne",
+        "Loire",
+        "Rhône",
+        "Alsace",
+        "Bourgogne",
+        "Bordeaux",
+        "Jura",
+        "Beaujolais",
+        "Languedoc-Roussillon",
+        "Sud-Ouest",
+        "Corse",
+        "Provence",
+      ],
+      wine_type_enum: [
+        "champagne",
+        "crémant",
+        "blanc",
+        "rouge",
+        "prosecco",
+        "rosé",
+        "autre",
+      ],
     },
   },
 } as const
