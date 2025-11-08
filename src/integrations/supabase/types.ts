@@ -882,46 +882,36 @@ export type Database = {
           comment: string | null
           created_at: string | null
           details: Json | null
-          event_id: string | null
           id: string
           liked: number
           rating: number | null
           updated_at: string | null
-          user_id: string | null
-          wine_id: string | null
+          user_id: string
+          wine_id: string
         }
         Insert: {
           comment?: string | null
           created_at?: string | null
           details?: Json | null
-          event_id?: string | null
           id?: string
           liked?: number
           rating?: number | null
           updated_at?: string | null
-          user_id?: string | null
-          wine_id?: string | null
+          user_id: string
+          wine_id: string
         }
         Update: {
           comment?: string | null
           created_at?: string | null
           details?: Json | null
-          event_id?: string | null
           id?: string
           liked?: number
           rating?: number | null
           updated_at?: string | null
-          user_id?: string | null
-          wine_id?: string | null
+          user_id?: string
+          wine_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "user_vin_note_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "user_vin_note_vin_id_fkey"
             columns: ["wine_id"]
