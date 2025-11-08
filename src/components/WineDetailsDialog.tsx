@@ -40,6 +40,7 @@ interface WineDetailsDialogProps {
   wine: Wine;
   onClose: () => void;
   onFavoriteRemoved?: () => void;
+  eventId?: string;
 }
 
 interface TastingDetails {
@@ -65,6 +66,7 @@ export const WineDetailsDialog = ({
   wine,
   onClose,
   onFavoriteRemoved,
+  eventId,
 }: WineDetailsDialogProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -244,26 +246,53 @@ export const WineDetailsDialog = ({
     setLoading(true);
     const newLiked = liked === status ? 0 : status;
 
-    const { error } = await supabase.from("user_wine_notice").upsert({
-      user_id: user.id,
-      wine_id: wine.id,
-      liked: newLiked as any,
-      details: tastingDetails as any,
-    } as any, {
-      onConflict: 'user_id,wine_id'
-    });
+    if (eventId) {
+      // Use RPC to upsert notice and link to event
+      const { data: noticeId, error } = await supabase.rpc('upsert_wine_notice_with_event', {
+        p_user_id: user.id,
+        p_wine_id: wine.id,
+        p_event_id: eventId,
+        p_liked: newLiked,
+        p_details: tastingDetails as any,
+      });
 
-    if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible d'enregistrer votre avis",
-        variant: "destructive",
-      });
+      console.log('[DEBUG] RPC upsert_wine_notice_with_event result:', { noticeId, error });
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible d'enregistrer votre avis",
+          variant: "destructive",
+        });
+      } else {
+        setLiked(newLiked);
+        toast({
+          title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
+        });
+      }
     } else {
-      setLiked(newLiked);
-      toast({
-        title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
+      // Fallback: simple upsert without event link
+      const { error } = await supabase.from("user_wine_notice").upsert({
+        user_id: user.id,
+        wine_id: wine.id,
+        liked: newLiked as any,
+        details: tastingDetails as any,
+      } as any, {
+        onConflict: 'user_id,wine_id'
       });
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible d'enregistrer votre avis",
+          variant: "destructive",
+        });
+      } else {
+        setLiked(newLiked);
+        toast({
+          title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
+        });
+      }
     }
 
     setLoading(false);
@@ -281,25 +310,51 @@ export const WineDetailsDialog = ({
 
     setLoading(true);
 
-    const { error } = await supabase.from("user_wine_notice").upsert({
-      user_id: user.id,
-      wine_id: wine.id,
-      details: tastingDetails as any,
-      liked: liked as any,
-    } as any, {
-      onConflict: 'user_id,wine_id'
-    });
+    if (eventId) {
+      // Use RPC to upsert notice and link to event
+      const { data: noticeId, error } = await supabase.rpc('upsert_wine_notice_with_event', {
+        p_user_id: user.id,
+        p_wine_id: wine.id,
+        p_event_id: eventId,
+        p_liked: liked,
+        p_details: tastingDetails as any,
+      });
 
-    if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible d'enregistrer votre dégustation",
-        variant: "destructive",
-      });
+      console.log('[DEBUG] RPC upsert_wine_notice_with_event result:', { noticeId, error });
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible d'enregistrer votre dégustation",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Dégustation enregistrée",
+        });
+      }
     } else {
-      toast({
-        title: "Dégustation enregistrée",
+      // Fallback: simple upsert without event link
+      const { error } = await supabase.from("user_wine_notice").upsert({
+        user_id: user.id,
+        wine_id: wine.id,
+        details: tastingDetails as any,
+        liked: liked as any,
+      } as any, {
+        onConflict: 'user_id,wine_id'
       });
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible d'enregistrer votre dégustation",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Dégustation enregistrée",
+        });
+      }
     }
 
     setLoading(false);

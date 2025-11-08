@@ -601,6 +601,7 @@ const EventDetails = () => {
       {selectedWine && event && (
         <WineDetailsDialog
           wine={selectedWine}
+          eventId={id!}
           onClose={() => setSelectedWine(null)}
         />
       )}
