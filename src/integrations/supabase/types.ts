@@ -297,6 +297,7 @@ export type Database = {
           domain_id: string
           event_id: string
           notice: string | null
+          price: number | null
           quantity: number | null
           tasting_available: boolean | null
           wine_id: string
@@ -305,6 +306,7 @@ export type Database = {
           domain_id: string
           event_id: string
           notice?: string | null
+          price?: number | null
           quantity?: number | null
           tasting_available?: boolean | null
           wine_id: string
@@ -313,6 +315,7 @@ export type Database = {
           domain_id?: string
           event_id?: string
           notice?: string | null
+          price?: number | null
           quantity?: number | null
           tasting_available?: boolean | null
           wine_id?: string
@@ -921,6 +924,78 @@ export type Database = {
           },
         ]
       }
+      user_wine_notice_cellar: {
+        Row: {
+          cellar_id: string
+          created_at: string
+          id: number
+          user_wine_notice_id: string
+        }
+        Insert: {
+          cellar_id: string
+          created_at?: string
+          id?: number
+          user_wine_notice_id: string
+        }
+        Update: {
+          cellar_id?: string
+          created_at?: string
+          id?: number
+          user_wine_notice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_wine_notice_cellar_cellar_id_fkey"
+            columns: ["cellar_id"]
+            isOneToOne: false
+            referencedRelation: "cellar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_wine_notice_cellar_user_wine_notice_id_fkey"
+            columns: ["user_wine_notice_id"]
+            isOneToOne: false
+            referencedRelation: "user_wine_notice"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_wine_notice_event: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: number
+          user_wine_notice_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: number
+          user_wine_notice_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: number
+          user_wine_notice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_wine_notice_event_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_wine_notice_event_user_wine_notice_id_fkey"
+            columns: ["user_wine_notice_id"]
+            isOneToOne: false
+            referencedRelation: "user_wine_notice"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wine: {
         Row: {
           alcohol_percentage: number | null
@@ -1134,6 +1209,10 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       user_is_event_organizer: {
         Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_owns_wine_notice: {
+        Args: { _notice_id: string; _user_id: string }
         Returns: boolean
       }
       user_participates_in_event: {
