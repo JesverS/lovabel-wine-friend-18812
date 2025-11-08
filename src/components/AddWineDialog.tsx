@@ -405,15 +405,14 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {step === 'search' && 'Rechercher un vin'}
-            {step === 'results' && 'Résultats de recherche'}
+            {(step === 'search' || step === 'results') && 'Rechercher un vin'}
             {step === 'found' && 'Vin sélectionné'}
             {step === 'create' && 'Créer un nouveau vin'}
           </DialogTitle>
         </DialogHeader>
 
-        {/* Step 1: Search */}
-        {step === 'search' && (
+        {/* Search Bar - Always visible when not in 'found' or 'create' steps */}
+        {(step === 'search' || step === 'results') && (
           <div className="space-y-4">
             <div>
               <Label htmlFor="search-query">Rechercher un vin</Label>
@@ -429,88 +428,80 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
               </p>
             </div>
 
+            {/* Loading indicator */}
             {searchLoading && (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 <span className="ml-2 text-sm text-muted-foreground">Recherche en cours...</span>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Step 2: Search Results */}
-        {step === 'results' && (
-          <div className="space-y-4">
-            {searchResults.length === 0 ? (
-              <div className="text-center py-8 space-y-4">
-                <p className="text-muted-foreground">
-                  Aucun vin trouvé pour votre recherche.
-                </p>
-                <Button
-                  onClick={handleCreateNewWine}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Mon vin est introuvable
-                </Button>
-              </div>
-            ) : (
+            {/* Search Results */}
+            {!searchLoading && step === 'results' && (
               <>
-                <div className="grid grid-cols-2 gap-4">
-                  {displayedResults.map((wine) => (
-                    <div
-                      key={wine.id}
-                      onClick={() => handleSelectWine(wine)}
-                      className="border rounded-lg p-3 cursor-pointer hover:border-primary transition-colors"
+                {searchResults.length === 0 ? (
+                  <div className="text-center py-8 space-y-4">
+                    <p className="text-muted-foreground">
+                      Aucun vin trouvé pour votre recherche.
+                    </p>
+                    <Button
+                      onClick={handleCreateNewWine}
+                      variant="outline"
+                      className="w-full"
                     >
-                      {wine.label_url && (
-                        <img
-                          src={wine.label_url}
-                          alt={wine.name}
-                          className="w-full h-32 object-cover rounded mb-2"
-                        />
-                      )}
-                      <h4 className="font-semibold text-sm line-clamp-2">{wine.name}</h4>
-                      <p className="text-xs text-muted-foreground">{wine.domain?.name}</p>
-                      {wine.year && (
-                        <p className="text-xs text-muted-foreground">Année: {wine.year}</p>
-                      )}
+                      <Plus className="w-4 h-4 mr-2" />
+                      Mon vin est introuvable
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      {displayedResults.map((wine) => (
+                        <div
+                          key={wine.id}
+                          onClick={() => handleSelectWine(wine)}
+                          className="border rounded-lg p-3 cursor-pointer hover:border-primary transition-colors"
+                        >
+                          {wine.label_url && (
+                            <img
+                              src={wine.label_url}
+                              alt={wine.name}
+                              className="w-full h-32 object-cover rounded mb-2"
+                            />
+                          )}
+                          <h4 className="font-semibold text-sm line-clamp-2">{wine.name}</h4>
+                          <p className="text-xs text-muted-foreground">{wine.domain?.name}</p>
+                          {wine.year && (
+                            <p className="text-xs text-muted-foreground">Année: {wine.year}</p>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
 
-                {hasMoreResults && (
-                  <Button
-                    onClick={handleLoadMore}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    Charger plus de résultats
-                  </Button>
-                )}
+                    {hasMoreResults && (
+                      <Button
+                        onClick={handleLoadMore}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Charger plus de résultats
+                      </Button>
+                    )}
 
-                {!hasMoreResults && displayedResults.length > 0 && (
-                  <Button
-                    onClick={handleCreateNewWine}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Mon vin est introuvable
-                  </Button>
+                    {!hasMoreResults && displayedResults.length > 0 && (
+                      <Button
+                        onClick={handleCreateNewWine}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Mon vin est introuvable
+                      </Button>
+                    )}
+                  </>
                 )}
               </>
             )}
-
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setStep('search')}
-              className="w-full"
-            >
-              Nouvelle recherche
-            </Button>
           </div>
         )}
 
