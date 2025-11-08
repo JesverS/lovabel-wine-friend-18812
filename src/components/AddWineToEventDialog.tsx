@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,8 +29,55 @@ export function AddWineToEventDialog({ eventId, domainId, domainName, onWineAdde
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      fetchInitialWines();
+    }
+  }, [open, domainId]);
+
+  useEffect(() => {
+    if (searchQuery.trim().length >= 2) {
+      handleSearchWine();
+    } else if (searchQuery.trim().length === 0) {
+      fetchInitialWines();
+    }
+  }, [searchQuery]);
+
+  const fetchInitialWines = async () => {
+    setSearchLoading(true);
+    setShowResults(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('wine')
+        .select(`
+          *,
+          domain:domain_id(id, name, logo_url),
+          wine_type:type(id, type),
+          wine_classification:wine_classification(id, nom, region)
+        `)
+        .eq('domain_id', domainId)
+        .order('year', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setSearchResults(data || []);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: error.message,
+      });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const handleSearchWine = async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim()) {
+      fetchInitialWines();
+      return;
+    }
 
     setSearchLoading(true);
     setShowResults(true);
@@ -108,11 +155,6 @@ export function AddWineToEventDialog({ eventId, domainId, domainName, onWineAdde
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !searchLoading) {
-      handleSearchWine();
-    }
-  };
 
   const resetForm = () => {
     setSearchQuery('');
@@ -143,29 +185,10 @@ export function AddWineToEventDialog({ eventId, domainId, domainName, onWineAdde
               id="wine-search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
               placeholder="Nom du vin ou année..."
               autoComplete="off"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Appuyez sur Entrée pour rechercher
-            </p>
           </div>
-
-          <Button
-            onClick={handleSearchWine}
-            disabled={searchLoading || !searchQuery.trim()}
-            className="w-full"
-          >
-            {searchLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Recherche...
-              </>
-            ) : (
-              'Rechercher'
-            )}
-          </Button>
 
           {showResults && (
             <div className="space-y-4">
@@ -201,9 +224,21 @@ export function AddWineToEventDialog({ eventId, domainId, domainName, onWineAdde
                         />
                       )}
                       <h4 className="font-semibold text-sm">{wine.name}</h4>
-                      {wine.year && (
-                        <p className="text-xs text-muted-foreground">{wine.year}</p>
-                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {wine.year && <span>{wine.year}</span>}
+                        {wine.wine_type?.type && (
+                          <>
+                            {wine.year && <span>•</span>}
+                            <span className="capitalize">{wine.wine_type.type}</span>
+                          </>
+                        )}
+                        {wine.wine_classification?.nom && (
+                          <>
+                            <span>•</span>
+                            <span>{wine.wine_classification.nom}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
