@@ -1125,6 +1125,8 @@ export type Database = {
           updated_at: string
           volume_ml: number
           website_order_url: string
+          wine_classification: Json
+          wine_type: Json
           year: number
         }[]
       }
