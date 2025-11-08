@@ -237,24 +237,46 @@ export const WineInteractionDialog = ({
       console.error("Error upserting notice:", error);
     } else {
       // Create link between notice and event
+      console.log("DEBUG - About to link like:", {
+        hasNoticeId: !!noticeData?.id,
+        noticeId: noticeData?.id,
+        hasEventId: !!eventId,
+        eventId: eventId
+      });
+
       if (noticeData?.id && eventId) {
-        const { error: linkError } = await supabase
+        console.log("DEBUG - Attempting insert into user_wine_notice_event:", {
+          user_wine_notice_id: noticeData.id,
+          event_id: eventId
+        });
+
+        const { data: linkData, error: linkError } = await supabase
           .from("user_wine_notice_event" as any)
           .upsert({
             user_wine_notice_id: noticeData.id,
             event_id: eventId,
           } as any, {
             onConflict: 'user_wine_notice_id,event_id'
-          });
+          })
+          .select();
+
+        console.log("DEBUG - Link result:", { linkData, linkError });
 
         if (linkError) {
           console.error("Error linking notice to event:", linkError);
           toast({
-            title: "Erreur",
-            description: `Erreur liaison: ${linkError.message}`,
+            title: "Erreur liaison",
+            description: `${linkError.message}`,
             variant: "destructive",
           });
+        } else {
+          console.log("SUCCESS - Linked notice to event:", linkData);
         }
+      } else {
+        console.warn("SKIP - Missing data:", {
+          hasNoticeId: !!noticeData?.id,
+          hasEventId: !!eventId
+        });
       }
 
       setLiked(newLiked);
@@ -439,24 +461,46 @@ export const WineInteractionDialog = ({
       console.error("Error upserting tasting:", error);
     } else {
       // Create link between notice and event
+      console.log("DEBUG - About to link:", {
+        hasNoticeId: !!noticeData?.id,
+        noticeId: noticeData?.id,
+        hasEventId: !!eventId,
+        eventId: eventId
+      });
+
       if (noticeData?.id && eventId) {
-        const { error: linkError } = await supabase
+        console.log("DEBUG - Attempting insert into user_wine_notice_event:", {
+          user_wine_notice_id: noticeData.id,
+          event_id: eventId
+        });
+
+        const { data: linkData, error: linkError } = await supabase
           .from("user_wine_notice_event" as any)
           .upsert({
             user_wine_notice_id: noticeData.id,
             event_id: eventId,
           } as any, {
             onConflict: 'user_wine_notice_id,event_id'
-          });
+          })
+          .select();
+
+        console.log("DEBUG - Link result:", { linkData, linkError });
 
         if (linkError) {
           console.error("Error linking tasting to event:", linkError);
           toast({
-            title: "Erreur",
-            description: `Erreur liaison: ${linkError.message}`,
+            title: "Erreur liaison",
+            description: `${linkError.message}`,
             variant: "destructive",
           });
+        } else {
+          console.log("SUCCESS - Linked tasting to event:", linkData);
         }
+      } else {
+        console.warn("SKIP - Missing data:", {
+          hasNoticeId: !!noticeData?.id,
+          hasEventId: !!eventId
+        });
       }
 
       toast({
