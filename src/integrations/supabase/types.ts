@@ -1171,6 +1171,7 @@ export type Database = {
           id: string
           logo_url: string
           name: string
+          region: string
           website_url: string
         }[]
       }
