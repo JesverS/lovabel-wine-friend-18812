@@ -215,16 +215,23 @@ export const WineInteractionDialog = ({
     setLoading(true);
     const newLiked = liked === status ? 0 : status;
 
-    const { data: noticeData, error } = await supabase.from("user_wine_notice").upsert({
-      user_id: user.id,
-      wine_id: wine.id,
-      liked: newLiked as any,
-      details: tastingDetails as any,
-    } as any, {
-      onConflict: 'user_id,wine_id'
-    }).select().single();
+    const { data: noticeData, error } = await supabase
+      .from("user_wine_notice")
+      .upsert({
+        user_id: user.id,
+        wine_id: wine.id,
+        liked: newLiked as any,
+        details: tastingDetails as any,
+      } as any, {
+        onConflict: 'user_id,wine_id'
+      })
+      .select()
+      .single();
+
+    console.log("Notice upsert result:", { noticeData, error, eventId });
 
     if (error) {
+      console.error("Error upserting notice:", error);
       toast({
         title: "Erreur",
         description: "Impossible d'enregistrer votre avis",
@@ -233,18 +240,35 @@ export const WineInteractionDialog = ({
     } else {
       // Create link between notice and event
       if (noticeData && eventId) {
-        const { error: linkError } = await supabase
+        console.log("Attempting to link notice to event:", {
+          notice_id: noticeData.id,
+          event_id: eventId
+        });
+
+        const { data: linkData, error: linkError } = await supabase
           .from("user_wine_notice_event" as any)
           .upsert({
             user_wine_notice_id: noticeData.id,
             event_id: eventId,
           } as any, {
             onConflict: 'user_wine_notice_id,event_id'
-          });
+          })
+          .select();
+
+        console.log("Link result:", { linkData, linkError });
 
         if (linkError) {
           console.error("Error linking notice to event:", linkError);
+          toast({
+            title: "Erreur liaison",
+            description: `Impossible de lier l'avis à l'événement: ${linkError.message}`,
+            variant: "destructive",
+          });
+        } else {
+          console.log("Successfully linked notice to event");
         }
+      } else {
+        console.log("Skipping event link:", { hasNoticeData: !!noticeData, hasEventId: !!eventId });
       }
 
       setLiked(newLiked);
@@ -407,16 +431,23 @@ export const WineInteractionDialog = ({
 
     setLoading(true);
 
-    const { data: noticeData, error } = await supabase.from("user_wine_notice").upsert({
-      user_id: user.id,
-      wine_id: wine.id,
-      details: tastingDetails as any,
-      liked: liked as any,
-    } as any, {
-      onConflict: 'user_id,wine_id'
-    }).select().single();
+    const { data: noticeData, error } = await supabase
+      .from("user_wine_notice")
+      .upsert({
+        user_id: user.id,
+        wine_id: wine.id,
+        details: tastingDetails as any,
+        liked: liked as any,
+      } as any, {
+        onConflict: 'user_id,wine_id'
+      })
+      .select()
+      .single();
+
+    console.log("Tasting upsert result:", { noticeData, error, eventId });
 
     if (error) {
+      console.error("Error upserting tasting:", error);
       toast({
         title: "Erreur",
         description: "Impossible d'enregistrer votre dégustation",
@@ -425,18 +456,35 @@ export const WineInteractionDialog = ({
     } else {
       // Create link between notice and event
       if (noticeData && eventId) {
-        const { error: linkError } = await supabase
+        console.log("Attempting to link tasting to event:", {
+          notice_id: noticeData.id,
+          event_id: eventId
+        });
+
+        const { data: linkData, error: linkError } = await supabase
           .from("user_wine_notice_event" as any)
           .upsert({
             user_wine_notice_id: noticeData.id,
             event_id: eventId,
           } as any, {
             onConflict: 'user_wine_notice_id,event_id'
-          });
+          })
+          .select();
+
+        console.log("Tasting link result:", { linkData, linkError });
 
         if (linkError) {
-          console.error("Error linking notice to event:", linkError);
+          console.error("Error linking tasting to event:", linkError);
+          toast({
+            title: "Erreur liaison",
+            description: `Impossible de lier la dégustation à l'événement: ${linkError.message}`,
+            variant: "destructive",
+          });
+        } else {
+          console.log("Successfully linked tasting to event");
         }
+      } else {
+        console.log("Skipping tasting event link:", { hasNoticeData: !!noticeData, hasEventId: !!eventId });
       }
 
       toast({
