@@ -228,47 +228,33 @@ export const WineInteractionDialog = ({
       .select()
       .single();
 
-    console.log("Notice upsert result:", { noticeData, error, eventId });
-
     if (error) {
-      console.error("Error upserting notice:", error);
       toast({
         title: "Erreur",
         description: "Impossible d'enregistrer votre avis",
         variant: "destructive",
       });
+      console.error("Error upserting notice:", error);
     } else {
       // Create link between notice and event
-      if (noticeData && eventId) {
-        console.log("Attempting to link notice to event:", {
-          notice_id: noticeData.id,
-          event_id: eventId
-        });
-
-        const { data: linkData, error: linkError } = await supabase
+      if (noticeData?.id && eventId) {
+        const { error: linkError } = await supabase
           .from("user_wine_notice_event" as any)
           .upsert({
             user_wine_notice_id: noticeData.id,
             event_id: eventId,
           } as any, {
             onConflict: 'user_wine_notice_id,event_id'
-          })
-          .select();
-
-        console.log("Link result:", { linkData, linkError });
+          });
 
         if (linkError) {
           console.error("Error linking notice to event:", linkError);
           toast({
-            title: "Erreur liaison",
-            description: `Impossible de lier l'avis à l'événement: ${linkError.message}`,
+            title: "Erreur",
+            description: `Erreur liaison: ${linkError.message}`,
             variant: "destructive",
           });
-        } else {
-          console.log("Successfully linked notice to event");
         }
-      } else {
-        console.log("Skipping event link:", { hasNoticeData: !!noticeData, hasEventId: !!eventId });
       }
 
       setLiked(newLiked);
@@ -444,47 +430,33 @@ export const WineInteractionDialog = ({
       .select()
       .single();
 
-    console.log("Tasting upsert result:", { noticeData, error, eventId });
-
     if (error) {
-      console.error("Error upserting tasting:", error);
       toast({
         title: "Erreur",
         description: "Impossible d'enregistrer votre dégustation",
         variant: "destructive",
       });
+      console.error("Error upserting tasting:", error);
     } else {
       // Create link between notice and event
-      if (noticeData && eventId) {
-        console.log("Attempting to link tasting to event:", {
-          notice_id: noticeData.id,
-          event_id: eventId
-        });
-
-        const { data: linkData, error: linkError } = await supabase
+      if (noticeData?.id && eventId) {
+        const { error: linkError } = await supabase
           .from("user_wine_notice_event" as any)
           .upsert({
             user_wine_notice_id: noticeData.id,
             event_id: eventId,
           } as any, {
             onConflict: 'user_wine_notice_id,event_id'
-          })
-          .select();
-
-        console.log("Tasting link result:", { linkData, linkError });
+          });
 
         if (linkError) {
           console.error("Error linking tasting to event:", linkError);
           toast({
-            title: "Erreur liaison",
-            description: `Impossible de lier la dégustation à l'événement: ${linkError.message}`,
+            title: "Erreur",
+            description: `Erreur liaison: ${linkError.message}`,
             variant: "destructive",
           });
-        } else {
-          console.log("Successfully linked tasting to event");
         }
-      } else {
-        console.log("Skipping tasting event link:", { hasNoticeData: !!noticeData, hasEventId: !!eventId });
       }
 
       toast({
