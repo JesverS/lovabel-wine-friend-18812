@@ -4,12 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Wine, Calendar, ArrowLeft, Star } from 'lucide-react';
+import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays } from 'lucide-react';
 import { WineDetailsDialog } from './WineDetailsDialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
-type ViewMode = 'date' | 'domain';
+type ViewMode = 'date' | 'domain' | 'event' | 'cellar';
 
 interface TastingNote {
   id: string;
@@ -43,15 +43,38 @@ interface DomainGroup {
   tasting_count: number;
 }
 
+interface EventGroup {
+  event_id: string;
+  event_name: string;
+  event_banner: string | null;
+  event_start_date: string;
+  event_location: string | null;
+  tasting_count: number;
+}
+
+interface CellarGroup {
+  cellar_id: string;
+  cellar_name: string;
+  cellar_logo: string | null;
+  cellar_location: string | null;
+  tasting_count: number;
+}
+
 const TASTINGS_PER_PAGE = 15;
 const DOMAINS_PER_PAGE = 10;
+const EVENTS_PER_PAGE = 20;
+const CELLARS_PER_PAGE = 20;
 
 export const UserTastings = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>('date');
   const [tastings, setTastings] = useState<TastingNote[]>([]);
   const [domains, setDomains] = useState<DomainGroup[]>([]);
+  const [events, setEvents] = useState<EventGroup[]>([]);
+  const [cellars, setCellars] = useState<CellarGroup[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedCellar, setSelectedCellar] = useState<string | null>(null);
   const [selectedWine, setSelectedWine] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -62,15 +85,30 @@ export const UserTastings = () => {
     if (user) {
       setPage(0);
       setHasMore(true);
+      
       if (viewMode === 'date') {
         fetchTastingsByDate(0);
-      } else if (!selectedDomain) {
-        fetchDomains(0);
-      } else {
-        fetchTastingsByDomain(selectedDomain, 0);
+      } else if (viewMode === 'domain') {
+        if (!selectedDomain) {
+          fetchDomains(0);
+        } else {
+          fetchTastingsByDomain(selectedDomain, 0);
+        }
+      } else if (viewMode === 'event') {
+        if (!selectedEvent) {
+          fetchEvents(0);
+        } else {
+          fetchTastingsByEvent(selectedEvent, 0);
+        }
+      } else if (viewMode === 'cellar') {
+        if (!selectedCellar) {
+          fetchCellars(0);
+        } else {
+          fetchTastingsByCellar(selectedCellar, 0);
+        }
       }
     }
-  }, [user, viewMode, selectedDomain, showDisliked]);
+  }, [user, viewMode, selectedDomain, selectedEvent, selectedCellar, showDisliked]);
 
   const fetchTastingsByDate = async (pageNum: number) => {
     if (!user) return;
@@ -280,16 +318,343 @@ export const UserTastings = () => {
     setLoading(false);
   };
 
+  const fetchEvents = async (pageNum: number) => {
+    if (!user) return;
+    setLoading(true);
+
+    const from = pageNum * EVENTS_PER_PAGE;
+    const to = from + EVENTS_PER_PAGE - 1;
+
+    let noticeQuery = supabase
+      .from('user_wine_notice' as any)
+      .select('id')
+      .eq('user_id', user.id);
+
+    if (!showDisliked) {
+      noticeQuery = noticeQuery.in('liked', [0, 1]);
+    }
+
+    const { data: notices, error: noticeError } = await noticeQuery;
+
+    if (noticeError || !notices || notices.length === 0) {
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
+
+    const noticeIds = notices.map((n: any) => n.id);
+
+    const { data: eventLinks } = await supabase
+      .from('user_wine_notice_event')
+      .select('event_id, user_wine_notice_id')
+      .in('user_wine_notice_id', noticeIds);
+
+    if (!eventLinks || eventLinks.length === 0) {
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
+
+    const eventCounts = eventLinks.reduce((acc: Record<string, number>, link) => {
+      acc[link.event_id] = (acc[link.event_id] || 0) + 1;
+      return acc;
+    }, {});
+
+    const uniqueEventIds = Object.keys(eventCounts);
+
+    const eventsData = await Promise.all(
+      uniqueEventIds.map(async (eventId) => {
+        const { data: event } = await supabase
+          .from('event')
+          .select('id, name, banner_url, start_date, location')
+          .eq('id', eventId)
+          .single();
+        
+        if (!event) return null;
+
+        return {
+          event_id: eventId,
+          event_name: event.name,
+          event_banner: event.banner_url,
+          event_start_date: event.start_date,
+          event_location: event.location,
+          tasting_count: eventCounts[eventId]
+        };
+      })
+    );
+
+    const filteredEvents = eventsData.filter(e => e !== null) as EventGroup[];
+    
+    filteredEvents.sort((a, b) => 
+      new Date(b.event_start_date).getTime() - new Date(a.event_start_date).getTime()
+    );
+
+    const paginatedEvents = filteredEvents.slice(from, to + 1);
+    
+    if (pageNum === 0) {
+      setEvents(paginatedEvents);
+    } else {
+      setEvents(prev => [...prev, ...paginatedEvents]);
+    }
+    setHasMore(paginatedEvents.length === EVENTS_PER_PAGE);
+    setLoading(false);
+  };
+
+  const fetchCellars = async (pageNum: number) => {
+    if (!user) return;
+    setLoading(true);
+
+    const from = pageNum * CELLARS_PER_PAGE;
+    const to = from + CELLARS_PER_PAGE - 1;
+
+    let noticeQuery = supabase
+      .from('user_wine_notice' as any)
+      .select('id')
+      .eq('user_id', user.id);
+
+    if (!showDisliked) {
+      noticeQuery = noticeQuery.in('liked', [0, 1]);
+    }
+
+    const { data: notices, error: noticeError } = await noticeQuery;
+
+    if (noticeError || !notices || notices.length === 0) {
+      setCellars([]);
+      setLoading(false);
+      return;
+    }
+
+    const noticeIds = notices.map((n: any) => n.id);
+
+    const { data: cellarLinks } = await supabase
+      .from('user_wine_notice_cellar')
+      .select('cellar_id, user_wine_notice_id')
+      .in('user_wine_notice_id', noticeIds);
+
+    if (!cellarLinks || cellarLinks.length === 0) {
+      setCellars([]);
+      setLoading(false);
+      return;
+    }
+
+    const cellarCounts = cellarLinks.reduce((acc: Record<string, number>, link) => {
+      acc[link.cellar_id] = (acc[link.cellar_id] || 0) + 1;
+      return acc;
+    }, {});
+
+    const uniqueCellarIds = Object.keys(cellarCounts);
+
+    const cellarsData = await Promise.all(
+      uniqueCellarIds.map(async (cellarId) => {
+        const { data: cellar } = await supabase
+          .from('cellar')
+          .select('id, name, logo_url, location')
+          .eq('id', cellarId)
+          .single();
+        
+        if (!cellar) return null;
+
+        return {
+          cellar_id: cellarId,
+          cellar_name: cellar.name,
+          cellar_logo: cellar.logo_url,
+          cellar_location: cellar.location,
+          tasting_count: cellarCounts[cellarId]
+        };
+      })
+    );
+
+    const filteredCellars = cellarsData.filter(c => c !== null) as CellarGroup[];
+    
+    filteredCellars.sort((a, b) => b.tasting_count - a.tasting_count);
+
+    const paginatedCellars = filteredCellars.slice(from, to + 1);
+    
+    if (pageNum === 0) {
+      setCellars(paginatedCellars);
+    } else {
+      setCellars(prev => [...prev, ...paginatedCellars]);
+    }
+    setHasMore(paginatedCellars.length === CELLARS_PER_PAGE);
+    setLoading(false);
+  };
+
+  const fetchTastingsByEvent = async (eventId: string, pageNum: number) => {
+    if (!user) return;
+    setLoading(true);
+
+    const from = pageNum * TASTINGS_PER_PAGE;
+    const to = from + TASTINGS_PER_PAGE - 1;
+
+    const { data: eventLinks } = await supabase
+      .from('user_wine_notice_event')
+      .select('user_wine_notice_id')
+      .eq('event_id', eventId);
+
+    if (!eventLinks || eventLinks.length === 0) {
+      setTastings([]);
+      setLoading(false);
+      return;
+    }
+
+    const noticeIds = eventLinks.map(link => link.user_wine_notice_id);
+
+    let query = supabase
+      .from('user_wine_notice' as any)
+      .select('*')
+      .eq('user_id', user.id)
+      .in('id', noticeIds)
+      .order('created_at', { ascending: false });
+
+    if (!showDisliked) {
+      query = query.in('liked', [0, 1]);
+    }
+
+    const { data, error } = await query.range(from, to);
+
+    if (!error && data) {
+      const enrichedData = await Promise.all(
+        (data as any[]).map(async (tasting: any) => {
+          const { data: wine } = await supabase
+            .from('wine')
+            .select('*')
+            .eq('id', tasting.wine_id)
+            .single();
+
+          if (!wine) return null;
+
+          const { data: domain } = await supabase
+            .from('domain')
+            .select('name, logo_url')
+            .eq('id', wine.domain_id)
+            .single();
+          
+          return {
+            id: tasting.id,
+            wine_id: tasting.wine_id,
+            created_at: tasting.created_at,
+            liked: tasting.liked,
+            rating: tasting.rating,
+            comment: tasting.comment,
+            wine,
+            domain: domain || { name: '', logo_url: null }
+          };
+        })
+      );
+
+      const filteredData = enrichedData.filter(item => item !== null) as TastingNote[];
+
+      if (pageNum === 0) {
+        setTastings(filteredData);
+      } else {
+        setTastings(prev => [...prev, ...filteredData]);
+      }
+      setHasMore(data.length === TASTINGS_PER_PAGE);
+    }
+
+    setLoading(false);
+  };
+
+  const fetchTastingsByCellar = async (cellarId: string, pageNum: number) => {
+    if (!user) return;
+    setLoading(true);
+
+    const from = pageNum * TASTINGS_PER_PAGE;
+    const to = from + TASTINGS_PER_PAGE - 1;
+
+    const { data: cellarLinks } = await supabase
+      .from('user_wine_notice_cellar')
+      .select('user_wine_notice_id')
+      .eq('cellar_id', cellarId);
+
+    if (!cellarLinks || cellarLinks.length === 0) {
+      setTastings([]);
+      setLoading(false);
+      return;
+    }
+
+    const noticeIds = cellarLinks.map(link => link.user_wine_notice_id);
+
+    let query = supabase
+      .from('user_wine_notice' as any)
+      .select('*')
+      .eq('user_id', user.id)
+      .in('id', noticeIds)
+      .order('created_at', { ascending: false });
+
+    if (!showDisliked) {
+      query = query.in('liked', [0, 1]);
+    }
+
+    const { data, error } = await query.range(from, to);
+
+    if (!error && data) {
+      const enrichedData = await Promise.all(
+        (data as any[]).map(async (tasting: any) => {
+          const { data: wine } = await supabase
+            .from('wine')
+            .select('*')
+            .eq('id', tasting.wine_id)
+            .single();
+
+          if (!wine) return null;
+
+          const { data: domain } = await supabase
+            .from('domain')
+            .select('name, logo_url')
+            .eq('id', wine.domain_id)
+            .single();
+          
+          return {
+            id: tasting.id,
+            wine_id: tasting.wine_id,
+            created_at: tasting.created_at,
+            liked: tasting.liked,
+            rating: tasting.rating,
+            comment: tasting.comment,
+            wine,
+            domain: domain || { name: '', logo_url: null }
+          };
+        })
+      );
+
+      const filteredData = enrichedData.filter(item => item !== null) as TastingNote[];
+
+      if (pageNum === 0) {
+        setTastings(filteredData);
+      } else {
+        setTastings(prev => [...prev, ...filteredData]);
+      }
+      setHasMore(data.length === TASTINGS_PER_PAGE);
+    }
+
+    setLoading(false);
+  };
+
   const loadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
 
     if (viewMode === 'date') {
       fetchTastingsByDate(nextPage);
-    } else if (selectedDomain) {
-      fetchTastingsByDomain(selectedDomain, nextPage);
-    } else {
-      fetchDomains(nextPage);
+    } else if (viewMode === 'domain') {
+      if (selectedDomain) {
+        fetchTastingsByDomain(selectedDomain, nextPage);
+      } else {
+        fetchDomains(nextPage);
+      }
+    } else if (viewMode === 'event') {
+      if (selectedEvent) {
+        fetchTastingsByEvent(selectedEvent, nextPage);
+      } else {
+        fetchEvents(nextPage);
+      }
+    } else if (viewMode === 'cellar') {
+      if (selectedCellar) {
+        fetchTastingsByCellar(selectedCellar, nextPage);
+      } else {
+        fetchCellars(nextPage);
+      }
     }
   };
 
@@ -305,6 +670,178 @@ export const UserTastings = () => {
     if (liked === -1) return '👎';
     return '🤷';
   };
+
+  if (viewMode === 'event' && selectedEvent) {
+    return (
+      <div className="space-y-4" onScroll={handleScroll}>
+        <div className="flex items-center justify-between mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => setSelectedEvent(null)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour aux événements
+          </Button>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="show-disliked-event"
+              checked={showDisliked}
+              onCheckedChange={setShowDisliked}
+            />
+            <Label htmlFor="show-disliked-event" className="text-sm">
+              Afficher les vins non appréciés
+            </Label>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {tastings.map((tasting) => (
+            <Card 
+              key={tasting.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setSelectedWine(tasting.wine)}
+            >
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  {tasting.wine.label_url && (
+                    <img
+                      src={tasting.wine.label_url}
+                      alt={tasting.wine.name}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{tasting.wine.name}</h3>
+                    <p className="text-sm text-muted-foreground">{tasting.domain.name}</p>
+                    {tasting.wine.year && (
+                      <p className="text-sm text-muted-foreground">Année: {tasting.wine.year}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-lg">{getLikedIcon(tasting.liked)}</span>
+                      {tasting.rating && (
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                          <span className="text-sm font-medium">{tasting.rating}/5</span>
+                        </div>
+                      )}
+                    </div>
+                    {tasting.comment && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {tasting.comment}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <Calendar className="w-3 h-3 inline mr-1" />
+                      Dégusté le {new Date(tasting.created_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {loading && <p className="text-center py-4">Chargement...</p>}
+        {!hasMore && tastings.length > 0 && (
+          <p className="text-center text-muted-foreground py-4">
+            Toutes les dégustations ont été affichées
+          </p>
+        )}
+        {tastings.length === 0 && !loading && (
+          <p className="text-center text-muted-foreground py-8">
+            Aucune dégustation pour cet événement
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (viewMode === 'cellar' && selectedCellar) {
+    return (
+      <div className="space-y-4" onScroll={handleScroll}>
+        <div className="flex items-center justify-between mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => setSelectedCellar(null)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour aux caves
+          </Button>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="show-disliked-cellar"
+              checked={showDisliked}
+              onCheckedChange={setShowDisliked}
+            />
+            <Label htmlFor="show-disliked-cellar" className="text-sm">
+              Afficher les vins non appréciés
+            </Label>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {tastings.map((tasting) => (
+            <Card 
+              key={tasting.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setSelectedWine(tasting.wine)}
+            >
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  {tasting.wine.label_url && (
+                    <img
+                      src={tasting.wine.label_url}
+                      alt={tasting.wine.name}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{tasting.wine.name}</h3>
+                    <p className="text-sm text-muted-foreground">{tasting.domain.name}</p>
+                    {tasting.wine.year && (
+                      <p className="text-sm text-muted-foreground">Année: {tasting.wine.year}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-lg">{getLikedIcon(tasting.liked)}</span>
+                      {tasting.rating && (
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                          <span className="text-sm font-medium">{tasting.rating}/5</span>
+                        </div>
+                      )}
+                    </div>
+                    {tasting.comment && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {tasting.comment}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <Calendar className="w-3 h-3 inline mr-1" />
+                      Dégusté le {new Date(tasting.created_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {loading && <p className="text-center py-4">Chargement...</p>}
+        {!hasMore && tastings.length > 0 && (
+          <p className="text-center text-muted-foreground py-4">
+            Toutes les dégustations ont été affichées
+          </p>
+        )}
+        {tastings.length === 0 && !loading && (
+          <p className="text-center text-muted-foreground py-8">
+            Aucune dégustation pour cette cave
+          </p>
+        )}
+      </div>
+    );
+  }
 
   if (viewMode === 'domain' && selectedDomain) {
     return (
@@ -395,7 +932,7 @@ export const UserTastings = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             variant={viewMode === 'date' ? 'default' : 'outline'}
             onClick={() => setViewMode('date')}
@@ -409,6 +946,20 @@ export const UserTastings = () => {
           >
             <Wine className="w-4 h-4 mr-2" />
             Par domaine
+          </Button>
+          <Button
+            variant={viewMode === 'event' ? 'default' : 'outline'}
+            onClick={() => setViewMode('event')}
+          >
+            <CalendarDays className="w-4 h-4 mr-2" />
+            Par événement
+          </Button>
+          <Button
+            variant={viewMode === 'cellar' ? 'default' : 'outline'}
+            onClick={() => setViewMode('cellar')}
+          >
+            <MapPin className="w-4 h-4 mr-2" />
+            Par cave
           </Button>
         </div>
 
@@ -472,7 +1023,7 @@ export const UserTastings = () => {
               </Card>
             ))}
           </div>
-        ) : (
+        ) : viewMode === 'domain' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {domains.map((domain) => (
               <Card
@@ -499,14 +1050,92 @@ export const UserTastings = () => {
               </Card>
             ))}
           </div>
+        ) : viewMode === 'event' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {events.map((event) => (
+              <Card
+                key={event.event_id}
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => setSelectedEvent(event.event_id)}
+              >
+                <CardContent className="p-6">
+                  {event.event_banner && (
+                    <img
+                      src={event.event_banner}
+                      alt={event.event_name}
+                      className="w-full h-32 object-cover rounded mb-4"
+                    />
+                  )}
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg truncate">{event.event_name}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CalendarDays className="w-4 h-4" />
+                      {new Date(event.event_start_date).toLocaleDateString('fr-FR')}
+                    </div>
+                    {event.event_location && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="w-4 h-4" />
+                        {event.event_location}
+                      </div>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {event.tasting_count} dégustation{event.tasting_count > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {cellars.map((cellar) => (
+              <Card
+                key={cellar.cellar_id}
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => setSelectedCellar(cellar.cellar_id)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <Avatar className="w-16 h-16">
+                      <AvatarImage src={cellar.cellar_logo || undefined} />
+                      <AvatarFallback>
+                        <MapPin className="w-8 h-8" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg truncate">{cellar.cellar_name}</h3>
+                      {cellar.cellar_location && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                          <MapPin className="w-3 h-3" />
+                          {cellar.cellar_location}
+                        </div>
+                      )}
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {cellar.tasting_count} dégustation{cellar.tasting_count > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
 
         {loading && <p className="text-center py-4">Chargement...</p>}
-        {!hasMore && (viewMode === 'date' ? tastings.length > 0 : domains.length > 0) && (
+        {!hasMore && (
+          viewMode === 'date' ? tastings.length > 0 : 
+          viewMode === 'domain' ? domains.length > 0 :
+          viewMode === 'event' ? events.length > 0 :
+          cellars.length > 0
+        ) && (
           <p className="text-center text-muted-foreground py-4">
             {viewMode === 'date' 
               ? 'Toutes les dégustations ont été affichées'
-              : 'Tous les domaines ont été affichés'}
+              : viewMode === 'domain'
+              ? 'Tous les domaines ont été affichés'
+              : viewMode === 'event'
+              ? 'Tous les événements ont été affichés'
+              : 'Toutes les caves ont été affichées'}
           </p>
         )}
         {viewMode === 'date' && tastings.length === 0 && !loading && (
@@ -517,6 +1146,16 @@ export const UserTastings = () => {
         {viewMode === 'domain' && domains.length === 0 && !loading && (
           <p className="text-center text-muted-foreground py-8">
             Aucun domaine dégusté pour le moment
+          </p>
+        )}
+        {viewMode === 'event' && events.length === 0 && !loading && (
+          <p className="text-center text-muted-foreground py-8">
+            Aucun événement avec dégustations pour le moment
+          </p>
+        )}
+        {viewMode === 'cellar' && cellars.length === 0 && !loading && (
+          <p className="text-center text-muted-foreground py-8">
+            Aucune cave avec dégustations pour le moment
           </p>
         )}
       </div>
