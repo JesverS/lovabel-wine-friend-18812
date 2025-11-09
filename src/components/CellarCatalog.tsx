@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Wine, Plus, Pencil, ShoppingCart, LayoutGrid, Grid3x3, Grid2x2 } from 'lucide-react';
 import { AddWineDialog } from './AddWineDialog';
-import { EditWineInCellarDialog } from './EditWineInCellarDialog';
+import { CellarWineDetailsDialog } from './CellarWineDetailsDialog';
 import { WineSearchFilter, WineFilters } from './wine/WineSearchFilter';
 
 interface WineData {
@@ -63,6 +63,7 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
     sortOrder: 'desc',
   });
   const [columnsPerRow, setColumnsPerRow] = useState<3 | 4 | 5>(4);
+  const [selectedWine, setSelectedWine] = useState<WineData | null>(null);
 
   useEffect(() => {
     if (cellarId) {
@@ -384,7 +385,11 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
             : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
         }`}>
           {filteredWines.map((wine) => (
-            <Card key={wine.wine_id} className="overflow-hidden">
+            <Card 
+              key={wine.wine_id} 
+              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setSelectedWine(wine)}
+            >
               <div className="aspect-[3/4] sm:aspect-[2/3] relative overflow-hidden bg-muted">
                 <img
                   src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
@@ -430,17 +435,12 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
                     </p>
                   )}
 
-                  {(wine.price || wine.wine?.price) && (
-                    <p className="text-base sm:text-lg font-bold text-primary">
-                      {wine.price || wine.wine?.price}€
-                    </p>
-                  )}
+                  <p className="text-base sm:text-lg font-bold text-primary">
+                    {wine.price ? `${wine.price.toFixed(2)}€` : 'Prix en attente'}
+                  </p>
                 </div>
 
                 <div className="flex flex-col gap-1.5 sm:gap-2 mt-2 sm:mt-4">
-                  {isOwner && (
-                    <EditWineInCellarDialog wineData={wine as any} onUpdated={fetchWines} />
-                  )}
                   {wine.wine?.website_order_url && (
                     <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8" asChild>
                       <a href={wine.wine.website_order_url} target="_blank" rel="noopener noreferrer">
@@ -455,6 +455,19 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
             </Card>
           ))}
         </div>
+      )}
+
+      {selectedWine && (
+        <CellarWineDetailsDialog
+          wineData={selectedWine}
+          isOwner={isOwner}
+          cellarId={cellarId}
+          onClose={() => setSelectedWine(null)}
+          onUpdated={() => {
+            setSelectedWine(null);
+            fetchWines();
+          }}
+        />
       )}
     </div>
   );
