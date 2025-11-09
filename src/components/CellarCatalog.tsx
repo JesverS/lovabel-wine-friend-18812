@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Wine, Plus, Pencil, ShoppingCart } from 'lucide-react';
+import { Wine, Plus, Pencil, ShoppingCart, LayoutGrid, Grid3x3, Grid2x2 } from 'lucide-react';
 import { AddWineDialog } from './AddWineDialog';
 import { EditWineInCellarDialog } from './EditWineInCellarDialog';
 import { WineSearchFilter, WineFilters } from './wine/WineSearchFilter';
@@ -62,6 +62,7 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
     sortBy: 'added_at',
     sortOrder: 'desc',
   });
+  const [columnsPerRow, setColumnsPerRow] = useState<3 | 4 | 5>(4);
 
   useEffect(() => {
     if (cellarId) {
@@ -263,6 +264,39 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
             Par domaine
           </Button>
         </div>
+        
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground hidden lg:inline">Affichage:</span>
+          <div className="flex gap-1">
+            <Button
+              variant={columnsPerRow === 3 ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setColumnsPerRow(3)}
+              className="w-9 h-9 p-0"
+              title="3 colonnes"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={columnsPerRow === 4 ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setColumnsPerRow(4)}
+              className="w-9 h-9 p-0"
+              title="4 colonnes"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={columnsPerRow === 5 ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setColumnsPerRow(5)}
+              className="w-9 h-9 p-0"
+              title="5 colonnes"
+            >
+              <Grid2x2 className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {viewMode === 'by-domain' && !selectedDomain && (
@@ -342,27 +376,33 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
           </CardContent>
         </Card>
       ) : (viewMode === 'all' || selectedDomain) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
+          columnsPerRow === 3 
+            ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' 
+            : columnsPerRow === 4 
+            ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' 
+            : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
+        }`}>
           {filteredWines.map((wine) => (
             <Card key={wine.wine_id} className="overflow-hidden">
-              <div className="aspect-[2/3] relative overflow-hidden bg-muted">
+              <div className="aspect-[3/4] sm:aspect-[2/3] relative overflow-hidden bg-muted">
                 <img
                   src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
                   alt={wine.wine?.name}
                   className="w-full h-full object-cover"
                 />
                 {isOwner && (
-                  <div className="absolute top-2 right-2 bg-background/80 px-2 py-1 rounded text-sm">
-                    Stock: {wine.quantity || 0}
+                  <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-background/80 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-xs sm:text-sm">
+                    <span className="hidden sm:inline">Stock: </span>{wine.quantity || 0}
                   </div>
                 )}
               </div>
-              <CardContent className="p-4">
-                <div className="space-y-2">
+              <CardContent className="p-2 sm:p-3 md:p-4">
+                <div className="space-y-1 sm:space-y-2">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{wine.wine?.name}</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 className="font-semibold text-sm sm:text-base md:text-lg line-clamp-2">{wine.wine?.name}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
                         {wine.wine?.domain?.name}
                       </p>
                       {wine.wine?.wine_type && (
@@ -372,7 +412,7 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
                       )}
                     </div>
                     {wine.wine?.year && (
-                      <span className="text-sm font-medium">
+                      <span className="text-xs sm:text-sm font-medium">
                         {wine.wine.year}
                       </span>
                     )}
@@ -391,21 +431,22 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
                   )}
 
                   {(wine.price || wine.wine?.price) && (
-                    <p className="text-lg font-bold text-primary">
+                    <p className="text-base sm:text-lg font-bold text-primary">
                       {wine.price || wine.wine?.price}€
                     </p>
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2 mt-4">
+                <div className="flex flex-col gap-1.5 sm:gap-2 mt-2 sm:mt-4">
                   {isOwner && (
                     <EditWineInCellarDialog wineData={wine as any} onUpdated={fetchWines} />
                   )}
                   {wine.wine?.website_order_url && (
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8" asChild>
                       <a href={wine.wine.website_order_url} target="_blank" rel="noopener noreferrer">
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Commander
+                        <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">Commander</span>
+                        <span className="sm:hidden">🛒</span>
                       </a>
                     </Button>
                   )}
