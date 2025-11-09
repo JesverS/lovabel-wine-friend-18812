@@ -334,14 +334,18 @@ export function CellarWineDetailsDialog({
     setLoading(true);
     const newLiked = liked === status ? 0 : status;
 
-    const { error } = await supabase.from('user_wine_notice').upsert({
-      user_id: user.id,
-      wine_id: wineData.wine_id,
-      liked: newLiked as any,
-      details: tastingDetails as any,
-    } as any, {
-      onConflict: 'user_id,wine_id'
-    });
+    const { data: noticeData, error } = await supabase
+      .from('user_wine_notice')
+      .upsert({
+        user_id: user.id,
+        wine_id: wineData.wine_id,
+        liked: newLiked as any,
+        details: tastingDetails as any,
+      } as any, {
+        onConflict: 'user_id,wine_id'
+      })
+      .select('id')
+      .single();
 
     if (error) {
       toast({
@@ -349,13 +353,30 @@ export function CellarWineDetailsDialog({
         description: "Impossible d'enregistrer votre avis",
         variant: 'destructive',
       });
-    } else {
-      setLiked(newLiked);
-      toast({
-        title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : 'Avis retiré',
-      });
+      setLoading(false);
+      return;
     }
 
+    // Enregistrer dans user_wine_notice_cellar
+    if (noticeData?.id) {
+      const { error: cellarNoticeError } = await supabase
+        .from('user_wine_notice_cellar')
+        .upsert({
+          user_wine_notice_id: noticeData.id,
+          cellar_id: cellarId,
+        }, {
+          onConflict: 'user_wine_notice_id,cellar_id'
+        });
+
+      if (cellarNoticeError) {
+        console.error('Error saving to cellar notice:', cellarNoticeError);
+      }
+    }
+
+    setLiked(newLiked);
+    toast({
+      title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : 'Avis retiré',
+    });
     setLoading(false);
   };
 
@@ -371,14 +392,18 @@ export function CellarWineDetailsDialog({
 
     setLoading(true);
 
-    const { error } = await supabase.from('user_wine_notice').upsert({
-      user_id: user.id,
-      wine_id: wineData.wine_id,
-      details: tastingDetails as any,
-      liked: liked as any,
-    } as any, {
-      onConflict: 'user_id,wine_id'
-    });
+    const { data: noticeData, error } = await supabase
+      .from('user_wine_notice')
+      .upsert({
+        user_id: user.id,
+        wine_id: wineData.wine_id,
+        details: tastingDetails as any,
+        liked: liked as any,
+      } as any, {
+        onConflict: 'user_id,wine_id'
+      })
+      .select('id')
+      .single();
 
     if (error) {
       toast({
@@ -386,12 +411,29 @@ export function CellarWineDetailsDialog({
         description: "Impossible d'enregistrer votre dégustation",
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'Dégustation enregistrée',
-      });
+      setLoading(false);
+      return;
     }
 
+    // Enregistrer dans user_wine_notice_cellar
+    if (noticeData?.id) {
+      const { error: cellarNoticeError } = await supabase
+        .from('user_wine_notice_cellar')
+        .upsert({
+          user_wine_notice_id: noticeData.id,
+          cellar_id: cellarId,
+        }, {
+          onConflict: 'user_wine_notice_id,cellar_id'
+        });
+
+      if (cellarNoticeError) {
+        console.error('Error saving to cellar notice:', cellarNoticeError);
+      }
+    }
+
+    toast({
+      title: 'Dégustation enregistrée',
+    });
     setLoading(false);
   };
 
@@ -773,7 +815,7 @@ export function CellarWineDetailsDialog({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>{wineData.wine.name}</DialogTitle>
