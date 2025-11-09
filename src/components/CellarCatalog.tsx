@@ -265,8 +265,8 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
           </Button>
         </div>
         
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground hidden lg:inline">Affichage:</span>
+        <div className="hidden lg:flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Affichage:</span>
           <div className="flex gap-1">
             <Button
               variant={columnsPerRow === 3 ? 'default' : 'outline'}
