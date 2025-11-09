@@ -64,6 +64,7 @@ export type Database = {
           added_at: string | null
           cellar_id: string
           description: string | null
+          domain_id: string | null
           label_url: string | null
           price: number | null
           quantity: number | null
@@ -73,6 +74,7 @@ export type Database = {
           added_at?: string | null
           cellar_id: string
           description?: string | null
+          domain_id?: string | null
           label_url?: string | null
           price?: number | null
           quantity?: number | null
@@ -82,6 +84,7 @@ export type Database = {
           added_at?: string | null
           cellar_id?: string
           description?: string | null
+          domain_id?: string | null
           label_url?: string | null
           price?: number | null
           quantity?: number | null
@@ -93,6 +96,13 @@ export type Database = {
             columns: ["cellar_id"]
             isOneToOne: false
             referencedRelation: "cellar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cellar_wine_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "domain"
             referencedColumns: ["id"]
           },
           {
@@ -456,6 +466,13 @@ export type Database = {
           wine_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "post_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "post_vin_id_fkey"
             columns: ["wine_id"]
