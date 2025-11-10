@@ -149,24 +149,26 @@ export default function UserProfile() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-12 max-w-4xl pt-32 flex-grow min-h-screen">
+      <main className="container mx-auto px-4 py-12 max-w-4xl pt-32 flex-grow min-h-screen overflow-x-hidden">
         {/* Profile Header */}
-        <div className="bg-card rounded-lg border p-8 mb-8">
-          <div className="flex items-start gap-6">
-            <Avatar className="w-24 h-24">
+        <div className="bg-card rounded-lg border p-4 md:p-8 mb-8">
+          <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
+            <Avatar className="w-20 h-20 md:w-24 md:h-24 mx-auto md:mx-0">
               <AvatarImage src={profile.logo_adress || undefined} />
-              <AvatarFallback className="text-3xl">
+              <AvatarFallback className="text-2xl md:text-3xl">
                 {profile.full_name?.[0] || 'U'}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <h1 className="text-3xl font-bold">{profile.full_name || 'Utilisateur'}</h1>
-                <div className="flex gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                <h1 className="text-2xl md:text-3xl font-bold break-words">{profile.full_name || 'Utilisateur'}</h1>
+                <div className="flex gap-2 w-full sm:w-auto">
                   {isOwnProfile ? (
-                    <EditProfileDialog profile={profile} onProfileUpdated={fetchProfileData} />
+                    <div className="w-full sm:w-auto">
+                      <EditProfileDialog profile={profile} onProfileUpdated={fetchProfileData} />
+                    </div>
                   ) : user ? (
-                    <Button onClick={handleFollow} variant={isFollowing ? 'outline' : 'default'}>
+                    <Button onClick={handleFollow} variant={isFollowing ? 'outline' : 'default'} className="w-full sm:w-auto">
                       {isFollowing ? (
                         <>
                           <UserCheck className="w-4 h-4 mr-2" />
@@ -186,11 +188,11 @@ export default function UserProfile() {
               <p className="text-muted-foreground mb-2">{followersCount} abonné(s)</p>
               
               {profile.description && (
-                <p className="text-foreground mb-4">{profile.description}</p>
+                <p className="text-foreground mb-4 break-words">{profile.description}</p>
               )}
               
               {profile.address && (
-                <p className="text-sm text-muted-foreground">📍 {profile.address}</p>
+                <p className="text-sm text-muted-foreground break-words">📍 {profile.address}</p>
               )}
             </div>
           </div>
@@ -198,14 +200,16 @@ export default function UserProfile() {
 
         {/* Tabs */}
         <Tabs defaultValue="posts" className="w-full">
-          <TabsList>
-            <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="cellars">Mes caves</TabsTrigger>
-            <TabsTrigger value="domains">Mes domaines</TabsTrigger>
-            <TabsTrigger value="events">Mes événements</TabsTrigger>
-            <TabsTrigger value="tastings">Mes dégustations</TabsTrigger>
-            <TabsTrigger value="favorites">Mes favoris</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4">
+            <TabsList className="inline-flex w-auto min-w-full md:w-full">
+              <TabsTrigger value="posts" className="whitespace-nowrap">Posts</TabsTrigger>
+              <TabsTrigger value="cellars" className="whitespace-nowrap">Mes caves</TabsTrigger>
+              <TabsTrigger value="domains" className="whitespace-nowrap">Mes domaines</TabsTrigger>
+              <TabsTrigger value="events" className="whitespace-nowrap">Mes événements</TabsTrigger>
+              <TabsTrigger value="tastings" className="whitespace-nowrap">Mes dégustations</TabsTrigger>
+              <TabsTrigger value="favorites" className="whitespace-nowrap">Mes favoris</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="posts" className="mt-6 space-y-6">
             {/* Create Post (only on own profile) */}
@@ -309,34 +313,36 @@ export default function UserProfile() {
               <div className="grid grid-cols-1 gap-6">
                 {events.map((event) => (
                   <Link key={event.id} to={`/event/${event.id}`}>
-                    <Card className="hover:shadow-lg transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex gap-4">
+                    <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+                      <CardContent className="p-4 md:p-6">
+                        <div className="flex flex-col md:flex-row gap-4">
                           {event.banner_url && (
                             <img
                               src={event.banner_url}
                               alt={event.name}
-                              className="w-32 h-32 object-cover rounded-md"
+                              className="w-full md:w-32 h-48 md:h-32 object-cover rounded-md"
                             />
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-xl mb-2">{event.name}</h3>
+                            <h3 className="font-semibold text-xl mb-2 break-words">{event.name}</h3>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                              <CalendarDays className="w-4 h-4" />
-                              {new Date(event.start_date).toLocaleDateString('fr-FR', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                              })}
+                              <CalendarDays className="w-4 h-4 flex-shrink-0" />
+                              <span className="break-words">
+                                {new Date(event.start_date).toLocaleDateString('fr-FR', {
+                                  day: 'numeric',
+                                  month: 'long',
+                                  year: 'numeric',
+                                })}
+                              </span>
                             </div>
                             {event.city && (
                               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                                <Store className="w-4 h-4" />
-                                {event.city}
+                                <Store className="w-4 h-4 flex-shrink-0" />
+                                <span className="break-words">{event.city}</span>
                               </div>
                             )}
                             {event.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-2">
+                              <p className="text-sm text-muted-foreground line-clamp-2 break-words">
                                 {event.description}
                               </p>
                             )}
