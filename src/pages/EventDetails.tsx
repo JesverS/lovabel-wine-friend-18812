@@ -471,40 +471,37 @@ const EventDetails = () => {
                       onOpenChange={() => toggleDomain(domain.id)}
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <CollapsibleTrigger className="flex-1 min-w-0 text-left">
-                          <div className="flex items-center gap-3">
-                            {domain.logo_url && (
-                              <img
-                                src={domain.logo_url}
-                                alt={domain.name}
-                                className="w-12 h-12 object-cover rounded flex-shrink-0"
-                              />
-                            )}
-                            <h3 className="text-xl md:text-2xl font-serif font-bold break-words flex-1">
-                              {domain.name}
-                            </h3>
-                          </div>
+                        <CollapsibleTrigger className="flex-1 min-w-0 text-left flex items-center gap-3">
+                          {domain.logo_url && (
+                            <img
+                              src={domain.logo_url}
+                              alt={domain.name}
+                              className="w-12 h-12 object-cover rounded flex-shrink-0"
+                            />
+                          )}
+                          <h3 className="text-xl md:text-2xl font-serif font-bold break-words flex-1">
+                            {domain.name}
+                          </h3>
+                          {openDomains[domain.id] ? (
+                            <ChevronUp className="h-5 w-5 flex-shrink-0" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 flex-shrink-0" />
+                          )}
                         </CollapsibleTrigger>
                         
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {canEdit && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openDeleteDialog('domain', domain.id, domain.name);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
-                          {openDomains[domain.id] ? (
-                            <ChevronUp className="h-5 w-5" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5" />
-                          )}
-                        </div>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDeleteDialog('domain', domain.id, domain.name);
+                            }}
+                            className="flex-shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                       
                       <div className="mt-3 pt-3 border-t">
