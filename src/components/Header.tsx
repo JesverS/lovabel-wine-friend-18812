@@ -1,12 +1,21 @@
-import { Wine, Search, User, Heart, Menu, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Wine, User, Heart, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export const Header = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -22,9 +31,6 @@ export const Header = () => {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
-          <Link to="/search" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-            Découvrir
-          </Link>
           <Link to="/events" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             Évènements
           </Link>
@@ -40,11 +46,6 @@ export const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="hidden md:inline-flex" asChild>
-            <Link to="/search">
-              <Search className="h-5 w-5" />
-            </Link>
-          </Button>
           <Button variant="ghost" size="icon" className="hidden md:inline-flex">
             <Heart className="h-5 w-5" />
           </Button>
@@ -64,9 +65,48 @@ export const Header = () => {
               <Link to="/auth">Connexion</Link>
             </Button>
           )}
-          <Button size="icon" variant="ghost" className="md:hidden">
-            <Menu className="h-5 w-5" />
-          </Button>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button size="icon" variant="ghost" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col gap-4 mt-8">
+                <Link 
+                  to="/events" 
+                  className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Évènements
+                </Link>
+                <Link 
+                  to="/cellars" 
+                  className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Cavistes
+                </Link>
+                <Link 
+                  to="/learning" 
+                  className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Cours
+                </Link>
+                <Link 
+                  to="/game" 
+                  className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Game
+                </Link>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>
