@@ -947,7 +947,7 @@ export function CellarWineDetailsDialog({
             )}
 
             {/* Favorite Button */}
-            {user && !isOwner && (
+            {user && (
               <Button
                 variant="outline"
                 onClick={handleToggleFavorite}
