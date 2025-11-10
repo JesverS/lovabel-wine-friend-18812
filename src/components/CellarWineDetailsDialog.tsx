@@ -15,7 +15,8 @@ import {
   ThumbsUp, 
   ThumbsDown, 
   Upload,
-  Lock
+  Lock,
+  MessageSquare
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -823,14 +824,15 @@ export function CellarWineDetailsDialog({
 
   const content = (
     <>
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl md:text-2xl font-bold">{wineData.wine.name}</h2>
+      <div className="flex flex-col gap-6 w-full overflow-x-hidden">
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="text-lg md:text-2xl font-bold break-words flex-1 min-w-0">{wineData.wine.name}</h2>
           {isOwner && (
             <Button
               variant={isEditing ? 'secondary' : 'outline'}
               onClick={() => setIsEditing(!isEditing)}
               size="sm"
+              className="shrink-0"
             >
               {isEditing ? 'Annuler' : 'Modifier'}
             </Button>
@@ -850,7 +852,7 @@ export function CellarWineDetailsDialog({
           {/* Info Section */}
           <div className="space-y-4 px-2">
             <div>
-              <h3 className="text-2xl font-bold">{wineData.wine.name}</h3>
+              <h3 className="text-xl md:text-2xl font-bold break-words">{wineData.wine.name}</h3>
               {domain && (
                 <p className="text-muted-foreground">
                   {domain.name}
@@ -963,17 +965,20 @@ export function CellarWineDetailsDialog({
             <Button
               variant={activeTab === 'tasting' ? 'default' : 'outline'}
               onClick={() => setActiveTab('tasting')}
-              className="flex-1"
+              className="flex-1 text-xs md:text-sm"
             >
-              Mes impressions de dégustation
-              <Lock className="w-3 h-3 ml-2" />
+              <Lock className="w-3 h-3 md:mr-2" />
+              <span className="hidden md:inline">Mes impressions de dégustation</span>
+              <span className="md:hidden">Dégustation</span>
             </Button>
             <Button
               variant={activeTab === 'comments' ? 'default' : 'outline'}
               onClick={() => setActiveTab('comments')}
-              className="flex-1"
+              className="flex-1 text-xs md:text-sm"
             >
-              Commentaires
+              <MessageSquare className="w-3 h-3 md:mr-2" />
+              <span className="hidden md:inline">Commentaires</span>
+              <span className="md:hidden">Avis</span>
             </Button>
           </div>
 
@@ -1101,10 +1106,10 @@ export function CellarWineDetailsDialog({
                   Aucun commentaire pour l'instant
                 </p>
               ) : (
-                <ScrollArea className="h-[400px] lg:h-[500px]">
-                  <div className="space-y-4 pr-4">
+            <ScrollArea className="h-[400px] lg:h-[500px] w-full">
+              <div className="space-y-4 pr-2 w-full">
                     {comments.map((comment) => (
-                      <div key={comment.id} className="border rounded-lg p-4">
+                      <div key={comment.id} className="border rounded-lg p-3 md:p-4 w-full overflow-hidden">
                         {editingCommentUserId === comment.user_id ? (
                           <div className="space-y-3">
                             <Textarea
@@ -1134,7 +1139,7 @@ export function CellarWineDetailsDialog({
                               <div className="flex items-center gap-3">
                                 <button
                                   onClick={() => navigate(`/user/${comment.user_id}`)}
-                                  className="cursor-pointer hover:opacity-80"
+                                  className="cursor-pointer hover:opacity-80 shrink-0"
                                 >
                                   <Avatar>
                                     <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
@@ -1143,10 +1148,10 @@ export function CellarWineDetailsDialog({
                                     </AvatarFallback>
                                   </Avatar>
                                 </button>
-                                <div>
+                                <div className="min-w-0 flex-1">
                                   <button
                                     onClick={() => navigate(`/user/${comment.user_id}`)}
-                                    className="font-medium hover:underline cursor-pointer"
+                                    className="font-medium hover:underline cursor-pointer truncate block max-w-full"
                                   >
                                     {comment.user_profiles?.full_name || 'Utilisateur'}
                                   </button>
@@ -1156,15 +1161,15 @@ export function CellarWineDetailsDialog({
                                 </div>
                               </div>
                             </div>
-                            <p className="text-sm mb-3">{comment.comment}</p>
-                            <div className="flex items-center gap-4">
+                            <p className="text-sm mb-3 break-words">{comment.comment}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleCommentReaction(comment.id, 1)}
-                                className={commentReactions[comment.id]?.userReaction === 1 ? 'text-primary' : ''}
+                                className={`text-xs ${commentReactions[comment.id]?.userReaction === 1 ? 'text-primary' : ''}`}
                               >
-                                <ThumbsUp className="w-4 h-4 mr-1" />
+                                <ThumbsUp className="w-3 h-3 mr-1" />
                                 {commentReactions[comment.id]?.likeCount || 0}
                               </Button>
 
@@ -1174,17 +1179,19 @@ export function CellarWineDetailsDialog({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleEditComment(comment.user_id, comment.comment)}
+                                    className="text-xs"
                                   >
-                                    <Pencil className="w-4 h-4 mr-1" />
-                                    Modifier
+                                    <Pencil className="w-3 h-3 mr-1" />
+                                    <span className="hidden sm:inline">Modifier</span>
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDeleteComment(comment.user_id)}
+                                    className="text-xs"
                                   >
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                    Supprimer
+                                    <Trash2 className="w-3 h-3 mr-1" />
+                                    <span className="hidden sm:inline">Supprimer</span>
                                   </Button>
                                 </>
                               )}
@@ -1249,7 +1256,7 @@ export function CellarWineDetailsDialog({
   if (isMobile) {
     return (
       <Sheet open={true} onOpenChange={onClose}>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto overflow-x-hidden w-full p-4">
           <SheetHeader>
             <SheetTitle className="sr-only">{wineData.wine.name}</SheetTitle>
           </SheetHeader>
