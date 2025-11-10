@@ -81,22 +81,26 @@ const Events = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="pt-20 flex-grow min-h-screen">
-        <section className="container mx-auto px-4 py-16">
+        <section className="container mx-auto px-4 py-16 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-4xl md:text-5xl font-serif font-bold mb-2">
-                  Événements Viticoles
-                </h1>
-                <p className="text-muted-foreground">
-                  Découvrez les salons, dégustations et événements près de chez vous
-                </p>
+            <div className="mb-6">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <div>
+                  <h1 className="text-3xl md:text-5xl font-serif font-bold mb-2">
+                    Événements Viticoles
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Découvrez les salons, dégustations et événements près de chez vous
+                  </p>
+                </div>
+                {user && (
+                  <div className="w-full md:w-auto">
+                    <CreateEventDialog 
+                      onEventCreated={fetchEvents}
+                    />
+                  </div>
+                )}
               </div>
-              {user && (
-                <CreateEventDialog 
-                  onEventCreated={fetchEvents}
-                />
-              )}
             </div>
 
             {/* Search and Filters Section */}
@@ -173,28 +177,28 @@ const Events = () => {
               <div className="grid gap-6">
                 {events.map((event) => (
                   <Link key={event.id} to={`/event/${event.id}`}>
-                    <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-                      <div className="flex gap-6">
+                    <Card className="p-4 md:p-6 hover:shadow-lg transition-shadow cursor-pointer overflow-hidden">
+                      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                         {event.banner_url && (
                           <img
                             src={event.banner_url}
                             alt={event.name}
-                            className="w-32 h-32 object-cover rounded-lg"
+                            className="w-full md:w-32 h-48 md:h-32 object-cover rounded-lg flex-shrink-0"
                           />
                         )}
-                        <div className="flex-1">
-                          <h3 className="text-2xl font-serif font-bold mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl md:text-2xl font-serif font-bold mb-2 break-words">
                             {event.name}
                           </h3>
                           {event.description && (
-                            <p className="text-muted-foreground mb-4 line-clamp-2">
+                            <p className="text-sm md:text-base text-muted-foreground mb-4 line-clamp-2 break-words">
                               {event.description}
                             </p>
                           )}
-                          <div className="flex flex-wrap gap-4 text-sm">
+                          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 text-sm">
                             <div className="flex items-center gap-2">
-                              <CalendarIcon className="h-4 w-4 text-primary" />
-                              <span>
+                              <CalendarIcon className="h-4 w-4 text-primary flex-shrink-0" />
+                              <span className="break-words">
                                 {format(new Date(event.start_date), "PPP", { locale: fr })}
                                 {event.end_date && 
                                   ` - ${format(new Date(event.end_date), "PPP", { locale: fr })}`
@@ -203,8 +207,8 @@ const Events = () => {
                             </div>
                             {event.city && (
                               <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-primary" />
-                                <span>{event.city}</span>
+                                <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                                <span className="break-words">{event.city}</span>
                               </div>
                             )}
                           </div>

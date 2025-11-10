@@ -384,7 +384,7 @@ const EventDetails = () => {
       <Header />
       <main className="pt-20 flex-grow min-h-screen">
         {event.banner_url && (
-          <div className="w-full h-64 md:h-96">
+          <div className="w-full h-48 md:h-64 lg:h-96 overflow-hidden">
             <img
               src={event.banner_url}
               alt={event.name}
@@ -393,17 +393,19 @@ const EventDetails = () => {
           </div>
         )}
 
-        <section className="container mx-auto px-4 py-16">
+        <section className="container mx-auto px-4 py-16 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-4xl md:text-5xl font-serif font-bold">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+              <h1 className="text-3xl md:text-5xl font-serif font-bold break-words">
                 {event.name}
               </h1>
               {canEdit && (
-                <EditEventDialog 
-                  eventId={id!} 
-                  onEventUpdated={refetchData}
-                />
+                <div className="w-full md:w-auto">
+                  <EditEventDialog 
+                    eventId={id!} 
+                    onEventUpdated={refetchData}
+                  />
+                </div>
               )}
             </div>
 
@@ -462,61 +464,61 @@ const EventDetails = () => {
                 </Card>
               ) : (
                 domainsWithWines.map(({ domain, wines }) => (
-                  <Card key={domain.id} className="p-6">
+                <Card key={domain.id} className="p-4 md:p-6 overflow-hidden">
+                  <div className="space-y-4">
                     <Collapsible
                       open={openDomains[domain.id]}
                       onOpenChange={() => toggleDomain(domain.id)}
                     >
-                      <CollapsibleTrigger className="w-full">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <CollapsibleTrigger className="flex-1 min-w-0 text-left">
+                          <div className="flex items-center gap-3">
                             {domain.logo_url && (
                               <img
                                 src={domain.logo_url}
                                 alt={domain.name}
-                                className="w-12 h-12 object-cover rounded"
+                                className="w-12 h-12 object-cover rounded flex-shrink-0"
                               />
                             )}
-                            <div className="flex items-center gap-3">
-                              <h3 className="text-2xl font-serif font-bold text-left">
-                                {domain.name}
-                              </h3>
-                              <Link
-                                to={`/domain/${domain.id}`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  Voir le domaine
-                                  <ExternalLink className="ml-2 h-3 w-3" />
-                                </Button>
-                              </Link>
-                            </div>
+                            <h3 className="text-xl md:text-2xl font-serif font-bold break-words flex-1">
+                              {domain.name}
+                            </h3>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {canEdit && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openDeleteDialog('domain', domain.id, domain.name);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
-                            {openDomains[domain.id] ? (
-                              <ChevronUp className="h-5 w-5" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5" />
-                            )}
-                          </div>
+                        </CollapsibleTrigger>
+                        
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDeleteDialog('domain', domain.id, domain.name);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                          {openDomains[domain.id] ? (
+                            <ChevronUp className="h-5 w-5" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5" />
+                          )}
                         </div>
-                      </CollapsibleTrigger>
+                      </div>
+                      
+                      <div className="mt-3 pt-3 border-t">
+                        <Link to={`/domain/${domain.id}`}>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="w-full md:w-auto"
+                          >
+                            Voir le domaine
+                            <ExternalLink className="ml-2 h-3 w-3" />
+                          </Button>
+                        </Link>
+                      </div>
 
                       <CollapsibleContent className="mt-6 space-y-4">
                         {canEdit && (
@@ -535,7 +537,7 @@ const EventDetails = () => {
                             Aucun vin ajouté pour ce domaine
                           </p>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {wines.map((wine) => (
                               <Card
                                 key={wine.id}
@@ -589,7 +591,8 @@ const EventDetails = () => {
                         )}
                       </CollapsibleContent>
                     </Collapsible>
-                  </Card>
+                  </div>
+                </Card>
                 ))
               )}
             </div>
