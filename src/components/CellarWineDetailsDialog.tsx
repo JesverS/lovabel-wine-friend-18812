@@ -825,14 +825,28 @@ export function CellarWineDetailsDialog({
   const content = (
     <>
       <div className="flex flex-col gap-6 w-full overflow-x-hidden">
-        <div className="flex items-start justify-between gap-2">
-          <h2 className="text-lg md:text-2xl font-bold break-words flex-1 min-w-0">{wineData.wine.name}</h2>
-          {isOwner && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <h2 className="text-lg md:text-2xl font-bold break-words flex-1 min-w-0">{wineData.wine.name}</h2>
+            {/* Sur desktop seulement : bouton à droite du titre */}
+            {isOwner && !isMobile && (
+              <Button
+                variant={isEditing ? 'secondary' : 'outline'}
+                onClick={() => setIsEditing(!isEditing)}
+                size="sm"
+                className="shrink-0"
+              >
+                {isEditing ? 'Annuler' : 'Modifier'}
+              </Button>
+            )}
+          </div>
+          {/* Sur mobile seulement : bouton en dessous du titre */}
+          {isOwner && isMobile && (
             <Button
               variant={isEditing ? 'secondary' : 'outline'}
               onClick={() => setIsEditing(!isEditing)}
               size="sm"
-              className="shrink-0"
+              className="w-full"
             >
               {isEditing ? 'Annuler' : 'Modifier'}
             </Button>
