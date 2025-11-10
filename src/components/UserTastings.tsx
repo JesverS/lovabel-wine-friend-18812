@@ -748,14 +748,21 @@ export const UserTastings = () => {
             Toutes les dégustations ont été affichées
           </p>
         )}
-        {tastings.length === 0 && !loading && (
-          <p className="text-center text-muted-foreground py-8">
-            Aucune dégustation pour cet événement
-          </p>
-        )}
-      </div>
-    );
-  }
+      {tastings.length === 0 && !loading && (
+        <p className="text-center text-muted-foreground py-8">
+          Aucune dégustation pour cet événement
+        </p>
+      )}
+
+      {selectedWine && (
+        <WineDetailsDialog
+          wine={selectedWine}
+          onClose={() => setSelectedWine(null)}
+        />
+      )}
+    </div>
+  );
+}
 
   if (viewMode === 'cellar' && selectedCellar) {
     return (
@@ -834,14 +841,21 @@ export const UserTastings = () => {
             Toutes les dégustations ont été affichées
           </p>
         )}
-        {tastings.length === 0 && !loading && (
-          <p className="text-center text-muted-foreground py-8">
-            Aucune dégustation pour cette cave
-          </p>
-        )}
-      </div>
-    );
-  }
+      {tastings.length === 0 && !loading && (
+        <p className="text-center text-muted-foreground py-8">
+          Aucune dégustation pour cette cave
+        </p>
+      )}
+
+      {selectedWine && (
+        <WineDetailsDialog
+          wine={selectedWine}
+          onClose={() => setSelectedWine(null)}
+        />
+      )}
+    </div>
+  );
+}
 
   if (viewMode === 'domain' && selectedDomain) {
     return (
@@ -920,14 +934,21 @@ export const UserTastings = () => {
             Toutes les dégustations ont été affichées
           </p>
         )}
-        {tastings.length === 0 && !loading && (
-          <p className="text-center text-muted-foreground py-8">
-            Aucune dégustation pour ce domaine
-          </p>
-        )}
-      </div>
-    );
-  }
+      {tastings.length === 0 && !loading && (
+        <p className="text-center text-muted-foreground py-8">
+          Aucune dégustation pour ce domaine
+        </p>
+      )}
+
+      {selectedWine && (
+        <WineDetailsDialog
+          wine={selectedWine}
+          onClose={() => setSelectedWine(null)}
+        />
+      )}
+    </div>
+  );
+}
 
   return (
     <div className="space-y-6">
