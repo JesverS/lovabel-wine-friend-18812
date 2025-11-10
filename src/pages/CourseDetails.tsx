@@ -74,7 +74,7 @@ const CourseDetails = () => {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
         <Header />
-        <main className="flex-1 container mx-auto px-4 py-12">
+        <main className="flex-1 container mx-auto px-4 pt-32 pb-12">
           <Skeleton className="h-8 w-32 mb-8" />
           <div className="max-w-4xl mx-auto space-y-8">
             <Skeleton className="h-48 w-full" />
@@ -91,7 +91,7 @@ const CourseDetails = () => {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
         <Header />
-        <main className="flex-1 container mx-auto px-4 py-12">
+        <main className="flex-1 container mx-auto px-4 pt-32 pb-12">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Cours introuvable</h1>
             <Button onClick={() => navigate("/learning")}>
@@ -108,7 +108,7 @@ const CourseDetails = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
       <Header />
-      <main className="flex-1 min-h-screen container mx-auto px-4 py-12">
+      <main className="flex-1 min-h-screen container mx-auto px-4 pt-32 pb-12">
         <Button
           variant="ghost"
           onClick={() => navigate("/learning")}
