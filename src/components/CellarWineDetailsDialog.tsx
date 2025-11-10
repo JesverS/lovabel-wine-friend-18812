@@ -1256,7 +1256,14 @@ export function CellarWineDetailsDialog({
   if (isMobile) {
     return (
       <Sheet open={true} onOpenChange={onClose}>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto overflow-x-hidden w-full p-4">
+        <SheetContent 
+          side="bottom" 
+          className="max-h-[90dvh] h-[90dvh] overflow-y-auto overflow-x-hidden w-full p-4"
+          style={{
+            top: '80px',
+            height: 'calc(100dvh - 80px)'
+          }}
+        >
           <SheetHeader>
             <SheetTitle className="sr-only">{wineData.wine.name}</SheetTitle>
           </SheetHeader>

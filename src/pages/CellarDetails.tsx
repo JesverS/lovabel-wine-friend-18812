@@ -88,10 +88,10 @@ export default function CellarDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       <Header />
 
-      <main className="container mx-auto px-4 py-24 flex-grow min-h-screen">
+      <main className="container mx-auto px-4 py-24 flex-grow min-h-screen overflow-x-hidden w-full">
         {/* Banner */}
         {cellar.banner_url && (
           <div className="relative w-full h-64 mb-8 rounded-lg overflow-hidden">
@@ -104,16 +104,16 @@ export default function CellarDetails() {
         )}
 
         {/* Header */}
-        <div className="flex items-start gap-6 mb-8">
-          <Avatar className="w-24 h-24">
+        <div className="flex items-start gap-6 mb-8 overflow-x-hidden w-full">
+          <Avatar className="w-20 h-20 md:w-24 md:h-24 shrink-0">
             <AvatarImage src={cellar.logo_url || undefined} />
             <AvatarFallback>
               <Store className="w-12 h-12" />
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <h1 className="text-4xl font-bold">{cellar.name}</h1>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-2">
+              <h1 className="text-2xl md:text-4xl font-bold break-words flex-1 min-w-0">{cellar.name}</h1>
               {isOwner && (
                 <EditCellarDialog cellar={cellar} onCellarUpdated={fetchCellarData} />
               )}
@@ -125,7 +125,7 @@ export default function CellarDetails() {
               </p>
             )}
             {cellar.description && (
-              <p className="text-muted-foreground mt-4">{cellar.description}</p>
+              <p className="text-muted-foreground mt-4 break-words text-sm md:text-base">{cellar.description}</p>
             )}
           </div>
         </div>

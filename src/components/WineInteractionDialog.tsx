@@ -860,7 +860,11 @@ export const WineInteractionDialog = ({
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent 
         side="bottom" 
-        className="h-[85vh] overflow-y-auto overflow-x-hidden w-full p-4"
+        className="max-h-[90dvh] h-[90dvh] overflow-y-auto overflow-x-hidden w-full p-4"
+        style={{
+          top: '80px',
+          height: 'calc(100dvh - 80px)'
+        }}
       >
         <SheetHeader>
           <SheetTitle className="text-lg md:text-xl font-serif break-words">
