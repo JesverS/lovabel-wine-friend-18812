@@ -1056,8 +1056,6 @@ export const WineDetailsDialog = ({
             )}
           </div>
         </div>
-      </div>
-    </div>
   );
 
   return isMobile ? (

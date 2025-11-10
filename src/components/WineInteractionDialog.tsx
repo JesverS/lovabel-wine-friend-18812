@@ -853,7 +853,6 @@ export const WineInteractionDialog = ({
               </Button>
             </TabsContent>
           </Tabs>
-        </div>
     </div>
   );
 
