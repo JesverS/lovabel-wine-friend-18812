@@ -25,6 +25,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -39,6 +45,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface WineData {
   wine_id: string;
@@ -109,6 +116,7 @@ export function CellarWineDetailsDialog({
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   // General states
   const [loading, setLoading] = useState(false);
@@ -813,36 +821,34 @@ export function CellarWineDetailsDialog({
 
   if (!wineData.wine) return null;
 
-  return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>{wineData.wine.name}</DialogTitle>
-            {isOwner && (
-              <Button
-                variant={isEditing ? 'secondary' : 'outline'}
-                onClick={() => setIsEditing(!isEditing)}
-                size="sm"
-              >
-                {isEditing ? 'Annuler' : 'Modifier'}
-              </Button>
-            )}
-          </div>
-        </DialogHeader>
+  const content = (
+    <>
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl md:text-2xl font-bold">{wineData.wine.name}</h2>
+          {isOwner && (
+            <Button
+              variant={isEditing ? 'secondary' : 'outline'}
+              onClick={() => setIsEditing(!isEditing)}
+              size="sm"
+            >
+              {isEditing ? 'Annuler' : 'Modifier'}
+            </Button>
+          )}
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-6">
           {/* Image */}
           <div className="flex justify-center">
             <img
               src={wineData.label_url || wineData.wine.label_url || '/placeholder.svg'}
               alt={wineData.wine.name}
-              className="w-full max-w-[200px] md:max-w-[300px] object-contain"
+              className="w-full max-w-[200px] object-contain"
             />
           </div>
 
           {/* Info Section */}
-          <div className="space-y-4">
+          <div className="space-y-4 px-2">
             <div>
               <h3 className="text-2xl font-bold">{wineData.wine.name}</h3>
               {domain && (
@@ -952,7 +958,7 @@ export function CellarWineDetailsDialog({
         </div>
 
         {/* Tabs Section */}
-        <div className="border-t pt-6 mt-6">
+        <div className="border-t pt-6 mt-6 px-2">
           <div className="flex gap-2 mb-6">
             <Button
               variant={activeTab === 'tasting' ? 'default' : 'outline'}
@@ -1211,7 +1217,7 @@ export function CellarWineDetailsDialog({
 
         {/* Owner Delete Button */}
         {isOwner && (
-          <div className="border-t pt-4 mt-6">
+          <div className="border-t pt-4 mt-6 px-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full">
@@ -1236,6 +1242,30 @@ export function CellarWineDetailsDialog({
             </AlertDialog>
           </div>
         )}
+      </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={true} onOpenChange={onClose}>
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="sr-only">{wineData.wine.name}</SheetTitle>
+          </SheetHeader>
+          {content}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="sr-only">{wineData.wine.name}</DialogTitle>
+        </DialogHeader>
+        {content}
       </DialogContent>
     </Dialog>
   );
