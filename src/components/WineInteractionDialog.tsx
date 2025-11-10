@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Heart, MessageSquare, FileText, Star, ThumbsUp, ThumbsDown, Trash2, Pencil } from "lucide-react";
+import { Heart, MessageSquare, FileText, Star, ThumbsUp, ThumbsDown, Trash2, Pencil, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -13,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -62,12 +64,14 @@ export const WineInteractionDialog = ({
   const COMMENTS_PER_PAGE = 8;
 
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
-    acidity: 3,
-    tannins: 3,
-    body: 3,
-    sweetness: 3,
+    acidity: 5.0,
+    tannins: 5.0,
+    body: 5.0,
+    sweetness: 5.0,
     remarks: "",
   });
+
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,10 +91,10 @@ export const WineInteractionDialog = ({
         if (noticeData.details && typeof noticeData.details === 'object' && !Array.isArray(noticeData.details)) {
           const details = noticeData.details as any;
           setTastingDetails({
-            acidity: details.acidity || 3,
-            tannins: details.tannins || 3,
-            body: details.body || 3,
-            sweetness: details.sweetness || 3,
+            acidity: details.acidity || 5.0,
+            tannins: details.tannins || 5.0,
+            body: details.body || 5.0,
+            sweetness: details.sweetness || 5.0,
             remarks: details.remarks || "",
           });
         }
@@ -215,6 +219,15 @@ export const WineInteractionDialog = ({
     setLoading(true);
     const newLiked = liked === status ? 0 : status;
 
+    // Arrondir les valeurs au dixième avant sauvegarde
+    const roundedDetails = {
+      acidity: Math.round(tastingDetails.acidity * 10) / 10,
+      tannins: Math.round(tastingDetails.tannins * 10) / 10,
+      body: Math.round(tastingDetails.body * 10) / 10,
+      sweetness: Math.round(tastingDetails.sweetness * 10) / 10,
+      remarks: tastingDetails.remarks
+    };
+
     if (eventId) {
       const { data: noticeId, error } = await supabase
         .rpc('upsert_wine_notice_with_event', {
@@ -222,7 +235,7 @@ export const WineInteractionDialog = ({
           p_wine_id: wine.id,
           p_event_id: eventId,
           p_liked: newLiked,
-          p_details: tastingDetails as any,
+          p_details: roundedDetails as any,
         } as any);
 
       console.log('DEBUG - RPC upsert like result:', { noticeId, error });
@@ -253,7 +266,7 @@ export const WineInteractionDialog = ({
           user_id: user.id,
           wine_id: wine.id,
           liked: newLiked as any,
-          details: tastingDetails as any,
+          details: roundedDetails as any,
         } as any, {
           onConflict: 'user_id,wine_id'
         });
@@ -428,12 +441,21 @@ export const WineInteractionDialog = ({
 
     setLoading(true);
 
+    // Arrondir les valeurs au dixième avant sauvegarde
+    const roundedDetails = {
+      acidity: Math.round(tastingDetails.acidity * 10) / 10,
+      tannins: Math.round(tastingDetails.tannins * 10) / 10,
+      body: Math.round(tastingDetails.body * 10) / 10,
+      sweetness: Math.round(tastingDetails.sweetness * 10) / 10,
+      remarks: tastingDetails.remarks
+    };
+
     const { data: noticeData, error } = await supabase
       .from("user_wine_notice")
       .upsert({
         user_id: user.id,
         wine_id: wine.id,
-        details: tastingDetails as any,
+        details: roundedDetails as any,
         liked: liked as any,
       } as any, {
         onConflict: 'user_id,wine_id'
@@ -546,52 +568,45 @@ export const WineInteractionDialog = ({
     setLoading(false);
   };
 
-  return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-serif">{wine.name}</DialogTitle>
-          {domain && (
-            <p className="text-muted-foreground">{domain.name}</p>
-          )}
-        </DialogHeader>
+  const content = (
+    <div className="space-y-6 w-full overflow-x-hidden">
+      {wine.label_url && (
+        <img
+          src={wine.label_url}
+          alt={wine.name}
+          className="w-full max-w-[200px] md:max-w-[300px] object-contain mx-auto"
+        />
+      )}
 
-        <div className="space-y-6">
-          {wine.label_url && (
-            <img
-              src={wine.label_url}
-              alt={wine.name}
-              className="w-full max-h-48 object-contain"
-            />
-          )}
+      {wine.description && (
+        <p className="text-sm text-muted-foreground break-words">{wine.description}</p>
+      )}
 
-          {wine.description && (
-            <p className="text-sm text-muted-foreground">{wine.description}</p>
-          )}
+      <div className="flex gap-2">
+        <Button
+          variant={isFavorite ? "default" : "outline"}
+          onClick={handleToggleFavorite}
+          disabled={loading}
+          className="w-full text-xs md:text-sm"
+        >
+          <Star className={`h-4 w-4 mr-2 ${isFavorite ? "fill-current" : ""}`} />
+          {isFavorite ? "Favori" : "Ajouter aux favoris"}
+        </Button>
+      </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant={isFavorite ? "default" : "outline"}
-              onClick={handleToggleFavorite}
-              disabled={loading}
-              className="w-full"
-            >
-              <Star className={`h-4 w-4 mr-2 ${isFavorite ? "fill-current" : ""}`} />
-              {isFavorite ? "Favori" : "Ajouter aux favoris"}
-            </Button>
-          </div>
-
-          <Tabs defaultValue="comment" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="comment">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Commentaire
-              </TabsTrigger>
-              <TabsTrigger value="tasting">
-                <FileText className="h-4 w-4 mr-2" />
-                Dégustation
-              </TabsTrigger>
-            </TabsList>
+      <Tabs defaultValue="comment" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="comment" className="text-xs md:text-sm">
+            <MessageSquare className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden md:inline">Commentaire</span>
+            <span className="md:hidden">Avis</span>
+          </TabsTrigger>
+          <TabsTrigger value="tasting" className="text-xs md:text-sm">
+            <Lock className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden md:inline">Dégustation</span>
+            <span className="md:hidden">Notes</span>
+          </TabsTrigger>
+        </TabsList>
 
             <TabsContent value="comment" className="space-y-4">
               <h3 className="text-lg font-semibold">Commentaires</h3>
@@ -746,73 +761,73 @@ export const WineInteractionDialog = ({
               <div className="space-y-4">
                 <div>
                   <Label>
-                    Acidité: {tastingDetails.acidity}/5
+                    Acidité: {tastingDetails.acidity.toFixed(1)}/10
                   </Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    1 = Très faible • 5 = Très marquée
+                    0 = Très faible • 10 = Très marquée
                   </p>
                   <Slider
                     value={[tastingDetails.acidity]}
                     onValueChange={([value]) =>
-                      setTastingDetails({ ...tastingDetails, acidity: value })
+                      setTastingDetails({ ...tastingDetails, acidity: Math.round(value * 10) / 10 })
                     }
-                    min={1}
-                    max={5}
-                    step={1}
+                    min={0}
+                    max={10}
+                    step={0.1}
                   />
                 </div>
 
                 <div>
                   <Label>
-                    Tanins: {tastingDetails.tannins}/5
+                    Tanins: {tastingDetails.tannins.toFixed(1)}/10
                   </Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    1 = Très doux • 5 = Très tannique
+                    0 = Très doux • 10 = Très tannique
                   </p>
                   <Slider
                     value={[tastingDetails.tannins]}
                     onValueChange={([value]) =>
-                      setTastingDetails({ ...tastingDetails, tannins: value })
+                      setTastingDetails({ ...tastingDetails, tannins: Math.round(value * 10) / 10 })
                     }
-                    min={1}
-                    max={5}
-                    step={1}
+                    min={0}
+                    max={10}
+                    step={0.1}
                   />
                 </div>
 
                 <div>
                   <Label>
-                    Corps: {tastingDetails.body}/5
+                    Corps: {tastingDetails.body.toFixed(1)}/10
                   </Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    1 = Très léger • 5 = Très corpulent
+                    0 = Très léger • 10 = Très corpulent
                   </p>
                   <Slider
                     value={[tastingDetails.body]}
                     onValueChange={([value]) =>
-                      setTastingDetails({ ...tastingDetails, body: value })
+                      setTastingDetails({ ...tastingDetails, body: Math.round(value * 10) / 10 })
                     }
-                    min={1}
-                    max={5}
-                    step={1}
+                    min={0}
+                    max={10}
+                    step={0.1}
                   />
                 </div>
 
                 <div>
                   <Label>
-                    Douceur: {tastingDetails.sweetness}/5
+                    Douceur: {tastingDetails.sweetness.toFixed(1)}/10
                   </Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    1 = Très sec • 5 = Très sucré
+                    0 = Très sec • 10 = Très sucré
                   </p>
                   <Slider
                     value={[tastingDetails.sweetness]}
                     onValueChange={([value]) =>
-                      setTastingDetails({ ...tastingDetails, sweetness: value })
+                      setTastingDetails({ ...tastingDetails, sweetness: Math.round(value * 10) / 10 })
                     }
-                    min={1}
-                    max={5}
-                    step={1}
+                    min={0}
+                    max={10}
+                    step={0.1}
                   />
                 </div>
 
@@ -839,6 +854,36 @@ export const WineInteractionDialog = ({
             </TabsContent>
           </Tabs>
         </div>
+    </div>
+  );
+
+  return isMobile ? (
+    <Sheet open={true} onOpenChange={onClose}>
+      <SheetContent 
+        side="bottom" 
+        className="h-[85vh] overflow-y-auto overflow-x-hidden w-full p-4"
+      >
+        <SheetHeader>
+          <SheetTitle className="text-lg md:text-xl font-serif break-words">
+            {wine.name}
+          </SheetTitle>
+          {domain && (
+            <p className="text-sm text-muted-foreground">{domain.name}</p>
+          )}
+        </SheetHeader>
+        {content}
+      </SheetContent>
+    </Sheet>
+  ) : (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+        <DialogHeader>
+          <DialogTitle className="text-xl md:text-2xl font-serif break-words">{wine.name}</DialogTitle>
+          {domain && (
+            <p className="text-sm text-muted-foreground">{domain.name}</p>
+          )}
+        </DialogHeader>
+        {content}
       </DialogContent>
     </Dialog>
   );

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { X, User, ChevronDown, ChevronUp, Heart, Trash2, Pencil, ThumbsUp, ThumbsDown } from "lucide-react";
+import { X, User, ChevronDown, ChevronUp, Heart, Trash2, Pencil, ThumbsUp, ThumbsDown, MessageSquare, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -13,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
@@ -87,12 +89,14 @@ export const WineDetailsDialog = ({
   const [commentReactions, setCommentReactions] = useState<Record<string, { userReaction: number | null, likeCount: number }>>({});
 
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
-    acidity: 3,
-    tannins: 3,
-    body: 3,
-    sweetness: 3,
+    acidity: 5.0,
+    tannins: 5.0,
+    body: 5.0,
+    sweetness: 5.0,
     remarks: "",
   });
+  
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,10 +135,10 @@ export const WineDetailsDialog = ({
         if (noticeData.details && typeof noticeData.details === 'object' && !Array.isArray(noticeData.details)) {
           const details = noticeData.details as any;
           setTastingDetails({
-            acidity: details.acidity || 3,
-            tannins: details.tannins || 3,
-            body: details.body || 3,
-            sweetness: details.sweetness || 3,
+            acidity: details.acidity || 5.0,
+            tannins: details.tannins || 5.0,
+            body: details.body || 5.0,
+            sweetness: details.sweetness || 5.0,
             remarks: details.remarks || "",
           });
         }
@@ -246,6 +250,15 @@ export const WineDetailsDialog = ({
     setLoading(true);
     const newLiked = liked === status ? 0 : status;
 
+    // Arrondir les valeurs au dixième avant sauvegarde
+    const roundedDetails = {
+      acidity: Math.round(tastingDetails.acidity * 10) / 10,
+      tannins: Math.round(tastingDetails.tannins * 10) / 10,
+      body: Math.round(tastingDetails.body * 10) / 10,
+      sweetness: Math.round(tastingDetails.sweetness * 10) / 10,
+      remarks: tastingDetails.remarks
+    };
+
     if (eventId) {
       // Use RPC to upsert notice and link to event
       const { data: noticeId, error } = await supabase.rpc('upsert_wine_notice_with_event', {
@@ -253,7 +266,7 @@ export const WineDetailsDialog = ({
         p_wine_id: wine.id,
         p_event_id: eventId,
         p_liked: newLiked,
-        p_details: tastingDetails as any,
+        p_details: roundedDetails as any,
       });
 
       console.log('[DEBUG] RPC upsert_wine_notice_with_event result:', { noticeId, error });
@@ -276,7 +289,7 @@ export const WineDetailsDialog = ({
         user_id: user.id,
         wine_id: wine.id,
         liked: newLiked as any,
-        details: tastingDetails as any,
+        details: roundedDetails as any,
       } as any, {
         onConflict: 'user_id,wine_id'
       });
@@ -310,6 +323,15 @@ export const WineDetailsDialog = ({
 
     setLoading(true);
 
+    // Arrondir les valeurs au dixième avant sauvegarde
+    const roundedDetails = {
+      acidity: Math.round(tastingDetails.acidity * 10) / 10,
+      tannins: Math.round(tastingDetails.tannins * 10) / 10,
+      body: Math.round(tastingDetails.body * 10) / 10,
+      sweetness: Math.round(tastingDetails.sweetness * 10) / 10,
+      remarks: tastingDetails.remarks
+    };
+
     if (eventId) {
       // Use RPC to upsert notice and link to event
       const { data: noticeId, error } = await supabase.rpc('upsert_wine_notice_with_event', {
@@ -317,7 +339,7 @@ export const WineDetailsDialog = ({
         p_wine_id: wine.id,
         p_event_id: eventId,
         p_liked: liked,
-        p_details: tastingDetails as any,
+        p_details: roundedDetails as any,
       });
 
       console.log('[DEBUG] RPC upsert_wine_notice_with_event result:', { noticeId, error });
@@ -338,7 +360,7 @@ export const WineDetailsDialog = ({
       const { error } = await supabase.from("user_wine_notice").upsert({
         user_id: user.id,
         wine_id: wine.id,
-        details: tastingDetails as any,
+        details: roundedDetails as any,
         liked: liked as any,
       } as any, {
         onConflict: 'user_id,wine_id'
@@ -597,32 +619,26 @@ export const WineDetailsDialog = ({
     await fetchReactionsForComments([commentId]);
   };
 
-  return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="sr-only">Détails du vin</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Wine Image and Info - Logo à gauche, infos à droite */}
-          <div className="grid md:grid-cols-[300px_1fr] gap-8">
-            {/* Logo/Image à gauche */}
-            {wine.label_url && (
-              <div className="flex items-start justify-center">
-                <img
-                  src={wine.label_url}
-                  alt={wine.name}
-                  className="w-full max-w-[300px] object-contain rounded-lg"
-                />
-              </div>
-            )}
-            
-            {/* Toutes les infos à droite */}
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-4">
-                  <h2 className="text-3xl font-serif">{wine.name}</h2>
+  const content = (
+    <div className="space-y-6 w-full overflow-x-hidden">
+      {/* Wine Image and Info - Logo à gauche, infos à droite */}
+      <div className="grid md:grid-cols-[300px_1fr] gap-4 md:gap-8">
+        {/* Logo/Image à gauche */}
+        {wine.label_url && (
+          <div className="flex items-start justify-center">
+            <img
+              src={wine.label_url}
+              alt={wine.name}
+              className="w-full max-w-[200px] md:max-w-[300px] object-contain rounded-lg"
+            />
+          </div>
+        )}
+        
+        {/* Toutes les infos à droite */}
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-2 md:gap-4">
+              <h2 className="text-xl md:text-3xl font-serif break-words flex-1 min-w-0">{wine.name}</h2>
                   {user && (
                     <Button 
                       variant={isFavorite ? "default" : "outline"} 
@@ -733,17 +749,20 @@ export const WineDetailsDialog = ({
               <Button
                 variant={activeTab === 'tasting' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('tasting')}
-                className="flex-1"
+                className="flex-1 text-xs md:text-sm"
               >
-                Mes impressions de dégustation
-                <span className="ml-2 text-xs">(privé 🔒)</span>
+                <Lock className="w-3 h-3 md:mr-2" />
+                <span className="hidden md:inline">Mes impressions de dégustation</span>
+                <span className="md:hidden">Dégustation</span>
               </Button>
               <Button
                 variant={activeTab === 'comments' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('comments')}
-                className="flex-1"
+                className="flex-1 text-xs md:text-sm"
               >
-                Commentaires
+                <MessageSquare className="w-3 h-3 md:mr-2" />
+                <span className="hidden md:inline">Commentaires</span>
+                <span className="md:hidden">Avis</span>
               </Button>
             </div>
 
@@ -785,17 +804,17 @@ export const WineDetailsDialog = ({
                     <Slider
                       value={[tastingDetails.acidity]}
                       onValueChange={([value]) =>
-                        setTastingDetails({ ...tastingDetails, acidity: value })
+                        setTastingDetails({ ...tastingDetails, acidity: Math.round(value * 10) / 10 })
                       }
-                      min={1}
-                      max={5}
-                      step={1}
+                      min={0}
+                      max={10}
+                      step={0.1}
                       className="flex-1"
                     />
-                    <span className="text-sm font-semibold min-w-[30px] text-right text-primary">{tastingDetails.acidity}/5</span>
+                    <span className="text-sm font-semibold min-w-[40px] text-right text-primary">{tastingDetails.acidity.toFixed(1)}/10</span>
                   </div>
                   <p className="text-xs text-muted-foreground pl-[136px]">
-                    1 = Très faible • 5 = Très marquée
+                    0 = Très faible • 10 = Très marquée
                   </p>
                 </div>
 
@@ -805,17 +824,17 @@ export const WineDetailsDialog = ({
                     <Slider
                       value={[tastingDetails.tannins]}
                       onValueChange={([value]) =>
-                        setTastingDetails({ ...tastingDetails, tannins: value })
+                        setTastingDetails({ ...tastingDetails, tannins: Math.round(value * 10) / 10 })
                       }
-                      min={1}
-                      max={5}
-                      step={1}
+                      min={0}
+                      max={10}
+                      step={0.1}
                       className="flex-1"
                     />
-                    <span className="text-sm font-semibold min-w-[30px] text-right text-primary">{tastingDetails.tannins}/5</span>
+                    <span className="text-sm font-semibold min-w-[40px] text-right text-primary">{tastingDetails.tannins.toFixed(1)}/10</span>
                   </div>
                   <p className="text-xs text-muted-foreground pl-[136px]">
-                    1 = Très doux • 5 = Très tannique
+                    0 = Très doux • 10 = Très tannique
                   </p>
                 </div>
 
@@ -825,17 +844,17 @@ export const WineDetailsDialog = ({
                     <Slider
                       value={[tastingDetails.body]}
                       onValueChange={([value]) =>
-                        setTastingDetails({ ...tastingDetails, body: value })
+                        setTastingDetails({ ...tastingDetails, body: Math.round(value * 10) / 10 })
                       }
-                      min={1}
-                      max={5}
-                      step={1}
+                      min={0}
+                      max={10}
+                      step={0.1}
                       className="flex-1"
                     />
-                    <span className="text-sm font-semibold min-w-[30px] text-right text-primary">{tastingDetails.body}/5</span>
+                    <span className="text-sm font-semibold min-w-[40px] text-right text-primary">{tastingDetails.body.toFixed(1)}/10</span>
                   </div>
                   <p className="text-xs text-muted-foreground pl-[136px]">
-                    1 = Très léger • 5 = Très corpulent
+                    0 = Très léger • 10 = Très corpulent
                   </p>
                 </div>
 
@@ -845,17 +864,17 @@ export const WineDetailsDialog = ({
                     <Slider
                       value={[tastingDetails.sweetness]}
                       onValueChange={([value]) =>
-                        setTastingDetails({ ...tastingDetails, sweetness: value })
+                        setTastingDetails({ ...tastingDetails, sweetness: Math.round(value * 10) / 10 })
                       }
-                      min={1}
-                      max={5}
-                      step={1}
+                      min={0}
+                      max={10}
+                      step={0.1}
                       className="flex-1"
                     />
-                    <span className="text-sm font-semibold min-w-[30px] text-right text-primary">{tastingDetails.sweetness}/5</span>
+                    <span className="text-sm font-semibold min-w-[40px] text-right text-primary">{tastingDetails.sweetness.toFixed(1)}/10</span>
                   </div>
                   <p className="text-xs text-muted-foreground pl-[136px]">
-                    1 = Très sec • 5 = Très sucré
+                    0 = Très sec • 10 = Très sucré
                   </p>
                 </div>
 
@@ -1031,12 +1050,37 @@ export const WineDetailsDialog = ({
                         Tous les commentaires ont été chargés
                       </p>
                     )}
-                  </div>
+                   </div>
                 )}
               </div>
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+
+  return isMobile ? (
+    <Sheet open={true} onOpenChange={onClose}>
+      <SheetContent 
+        side="bottom" 
+        className="h-[90vh] overflow-y-auto overflow-x-hidden w-full p-4"
+      >
+        <SheetHeader>
+          <SheetTitle className="text-lg md:text-xl font-serif break-words">
+            {wine.name}
+          </SheetTitle>
+        </SheetHeader>
+        {content}
+      </SheetContent>
+    </Sheet>
+  ) : (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="sr-only">Détails du vin</DialogTitle>
+        </DialogHeader>
+        {content}
       </DialogContent>
     </Dialog>
   );

@@ -128,10 +128,10 @@ export function CellarWineDetailsDialog({
   // Tasting states
   const [liked, setLiked] = useState<number>(0);
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
-    acidity: 3,
-    tannins: 3,
-    body: 3,
-    sweetness: 3,
+    acidity: 5.0,
+    tannins: 5.0,
+    body: 5.0,
+    sweetness: 5.0,
     remarks: '',
   });
   
@@ -204,10 +204,10 @@ export function CellarWineDetailsDialog({
         if (noticeData.details && typeof noticeData.details === 'object' && !Array.isArray(noticeData.details)) {
           const details = noticeData.details as any;
           setTastingDetails({
-            acidity: details.acidity || 3,
-            tannins: details.tannins || 3,
-            body: details.body || 3,
-            sweetness: details.sweetness || 3,
+            acidity: details.acidity || 5.0,
+            tannins: details.tannins || 5.0,
+            body: details.body || 5.0,
+            sweetness: details.sweetness || 5.0,
             remarks: details.remarks || '',
           });
         }
@@ -1015,50 +1015,50 @@ export function CellarWineDetailsDialog({
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <Label>Acidité</Label>
-                  <Slider
-                    value={[tastingDetails.acidity]}
-                    onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, acidity: val }))}
-                    min={1}
-                    max={5}
-                    step={1}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">{tastingDetails.acidity}/5</p>
-                </div>
-                <div>
-                  <Label>Tanins</Label>
-                  <Slider
-                    value={[tastingDetails.tannins]}
-                    onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, tannins: val }))}
-                    min={1}
-                    max={5}
-                    step={1}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">{tastingDetails.tannins}/5</p>
-                </div>
-                <div>
-                  <Label>Corps</Label>
-                  <Slider
-                    value={[tastingDetails.body]}
-                    onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, body: val }))}
-                    min={1}
-                    max={5}
-                    step={1}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">{tastingDetails.body}/5</p>
-                </div>
-                <div>
-                  <Label>Douceur</Label>
-                  <Slider
-                    value={[tastingDetails.sweetness]}
-                    onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, sweetness: val }))}
-                    min={1}
-                    max={5}
-                    step={1}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">{tastingDetails.sweetness}/5</p>
-                </div>
+              <div>
+                <Label>Acidité</Label>
+                <Slider
+                  value={[tastingDetails.acidity]}
+                  onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, acidity: Math.round(val * 10) / 10 }))}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{tastingDetails.acidity.toFixed(1)}/10 • 0 = Très faible • 10 = Très marquée</p>
+              </div>
+              <div>
+                <Label>Tanins</Label>
+                <Slider
+                  value={[tastingDetails.tannins]}
+                  onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, tannins: Math.round(val * 10) / 10 }))}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{tastingDetails.tannins.toFixed(1)}/10 • 0 = Très doux • 10 = Très tannique</p>
+              </div>
+              <div>
+                <Label>Corps</Label>
+                <Slider
+                  value={[tastingDetails.body]}
+                  onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, body: Math.round(val * 10) / 10 }))}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{tastingDetails.body.toFixed(1)}/10 • 0 = Très léger • 10 = Très corpulent</p>
+              </div>
+              <div>
+                <Label>Douceur</Label>
+                <Slider
+                  value={[tastingDetails.sweetness]}
+                  onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, sweetness: Math.round(val * 10) / 10 }))}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{tastingDetails.sweetness.toFixed(1)}/10 • 0 = Très sec • 10 = Très sucré</p>
+              </div>
               </div>
 
               <div>
