@@ -145,29 +145,25 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('domain')
+          .from('post')
           .upload(fileName, imageFile);
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('domain')
+          .from('post')
           .getPublicUrl(fileName);
 
         imageUrl = urlData.publicUrl;
         setUploading(false);
       }
 
-      const postData = {
+      const { error: insertError } = await supabase.from('post').insert([{
         user_id: user.id,
         content: content.trim() || null,
         image_url: imageUrl || null,
         wine_id: selectedWine?.id || null,
-      };
-
-      const validatedData = postSchema.parse(postData);
-
-      const { error: insertError } = await supabase.from('post').insert(validatedData);
+      }]);
 
       if (insertError) throw insertError;
 
