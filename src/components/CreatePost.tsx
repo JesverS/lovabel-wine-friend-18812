@@ -48,31 +48,25 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
     const searchWines = async () => {
       if (wineSearch.length < 2) {
         setWines([]);
+        setSearchingWines(false);
         return;
       }
 
       setSearchingWines(true);
 
       try {
-        const { data, error } = await supabase
-          .from('wine')
-          .select(`
-            id,
-            name,
-            year,
-            label_url,
-            domain:domain_id(id, name, region, logo_url),
-            wine_type:type(id, type)
-          `)
-          .or(`name.ilike.%${wineSearch}%,domain.name.ilike.%${wineSearch}%`)
-          .order('year', { ascending: false })
-          .limit(20);
+        const { data, error } = await (supabase as any).rpc('search_wines', {
+          query: wineSearch.trim()
+        });
 
         if (!error && data) {
           setWines(data);
+        } else {
+          setWines([]);
         }
       } catch (error) {
         console.error('Error searching wines:', error);
+        setWines([]);
       } finally {
         setSearchingWines(false);
       }
