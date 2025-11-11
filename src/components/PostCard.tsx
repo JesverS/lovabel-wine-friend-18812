@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Send, Loader2, Trash2, Wine } from 'lucide-react';
+import { Heart, MessageCircle, Send, Loader2, Trash2, Wine, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -14,6 +14,10 @@ import { z } from 'zod';
 
 const commentSchema = z.object({
   content: z.string().trim().min(1, 'Le commentaire est requis').max(1000, 'Maximum 1000 caractères'),
+});
+
+const postEditSchema = z.object({
+  content: z.string().trim().min(1, 'Le contenu est requis').max(10000, 'Maximum 10000 caractères'),
 });
 
 interface PostCardProps {
@@ -33,6 +37,9 @@ export const PostCard = ({ post }: PostCardProps) => {
   const [newComment, setNewComment] = useState('');
   const [loadingComment, setLoadingComment] = useState(false);
   const [displayedCommentsCount, setDisplayedCommentsCount] = useState(8);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState('');
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   useEffect(() => {
     fetchPostData();
@@ -66,12 +73,19 @@ export const PostCard = ({ post }: PostCardProps) => {
 
     // Fetch wine if referenced
     if ((post as any).wine_id) {
-      const { data } = await supabase
+      console.log('Fetching wine with ID:', (post as any).wine_id);
+      const { data, error } = await supabase
         .from('wine' as any)
         .select('*, domain(*)')
         .eq('id', (post as any).wine_id)
         .maybeSingle();
-      setWine(data);
+      
+      if (error) {
+        console.error('Error fetching wine:', error);
+      } else {
+        console.log('Wine data:', data);
+        setWine(data);
+      }
     }
 
     // Fetch author
@@ -164,6 +178,49 @@ export const PostCard = ({ post }: PostCardProps) => {
     }
   };
 
+  const handleEditPost = async () => {
+    if (!user || user.id !== post.user_id) return;
+    
+    setLoadingEdit(true);
+    try {
+      const validated = postEditSchema.parse({ content: editedContent });
+      
+      const { error } = await supabase
+        .from('post')
+        .update({ 
+          content: validated.content,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', post.id);
+      
+      if (error) throw error;
+      
+      post.content = validated.content;
+      setIsEditing(false);
+      
+      toast({
+        title: 'Succès',
+        description: 'Post modifié avec succès',
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: error.errors[0].message,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: error.message || 'Erreur lors de la modification',
+        });
+      }
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
   return (
     <Card className="p-6 space-y-4">
       <div className="flex items-start gap-3">
@@ -174,16 +231,65 @@ export const PostCard = ({ post }: PostCardProps) => {
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <Link to={`/user/${post.user_id}`} className="font-semibold hover:underline">
-            {author?.full_name || 'Utilisateur'}
-          </Link>
-          <p className="text-sm text-muted-foreground">
-            {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: fr })}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <Link to={`/user/${post.user_id}`} className="font-semibold hover:underline">
+                {author?.full_name || 'Utilisateur'}
+              </Link>
+              <p className="text-sm text-muted-foreground">
+                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: fr })}
+              </p>
+            </div>
+            {user?.id === post.user_id && !isEditing && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setEditedContent(post.content);
+                  setIsEditing(true);
+                }}
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      <p className="whitespace-pre-wrap">{post.content}</p>
+      {!isEditing ? (
+        <p className="whitespace-pre-wrap">{post.content}</p>
+      ) : (
+        <div className="space-y-2">
+          <Textarea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            className="min-h-[100px] resize-none"
+            maxLength={10000}
+            autoFocus
+          />
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(false)}
+              disabled={loadingEdit}
+            >
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleEditPost}
+              disabled={loadingEdit || !editedContent.trim()}
+            >
+              {loadingEdit ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                'Enregistrer'
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {post.image_url && (
         <img
