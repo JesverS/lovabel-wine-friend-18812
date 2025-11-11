@@ -444,7 +444,7 @@ export type Database = {
           id: string
           image_url: string | null
           updated_at: string | null
-          user_id: string | null
+          user_id: string
           wine_id: string | null
         }
         Insert: {
@@ -453,7 +453,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
           wine_id?: string | null
         }
         Update: {
@@ -462,7 +462,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
           wine_id?: string | null
         }
         Relationships: [
