@@ -1298,7 +1298,7 @@ export type Database = {
     }
     Enums: {
       app_role: "user" | "admin" | "super_admin"
-      cellar_role: "owner" | "admin"
+      cellar_role: "owner" | "co-owner" | "admin" | "co_owner"
       domain_region:
         | "Champagne"
         | "Loire"
@@ -1448,7 +1448,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["user", "admin", "super_admin"],
-      cellar_role: ["owner", "admin"],
+      cellar_role: ["owner", "co-owner", "admin", "co_owner"],
       domain_region: [
         "Champagne",
         "Loire",
