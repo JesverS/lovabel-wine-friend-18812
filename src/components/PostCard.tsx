@@ -76,7 +76,7 @@ export const PostCard = ({ post }: PostCardProps) => {
       console.log('Fetching wine with ID:', (post as any).wine_id);
       const { data, error } = await supabase
         .from('wine' as any)
-        .select('*, domain(*)')
+        .select('*, domain!wine_domain_id_fkey(*)')
         .eq('id', (post as any).wine_id)
         .maybeSingle();
       
