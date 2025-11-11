@@ -319,16 +319,14 @@ export default function UserProfile() {
             </>
           ) : (
             /* Tabs desktop */
-            <div className="overflow-x-auto -mx-4 px-4">
-              <TabsList className="inline-flex w-auto min-w-full md:w-full">
-                <TabsTrigger value="posts" className="whitespace-nowrap">Posts</TabsTrigger>
-                <TabsTrigger value="cellars" className="whitespace-nowrap">Mes caves</TabsTrigger>
-                <TabsTrigger value="domains" className="whitespace-nowrap">Mes domaines</TabsTrigger>
-                <TabsTrigger value="events" className="whitespace-nowrap">Mes événements</TabsTrigger>
-                <TabsTrigger value="tastings" className="whitespace-nowrap">Mes dégustations</TabsTrigger>
-                <TabsTrigger value="favorites" className="whitespace-nowrap">Mes favoris</TabsTrigger>
-              </TabsList>
-            </div>
+            <TabsList className="grid w-full grid-cols-6 gap-1">
+              <TabsTrigger value="posts">Posts</TabsTrigger>
+              <TabsTrigger value="cellars">Mes caves</TabsTrigger>
+              <TabsTrigger value="domains">Mes domaines</TabsTrigger>
+              <TabsTrigger value="events">Mes événements</TabsTrigger>
+              <TabsTrigger value="tastings">Mes dégustations</TabsTrigger>
+              <TabsTrigger value="favorites">Mes favoris</TabsTrigger>
+            </TabsList>
           )}
 
           <TabsContent value="posts" className="mt-6 space-y-6">

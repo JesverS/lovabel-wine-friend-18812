@@ -1,67 +1,85 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Loader2, Upload, X, Wine } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-
-const postSchema = z.object({
-  content: z.string().trim().min(1, 'Le contenu est requis').max(5000, 'Maximum 5000 caractères'),
-  image_url: z.string().max(2048, 'URL trop longue').nullable().optional(),
-  wine_id: z.string().uuid().nullable().optional(),
-});
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Loader2, Image as ImageIcon, X, Wine, Plus } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { z } from 'zod';
+import { CreateWineForPostDialog } from './CreateWineForPostDialog';
 
 interface CreatePostProps {
   onPostCreated?: () => void;
 }
 
-export const CreatePost = ({ onPostCreated }: CreatePostProps) => {
+const postSchema = z.object({
+  content: z.string().max(500).optional(),
+  image_url: z.string().url().optional(),
+  wine_id: z.string().uuid().optional(),
+});
+
+export function CreatePost({ onPostCreated }: CreatePostProps) {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [content, setContent] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // Wine search state
+  const [wineSearchOpen, setWineSearchOpen] = useState(false);
   const [wineSearch, setWineSearch] = useState('');
   const [wines, setWines] = useState<any[]>([]);
   const [selectedWine, setSelectedWine] = useState<any>(null);
-  const [openWineSearch, setOpenWineSearch] = useState(false);
+  const [searchingWines, setSearchingWines] = useState(false);
+  const [showCreateWine, setShowCreateWine] = useState(false);
 
+  // Search wines with debounce
   useEffect(() => {
     const searchWines = async () => {
-      if (wineSearch.trim().length < 2) {
+      if (wineSearch.length < 2) {
         setWines([]);
         return;
       }
 
-      const { data } = await supabase
-        .from('wine' as any)
-        .select('id, name, year, domain(name)')
-        .ilike('name', `%${wineSearch}%`)
-        .limit(10);
+      setSearchingWines(true);
 
-      setWines(data || []);
+      try {
+        const { data, error } = await supabase
+          .from('wine')
+          .select(`
+            id,
+            name,
+            year,
+            label_url,
+            domain:domain_id(id, name, region, logo_url),
+            wine_type:type(id, type)
+          `)
+          .or(`name.ilike.%${wineSearch}%,domain.name.ilike.%${wineSearch}%`)
+          .order('year', { ascending: false })
+          .limit(20);
+
+        if (!error && data) {
+          setWines(data);
+        }
+      } catch (error) {
+        console.error('Error searching wines:', error);
+      } finally {
+        setSearchingWines(false);
+      }
     };
 
-    const debounce = setTimeout(searchWines, 300);
-    return () => clearTimeout(debounce);
+    const timer = setTimeout(searchWines, 300);
+    return () => clearTimeout(timer);
   }, [wineSearch]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,7 +99,7 @@ export const CreatePost = ({ onPostCreated }: CreatePostProps) => {
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: 'L\'image ne doit pas dépasser 5 Mo',
+        description: "L'image ne doit pas dépasser 5 Mo",
       });
       return;
     }
@@ -95,221 +113,293 @@ export const CreatePost = ({ onPostCreated }: CreatePostProps) => {
     setImagePreview('');
   };
 
+  const handleSelectWine = (wine: any) => {
+    setSelectedWine(wine);
+    setWineSearchOpen(false);
+    setWineSearch('');
+    setWines([]);
+  };
+
+  const handleWineCreated = (wine: any) => {
+    setSelectedWine(wine);
+    setShowCreateWine(false);
+    setWineSearchOpen(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
+    if (!content.trim() && !imageFile && !selectedWine) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Votre post doit contenir du texte, une image ou une bouteille',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      let imageUrl = null;
+      let imageUrl = '';
 
-      // Upload image if selected
       if (imageFile) {
-        setUploadingImage(true);
+        setUploading(true);
         const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('post')
-          .upload(filePath, imageFile);
+          .from('domain')
+          .upload(fileName, imageFile);
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('post')
-          .getPublicUrl(filePath);
+          .from('domain')
+          .getPublicUrl(fileName);
 
         imageUrl = urlData.publicUrl;
-        setUploadingImage(false);
+        setUploading(false);
       }
 
-      // Validate
-      const validated = postSchema.parse({
-        content,
-        image_url: imageUrl,
-        wine_id: selectedWine?.id || null,
-      });
-
-      const { error } = await supabase.from('post' as any).insert({
+      const postData = {
         user_id: user.id,
-        content: validated.content,
-        image_url: validated.image_url,
-        wine_id: validated.wine_id,
+        content: content.trim() || null,
+        image_url: imageUrl || null,
+        wine_id: selectedWine?.id || null,
+      };
+
+      const validatedData = postSchema.parse(postData);
+
+      const { error: insertError } = await supabase.from('post').insert(validatedData);
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: 'Succès',
+        description: 'Post publié avec succès',
       });
 
-      if (error) throw error;
-
-      // Reset form
       setContent('');
       setImageFile(null);
       setImagePreview('');
       setSelectedWine(null);
 
-      toast({
-        title: 'Succès',
-        description: 'Post créé avec succès',
-      });
-
-      // Callback
-      onPostCreated?.();
-    } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de validation',
-          description: error.errors[0].message,
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: error.message || 'Erreur lors de la création du post',
-        });
+      if (onPostCreated) {
+        onPostCreated();
       }
+    } catch (error: any) {
+      console.error('Error creating post:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de créer le post',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
-      setUploadingImage(false);
+      setUploading(false);
     }
   };
 
   if (!user) return null;
 
   return (
-    <form onSubmit={handleSubmit} className="bg-card p-6 rounded-lg border space-y-4">
-      <h3 className="text-lg font-semibold">Créer un post</h3>
-      
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Partagez vos découvertes, vos coups de cœur..."
-        className="min-h-[120px]"
-        required
-        maxLength={5000}
-      />
-      <p className="text-xs text-muted-foreground">
-        {content.length}/5000 caractères
-      </p>
-
-      {/* Image Upload */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Photo (optionnel)</label>
-        {imagePreview ? (
-          <div className="relative">
-            <img
-              src={imagePreview}
-              alt="Preview"
-              className="w-full h-48 object-cover rounded-lg"
+    <>
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Textarea
+              placeholder="Partagez votre expérience avec la communauté..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="min-h-[100px] resize-none"
+              maxLength={500}
             />
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              className="absolute top-2 right-2"
-              onClick={handleRemoveImage}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-              id="image-upload"
-            />
-            <label htmlFor="image-upload" className="cursor-pointer">
-              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Cliquez pour ajouter une photo
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Max 5 Mo
-              </p>
-            </label>
-          </div>
-        )}
-      </div>
 
-      {/* Wine Search */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Bouteille associée (optionnel)</label>
-        <Popover open={openWineSearch} onOpenChange={setOpenWineSearch}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              className="w-full justify-between"
-            >
-              {selectedWine ? (
-                <span className="flex items-center gap-2">
-                  <Wine className="w-4 h-4" />
-                  {selectedWine.name} {selectedWine.year}
-                </span>
-              ) : (
-                <span className="text-muted-foreground">Rechercher une bouteille...</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
-            <Command>
-              <CommandInput
-                placeholder="Rechercher..."
-                value={wineSearch}
-                onValueChange={setWineSearch}
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{content.length}/500</span>
+            </div>
+
+            {/* Image preview */}
+            {imagePreview && (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                  onClick={handleRemoveImage}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Selected wine badge */}
+            {selectedWine && (
+              <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                {selectedWine.label_url && (
+                  <img
+                    src={selectedWine.label_url}
+                    alt={selectedWine.name}
+                    className="w-12 h-12 object-cover rounded"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{selectedWine.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {selectedWine.domain?.name}
+                    {selectedWine.year && ` • ${selectedWine.year}`}
+                    {selectedWine.wine_type?.type && ` • ${selectedWine.wine_type.type}`}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedWine(null)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="post-image" className="cursor-pointer">
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <div>
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Image
+                  </div>
+                </Button>
+              </label>
+              <input
+                id="post-image"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageSelect}
               />
-              <CommandList>
-                <CommandEmpty>Aucune bouteille trouvée</CommandEmpty>
-                <CommandGroup>
-                  {wines.map((wine) => (
-                    <CommandItem
-                      key={wine.id}
-                      value={wine.id}
-                      onSelect={() => {
-                        setSelectedWine(wine);
-                        setOpenWineSearch(false);
-                      }}
-                    >
-                      <Wine className="w-4 h-4 mr-2" />
-                      <div className="flex-1">
-                        <p className="font-medium">{wine.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {wine.domaine?.name} • {wine.year}
-                        </p>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        {selectedWine && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedWine(null)}
-          >
-            <X className="w-4 h-4 mr-1" />
-            Retirer
-          </Button>
-        )}
-      </div>
 
-      <Button type="submit" disabled={loading || uploadingImage}>
-        {loading || uploadingImage ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            {uploadingImage ? 'Upload en cours...' : 'Publication...'}
-          </>
-        ) : (
-          'Publier'
-        )}
-      </Button>
-    </form>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setWineSearchOpen(true)}
+              >
+                <Wine className="w-4 h-4 mr-2" />
+                Bouteille
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={loading || uploading}
+                className="ml-auto"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Upload...
+                  </>
+                ) : loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Publication...
+                  </>
+                ) : (
+                  'Publier'
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Wine search dialog */}
+      <Dialog open={wineSearchOpen} onOpenChange={setWineSearchOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Rechercher une bouteille</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+            <Input
+              placeholder="Nom du vin, domaine, année..."
+              value={wineSearch}
+              onChange={(e) => setWineSearch(e.target.value)}
+              autoFocus
+            />
+
+            <ScrollArea className="flex-1">
+              {searchingWines ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : wines.length === 0 && wineSearch.length >= 2 ? (
+                <div className="text-center py-8 space-y-4">
+                  <p className="text-muted-foreground">Aucune bouteille trouvée pour "{wineSearch}"</p>
+                  <Button
+                    onClick={() => {
+                      setShowCreateWine(true);
+                      setWineSearchOpen(false);
+                    }}
+                    variant="outline"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ajouter "{wineSearch}"
+                  </Button>
+                </div>
+              ) : wines.length > 0 ? (
+                <div className="space-y-2 pr-4">
+                  {wines.map((wine) => (
+                    <Card
+                      key={wine.id}
+                      className="cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => handleSelectWine(wine)}
+                    >
+                      <CardContent className="flex items-center gap-4 p-4">
+                        {wine.label_url && (
+                          <img
+                            src={wine.label_url}
+                            alt={wine.name}
+                            className="w-16 h-16 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{wine.name}</p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {wine.domain?.name}
+                            {wine.year && ` • ${wine.year}`}
+                            {wine.wine_type?.type && ` • ${wine.wine_type.type}`}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Commencez à taper pour rechercher une bouteille
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create wine dialog */}
+      <CreateWineForPostDialog
+        open={showCreateWine}
+        onOpenChange={setShowCreateWine}
+        initialWineName={wineSearch}
+        onWineCreated={handleWineCreated}
+      />
+    </>
   );
-};
+}
