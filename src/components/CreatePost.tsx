@@ -60,7 +60,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
         });
 
         if (!error && data) {
-          setWines(data);
+          setWines(data.slice(0, 10));
         } else {
           setWines([]);
         }
@@ -317,72 +317,81 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
 
       {/* Wine search dialog */}
       <Dialog open={wineSearchOpen} onOpenChange={setWineSearchOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="w-full max-w-2xl h-[600px] md:h-[700px] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
             <DialogTitle>Rechercher une bouteille</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+          {/* Input de recherche - FIXE */}
+          <div className="px-6 pb-4 shrink-0">
             <Input
               placeholder="Nom du vin, domaine, année..."
               value={wineSearch}
               onChange={(e) => setWineSearch(e.target.value)}
               autoFocus
             />
+          </div>
 
-            <ScrollArea className="flex-1">
-              {searchingWines ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : wines.length === 0 && wineSearch.length >= 2 ? (
-                <div className="text-center py-8 space-y-4">
-                  <p className="text-muted-foreground">Aucune bouteille trouvée pour "{wineSearch}"</p>
-                  <Button
-                    onClick={() => {
-                      setShowCreateWine(true);
-                      setWineSearchOpen(false);
-                    }}
-                    variant="outline"
+          {/* Zone de résultats - SCROLLABLE, HAUTEUR FIXE */}
+          <ScrollArea className="flex-1 px-6">
+            {searchingWines ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : wineSearch.length < 2 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Wine className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Commencez à taper pour rechercher une bouteille</p>
+              </div>
+            ) : wines.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>Aucune bouteille trouvée pour "{wineSearch}"</p>
+              </div>
+            ) : (
+              <div className="space-y-2 pb-4">
+                {wines.map((wine) => (
+                  <Card
+                    key={wine.id}
+                    className="cursor-pointer hover:bg-accent transition-colors"
+                    onClick={() => handleSelectWine(wine)}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Ajouter "{wineSearch}"
-                  </Button>
-                </div>
-              ) : wines.length > 0 ? (
-                <div className="space-y-2 pr-4">
-                  {wines.map((wine) => (
-                    <Card
-                      key={wine.id}
-                      className="cursor-pointer hover:bg-accent transition-colors"
-                      onClick={() => handleSelectWine(wine)}
-                    >
-                      <CardContent className="flex items-center gap-4 p-4">
-                        {wine.label_url && (
-                          <img
-                            src={wine.label_url}
-                            alt={wine.name}
-                            className="w-16 h-16 object-cover rounded"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{wine.name}</p>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {wine.domain?.name}
-                            {wine.year && ` • ${wine.year}`}
-                            {wine.wine_type?.type && ` • ${wine.wine_type.type}`}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Commencez à taper pour rechercher une bouteille
-                </div>
-              )}
-            </ScrollArea>
+                    <CardContent className="flex items-center gap-4 p-4">
+                      {wine.label_url && (
+                        <img
+                          src={wine.label_url}
+                          alt={wine.name}
+                          className="w-16 h-16 object-cover rounded"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{wine.name}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {wine.domain?.name}
+                          {wine.year && ` • ${wine.year}`}
+                          {wine.wine_type?.type && ` • ${wine.wine_type.type}`}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+
+          {/* Bouton "Je ne trouve pas" - TOUJOURS VISIBLE EN BAS */}
+          <div className="px-6 py-4 border-t shrink-0 bg-background">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setShowCreateWine(true);
+                setWineSearchOpen(false);
+              }}
+              disabled={wineSearch.length < 2}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Je ne trouve pas ma bouteille
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
