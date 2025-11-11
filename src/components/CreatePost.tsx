@@ -22,6 +22,7 @@ interface CreatePostProps {
 }
 
 const postSchema = z.object({
+  user_id: z.string().uuid(),
   content: z.string().max(500).optional(),
   image_url: z.string().url().optional(),
   wine_id: z.string().uuid().optional(),
