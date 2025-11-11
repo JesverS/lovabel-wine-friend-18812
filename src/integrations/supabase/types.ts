@@ -59,6 +59,53 @@ export type Database = {
         }
         Relationships: []
       }
+      cellar_invitation: {
+        Row: {
+          cellar_id: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          invitee_email: string
+          invitee_user_id: string | null
+          inviter_id: string
+          role: string
+          status: string
+          token: string
+        }
+        Insert: {
+          cellar_id: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invitee_email: string
+          invitee_user_id?: string | null
+          inviter_id: string
+          role?: string
+          status?: string
+          token: string
+        }
+        Update: {
+          cellar_id?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invitee_email?: string
+          invitee_user_id?: string | null
+          inviter_id?: string
+          role?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cellar_invitation_cellar_id_fkey"
+            columns: ["cellar_id"]
+            isOneToOne: false
+            referencedRelation: "cellar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cellar_wine: {
         Row: {
           added_at: string | null
@@ -553,19 +600,19 @@ export type Database = {
       user_cellar: {
         Row: {
           created_at: string | null
-          role: string | null
+          role: Database["public"]["Enums"]["cellar_role"]
           user_cellar_id: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
-          role?: string | null
+          role?: Database["public"]["Enums"]["cellar_role"]
           user_cellar_id: string
           user_id: string
         }
         Update: {
           created_at?: string | null
-          role?: string | null
+          role?: Database["public"]["Enums"]["cellar_role"]
           user_cellar_id?: string
           user_id?: string
         }
@@ -1251,6 +1298,7 @@ export type Database = {
     }
     Enums: {
       app_role: "user" | "admin" | "super_admin"
+      cellar_role: "owner" | "admin"
       domain_region:
         | "Champagne"
         | "Loire"
@@ -1400,6 +1448,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["user", "admin", "super_admin"],
+      cellar_role: ["owner", "admin"],
       domain_region: [
         "Champagne",
         "Loire",
