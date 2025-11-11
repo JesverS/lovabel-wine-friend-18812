@@ -11,7 +11,7 @@ const corsHeaders = {
 interface InvitationRequest {
   cellar_id: string;
   invitee_email: string;
-  role: 'admin' | 'owner';
+  role: 'admin' | 'co_owner' | 'owner';
   cellar_name: string;
   inviter_name: string;
 }
@@ -109,7 +109,7 @@ serve(async (req) => {
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
             <h1>Invitation à rejoindre une cave</h1>
             <p>Bonjour,</p>
-            <p><strong>${inviter_name}</strong> vous invite à rejoindre la cave <strong>${cellar_name}</strong> en tant que <strong>${role === 'admin' ? 'Administrateur' : 'Propriétaire'}</strong>.</p>
+            <p><strong>${inviter_name}</strong> vous invite à rejoindre la cave <strong>${cellar_name}</strong> en tant que <strong>${role === 'admin' ? 'Administrateur' : role === 'co_owner' ? 'Copropriétaire' : 'Propriétaire'}</strong>.</p>
             
             <div style="margin: 30px 0;">
               <a href="${invitationUrl}" 

@@ -107,13 +107,14 @@ export function CellarMembers({ cellarId, cellarName, isOwner }: CellarMembersPr
   const getRoleLabel = (role: string) => {
     switch (role) {
       case 'owner': return 'Propriétaire';
+      case 'co_owner': return 'Copropriétaire';
       case 'admin': return 'Administrateur';
       default: return role;
     }
   };
 
   const getRoleBadgeVariant = (role: string): "default" | "secondary" => {
-    return role === 'owner' ? 'default' : 'secondary';
+    return (role === 'owner' || role === 'co_owner') ? 'default' : 'secondary';
   };
 
   if (loading) {
