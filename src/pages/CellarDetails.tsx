@@ -10,6 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Store, MapPin, Phone, Mail, Globe } from 'lucide-react';
 import { CellarCatalog } from '@/components/CellarCatalog';
 import { EditCellarDialog } from '@/components/EditCellarDialog';
+import { CellarMembers } from '@/components/CellarMembers';
 
 interface Cellar {
   id: string;
@@ -142,28 +143,36 @@ export default function CellarDetails() {
           </TabsContent>
 
           <TabsContent value="about" className="mt-6">
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold mb-4">À propos</h2>
-                <div className="space-y-4">
-                  {cellar.description && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Description</h3>
-                      <p className="text-muted-foreground">{cellar.description}</p>
-                    </div>
-                  )}
-                  {cellar.location && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
+            <div className="space-y-6">
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-2xl font-bold mb-4">À propos</h2>
+                  <div className="space-y-4">
+                    {cellar.description && (
                       <div>
-                        <h3 className="font-semibold">Adresse</h3>
-                        <p className="text-muted-foreground">{cellar.location}</p>
+                        <h3 className="font-semibold mb-2">Description</h3>
+                        <p className="text-muted-foreground">{cellar.description}</p>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    )}
+                    {cellar.location && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
+                        <div>
+                          <h3 className="font-semibold">Adresse</h3>
+                          <p className="text-muted-foreground">{cellar.location}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <CellarMembers 
+                cellarId={cellar.id} 
+                cellarName={cellar.name}
+                isOwner={isOwner}
+              />
+            </div>
           </TabsContent>
         </Tabs>
       </main>

@@ -1,1 +1,4 @@
 project_id = "amzutunyjouejovlrlah"
+
+[functions.send-cellar-invitation]
+verify_jwt = true
