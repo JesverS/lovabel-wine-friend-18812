@@ -10,7 +10,7 @@ import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck, Store, CalendarDays } from 'lucide-react';
+import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -18,10 +18,13 @@ import { CreateCellarDialog } from '@/components/CreateCellarDialog';
 import { UserFavorites } from '@/components/UserFavorites';
 import { UserTastings } from '@/components/UserTastings';
 import { UserDomains } from '@/components/UserDomains';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [cellars, setCellars] = useState<any[]>([]);
@@ -29,6 +32,8 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('posts');
 
   useEffect(() => {
     if (id) {
@@ -198,18 +203,133 @@ export default function UserProfile() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="posts" className="w-full">
-          <div className="overflow-x-auto -mx-4 px-4">
-            <TabsList className="inline-flex w-auto min-w-full md:w-full">
-              <TabsTrigger value="posts" className="whitespace-nowrap">Posts</TabsTrigger>
-              <TabsTrigger value="cellars" className="whitespace-nowrap">Mes caves</TabsTrigger>
-              <TabsTrigger value="domains" className="whitespace-nowrap">Mes domaines</TabsTrigger>
-              <TabsTrigger value="events" className="whitespace-nowrap">Mes événements</TabsTrigger>
-              <TabsTrigger value="tastings" className="whitespace-nowrap">Mes dégustations</TabsTrigger>
-              <TabsTrigger value="favorites" className="whitespace-nowrap">Mes favoris</TabsTrigger>
-            </TabsList>
-          </div>
+        {/* Navigation mobile et desktop */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {isMobile ? (
+            <>
+              {/* Bouton hamburger mobile */}
+              <div className="mb-6">
+                <Button 
+                  onClick={() => setDrawerOpen(true)}
+                  variant="outline"
+                  className="w-full justify-between h-12"
+                >
+                  <span className="flex items-center gap-2">
+                    <Menu className="w-5 h-5" />
+                    <span className="font-medium">
+                      {activeTab === 'posts' && 'Posts'}
+                      {activeTab === 'cellars' && 'Mes caves'}
+                      {activeTab === 'domains' && 'Mes domaines'}
+                      {activeTab === 'events' && 'Mes événements'}
+                      {activeTab === 'tastings' && 'Mes dégustations'}
+                      {activeTab === 'favorites' && 'Mes favoris'}
+                    </span>
+                  </span>
+                  <span className="text-muted-foreground text-sm">Changer</span>
+                </Button>
+              </div>
+
+              {/* Drawer mobile */}
+              <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+                <DrawerContent>
+                  <DrawerHeader>
+                    <DrawerTitle>Navigation</DrawerTitle>
+                  </DrawerHeader>
+                  <div className="p-4 space-y-2">
+                    <button
+                      onClick={() => { setActiveTab('posts'); setDrawerOpen(false); }}
+                      className={`w-full flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                        activeTab === 'posts' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                      }`}
+                    >
+                      <FileText className="w-6 h-6" />
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">Posts</div>
+                        <div className="text-sm opacity-80">{posts.length} publication(s)</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveTab('cellars'); setDrawerOpen(false); }}
+                      className={`w-full flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                        activeTab === 'cellars' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Store className="w-6 h-6" />
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">Mes caves</div>
+                        <div className="text-sm opacity-80">{cellars.length} cave(s)</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveTab('domains'); setDrawerOpen(false); }}
+                      className={`w-full flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                        activeTab === 'domains' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                      }`}
+                    >
+                      <MapPin className="w-6 h-6" />
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">Mes domaines</div>
+                        <div className="text-sm opacity-80">Gérer mes domaines</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveTab('events'); setDrawerOpen(false); }}
+                      className={`w-full flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                        activeTab === 'events' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                      }`}
+                    >
+                      <CalendarDays className="w-6 h-6" />
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">Mes événements</div>
+                        <div className="text-sm opacity-80">{events.length} événement(s)</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveTab('tastings'); setDrawerOpen(false); }}
+                      className={`w-full flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                        activeTab === 'tastings' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Wine className="w-6 h-6" />
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">Mes dégustations</div>
+                        <div className="text-sm opacity-80">Historique</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveTab('favorites'); setDrawerOpen(false); }}
+                      className={`w-full flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                        activeTab === 'favorites' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Heart className="w-6 h-6" />
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">Mes favoris</div>
+                        <div className="text-sm opacity-80">Vins sauvegardés</div>
+                      </div>
+                    </button>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </>
+          ) : (
+            /* Tabs desktop */
+            <div className="overflow-x-auto -mx-4 px-4">
+              <TabsList className="inline-flex w-auto min-w-full md:w-full">
+                <TabsTrigger value="posts" className="whitespace-nowrap">Posts</TabsTrigger>
+                <TabsTrigger value="cellars" className="whitespace-nowrap">Mes caves</TabsTrigger>
+                <TabsTrigger value="domains" className="whitespace-nowrap">Mes domaines</TabsTrigger>
+                <TabsTrigger value="events" className="whitespace-nowrap">Mes événements</TabsTrigger>
+                <TabsTrigger value="tastings" className="whitespace-nowrap">Mes dégustations</TabsTrigger>
+                <TabsTrigger value="favorites" className="whitespace-nowrap">Mes favoris</TabsTrigger>
+              </TabsList>
+            </div>
+          )}
 
           <TabsContent value="posts" className="mt-6 space-y-6">
             {/* Create Post (only on own profile) */}
