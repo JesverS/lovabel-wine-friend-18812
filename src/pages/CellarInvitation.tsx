@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,17 +17,29 @@ export default function CellarInvitation() {
   const [cellar, setCellar] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const hasCheckedEmail = useRef(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    if (token) {
+    if (token && !invitation) {
       fetchInvitation();
     }
   }, [token]);
 
+  useEffect(() => {
+    const getUserEmail = async () => {
+      if (user) {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        setUserEmail(authUser?.email || null);
+      } else {
+        setUserEmail(null);
+      }
+    };
+    getUserEmail();
+  }, [user]);
+
+  const emailMatches = userEmail && invitation && userEmail === invitation.invitee_email;
+
   const fetchInvitation = async () => {
-    if (hasCheckedEmail.current) return;
-    
     setLoading(true);
     try {
       const { data: inv, error } = await supabase
@@ -38,7 +50,6 @@ export default function CellarInvitation() {
         .single();
 
       if (error || !inv) {
-        hasCheckedEmail.current = true;
         toast.error('Invitation introuvable ou expirée', {
           duration: 8000,
         });
@@ -48,7 +59,6 @@ export default function CellarInvitation() {
 
       // Vérifier si expirée
       if (new Date(inv.expires_at) < new Date()) {
-        hasCheckedEmail.current = true;
         toast.error('Cette invitation a expiré', {
           duration: 8000,
         });
@@ -56,21 +66,6 @@ export default function CellarInvitation() {
         return;
       }
 
-      // Vérifier si l'utilisateur est connecté et si son email correspond
-      if (user) {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        
-        if (authUser && authUser.email !== inv.invitee_email) {
-          hasCheckedEmail.current = true;
-          toast.error('Votre compte ne correspond pas à l\'adresse email de cette invitation.', {
-            duration: 10000,
-          });
-          navigate('/');
-          return;
-        }
-      }
-
-      hasCheckedEmail.current = true;
       setInvitation(inv);
       setCellar(inv.cellar);
     } catch (error: any) {
@@ -86,15 +81,6 @@ export default function CellarInvitation() {
     if (!user) {
       toast.error('Vous devez être connecté pour accepter cette invitation');
       navigate(`/auth?redirect=/cellar-invitation/${token}`);
-      return;
-    }
-
-    // Vérifier l'email avant d'accepter
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (authUser && authUser.email !== invitation.invitee_email) {
-      toast.error('Votre compte ne correspond pas à l\'adresse email de cette invitation.', {
-        duration: 10000,
-      });
       return;
     }
 
@@ -186,15 +172,21 @@ export default function CellarInvitation() {
               </div>
             )}
 
-            {user && invitation && (
-              <p className="text-sm text-blue-600 bg-blue-50 p-3 rounded">
-                Cette invitation est destinée à <strong>{invitation.invitee_email}</strong>
+            {!user && (
+              <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded">
+                Merci de vous connecter pour accepter cette invitation
               </p>
             )}
 
-            {!user && (
-              <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded">
-                Vous devez être connecté pour accepter cette invitation
+            {user && !emailMatches && (
+              <p className="text-sm text-red-600 bg-red-50 p-3 rounded font-medium">
+                ⚠️ Votre email ne correspond pas à celle de l'invitation
+              </p>
+            )}
+
+            {user && emailMatches && (
+              <p className="text-sm text-green-600 bg-green-50 p-3 rounded">
+                ✓ Cette invitation est destinée à <strong>{invitation.invitee_email}</strong>
               </p>
             )}
 
@@ -202,7 +194,7 @@ export default function CellarInvitation() {
               <Button
                 className="flex-1 w-full md:w-auto"
                 onClick={handleAccept}
-                disabled={processing || !user}
+                disabled={processing || !user || !emailMatches}
               >
                 {processing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
