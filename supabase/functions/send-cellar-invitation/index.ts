@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") || "Vinotek <noreply@winenote.me>";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,7 +103,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Vinotek <onboarding@resend.dev>',
+        from: SENDER_EMAIL,
         to: [invitee_email],
         subject: `Invitation à rejoindre la cave "${cellar_name}"`,
         html: `
