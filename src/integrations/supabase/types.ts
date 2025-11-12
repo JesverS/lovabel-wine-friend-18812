@@ -1200,6 +1200,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_invitations: { Args: never; Returns: undefined }
       create_cellar_with_owner: {
         Args: {
           p_banner_url: string

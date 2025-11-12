@@ -47,6 +47,17 @@ export default function CellarInvitation() {
         return;
       }
 
+      // Vérifier si l'utilisateur est connecté et si son email correspond
+      if (user) {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        if (authUser && authUser.email !== inv.invitee_email) {
+          toast.error('Votre compte ne correspond pas à l\'adresse email de cette invitation.');
+          navigate('/');
+          return;
+        }
+      }
+
       setInvitation(inv);
       setCellar(inv.cellar);
     } catch (error: any) {
@@ -65,6 +76,13 @@ export default function CellarInvitation() {
       return;
     }
 
+    // Vérifier l'email avant d'accepter
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser && authUser.email !== invitation.invitee_email) {
+      toast.error('Votre compte ne correspond pas à l\'adresse email de cette invitation.');
+      return;
+    }
+
     setProcessing(true);
     try {
       // Ajouter à user_cellar
@@ -78,13 +96,13 @@ export default function CellarInvitation() {
 
       if (insertError) throw insertError;
 
-      // Mettre à jour le statut de l'invitation
-      const { error: updateError } = await supabase
+      // SUPPRIMER l'invitation (au lieu de UPDATE status)
+      const { error: deleteError } = await supabase
         .from('cellar_invitation')
-        .update({ status: 'accepted' })
+        .delete()
         .eq('id', invitation.id);
 
-      if (updateError) throw updateError;
+      if (deleteError) throw deleteError;
 
       toast.success('Vous avez rejoint la cave !');
       navigate(`/cellar/${invitation.cellar_id}`);
@@ -99,9 +117,10 @@ export default function CellarInvitation() {
   const handleReject = async () => {
     setProcessing(true);
     try {
+      // DELETE au lieu de UPDATE status
       const { error } = await supabase
         .from('cellar_invitation')
-        .update({ status: 'rejected' })
+        .delete()
         .eq('id', invitation.id);
 
       if (error) throw error;
@@ -150,6 +169,12 @@ export default function CellarInvitation() {
                   </strong>
                 </p>
               </div>
+            )}
+
+            {user && invitation && (
+              <p className="text-sm text-blue-600 bg-blue-50 p-3 rounded">
+                Cette invitation est destinée à <strong>{invitation.invitee_email}</strong>
+              </p>
             )}
 
             {!user && (
