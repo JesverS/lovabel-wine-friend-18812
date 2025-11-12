@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,33 @@ export default function CompleteProfile() {
     téléphone: '',
     logo_adress: '',
   });
+
+  // Charger les données existantes du profil au montage
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) return;
+      
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (profile) {
+        setFormData({
+          full_name: profile.full_name || '',
+          last_name: profile.last_name || '',
+          city: profile.city || '',
+          address: profile.address || '',
+          description: profile.description || '',
+          téléphone: profile.téléphone?.toString() || '',
+          logo_adress: profile.logo_adress || '',
+        });
+      }
+    };
+    
+    loadProfile();
+  }, [user]);
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
