@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
@@ -7,10 +7,23 @@ import { Footer } from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Store, MapPin, Phone, Mail, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Store, MapPin } from 'lucide-react';
 import { CellarCatalog } from '@/components/CellarCatalog';
 import { EditCellarDialog } from '@/components/EditCellarDialog';
 import { CellarMembers } from '@/components/CellarMembers';
+import { toast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Cellar {
   id: string;
@@ -26,9 +39,12 @@ interface Cellar {
 export default function CellarDetails() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [cellar, setCellar] = useState<Cellar | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<'owner' | 'co_owner' | 'admin' | null>(null);
+  const [deleteCellarDialogOpen, setDeleteCellarDialogOpen] = useState(false);
+  const [cellarNameConfirmation, setCellarNameConfirmation] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -61,6 +77,34 @@ export default function CellarDetails() {
     }
 
     setLoading(false);
+  };
+
+  const handleDeleteCellar = async () => {
+    if (!cellar) return;
+
+    try {
+      const { error } = await supabase
+        .from('cellar' as any)
+        .delete()
+        .eq('id', cellar.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Succès',
+        description: 'Cave supprimée',
+      });
+      navigate('/cellars');
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Erreur lors de la suppression',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteCellarDialogOpen(false);
+      setCellarNameConfirmation('');
+    }
   };
 
   if (loading) {
@@ -171,12 +215,70 @@ export default function CellarDetails() {
                 cellarName={cellar.name}
                 userRole={userRole}
               />
+
+              {userRole === 'owner' && (
+                <Card className="mt-8 border-destructive">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold text-destructive mb-2">Zone Danger</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      La suppression de cette cave est irréversible. Toutes les données associées seront définitivement perdues.
+                    </p>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setDeleteCellarDialogOpen(true)}
+                    >
+                      Supprimer la cave
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
         </Tabs>
       </main>
 
       <Footer />
+
+      <AlertDialog open={deleteCellarDialogOpen} onOpenChange={setDeleteCellarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer la cave</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>
+                Êtes-vous vraiment sûr de vouloir supprimer la cave <strong>{cellar?.name}</strong> ?
+              </p>
+              <p className="text-destructive font-medium">
+                Cette action est irréversible. Toutes les données associées seront définitivement perdues.
+              </p>
+              <div className="space-y-2">
+                <p className="text-sm">
+                  Pour confirmer, veuillez saisir le nom de la cave :
+                </p>
+                <p className="text-sm font-mono bg-muted p-2 rounded">
+                  {cellar?.name}
+                </p>
+                <Input
+                  value={cellarNameConfirmation}
+                  onChange={(e) => setCellarNameConfirmation(e.target.value)}
+                  placeholder="Nom de la cave"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCellarNameConfirmation('')}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCellar}
+              disabled={cellarNameConfirmation !== cellar?.name}
+              className="bg-destructive hover:bg-destructive/90 disabled:opacity-50"
+            >
+              Supprimer définitivement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

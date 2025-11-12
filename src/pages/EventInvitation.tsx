@@ -95,7 +95,7 @@ export default function EventInvitation() {
       if (error) throw error;
 
       toast.success('Vous avez rejoint l\'événement !');
-      navigate(`/events/${data.event_id}`);
+      navigate(`/event/${data.event_id}`);
     } catch (error: any) {
       console.error('Error accepting invitation:', error);
       toast.error(error.message);

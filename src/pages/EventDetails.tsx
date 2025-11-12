@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -91,6 +92,8 @@ const EventDetails = () => {
   const [userRole, setUserRole] = useState<'organizer' | 'co_organizer' | 'admin' | null>(null);
   const [canManageMembers, setCanManageMembers] = useState(false);
   const [canDeleteEvent, setCanDeleteEvent] = useState(false);
+  const [deleteEventDialogOpen, setDeleteEventDialogOpen] = useState(false);
+  const [eventNameConfirmation, setEventNameConfirmation] = useState('');
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -369,10 +372,6 @@ const EventDetails = () => {
   };
 
   const handleDeleteEvent = async () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('event')
@@ -392,6 +391,9 @@ const EventDetails = () => {
         description: error.message || 'Erreur lors de la suppression',
         variant: 'destructive',
       });
+    } finally {
+      setDeleteEventDialogOpen(false);
+      setEventNameConfirmation('');
     }
   };
 
@@ -440,19 +442,11 @@ const EventDetails = () => {
                 {event.name}
               </h1>
               {canEdit && (
-                <div className="w-full md:w-auto flex gap-2">
+                <div className="w-full md:w-auto">
                   <EditEventDialog 
                     eventId={id!} 
                     onEventUpdated={refetchData}
                   />
-                  {canDeleteEvent && (
-                    <Button
-                      variant="destructive"
-                      onClick={handleDeleteEvent}
-                    >
-                      Supprimer l'événement
-                    </Button>
-                  )}
                 </div>
               )}
             </div>
@@ -670,6 +664,23 @@ const EventDetails = () => {
                     userRole={userRole as 'organizer' | 'co_organizer' | 'admin'} 
                   />
                 )}
+
+                {canDeleteEvent && (
+                  <Card className="mt-8 border-destructive">
+                    <div className="p-6">
+                      <h3 className="text-lg font-semibold text-destructive mb-2">Zone Danger</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        La suppression de cet événement est irréversible. Toutes les données associées seront définitivement perdues.
+                      </p>
+                      <Button
+                        variant="destructive"
+                        onClick={() => setDeleteEventDialogOpen(true)}
+                      >
+                        Supprimer l'événement
+                      </Button>
+                    </div>
+                  </Card>
+                )}
               </TabsContent>
             </Tabs>
           </div>
@@ -712,6 +723,47 @@ const EventDetails = () => {
               className="bg-destructive hover:bg-destructive/90"
             >
               Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteEventDialogOpen} onOpenChange={setDeleteEventDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer l'événement</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>
+                Êtes-vous vraiment sûr de vouloir supprimer l'événement <strong>{event?.name}</strong> ?
+              </p>
+              <p className="text-destructive font-medium">
+                Cette action est irréversible. Toutes les données associées seront définitivement perdues.
+              </p>
+              <div className="space-y-2">
+                <p className="text-sm">
+                  Pour confirmer, veuillez saisir le nom de l'événement :
+                </p>
+                <p className="text-sm font-mono bg-muted p-2 rounded">
+                  {event?.name}
+                </p>
+                <Input
+                  value={eventNameConfirmation}
+                  onChange={(e) => setEventNameConfirmation(e.target.value)}
+                  placeholder="Nom de l'événement"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setEventNameConfirmation('')}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteEvent}
+              disabled={eventNameConfirmation !== event?.name}
+              className="bg-destructive hover:bg-destructive/90 disabled:opacity-50"
+            >
+              Supprimer définitivement
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
