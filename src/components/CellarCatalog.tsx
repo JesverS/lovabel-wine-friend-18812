@@ -40,12 +40,12 @@ interface WineData {
 
 interface CellarCatalogProps {
   cellarId: string;
-  isOwner: boolean;
+  userRole: 'owner' | 'co_owner' | 'admin' | null;
 }
 
 const DEFAULT_IMAGE = 'https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png';
 
-export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
+export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
   const [wines, setWines] = useState<WineData[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'all' | 'by-domain'>('all');
@@ -241,7 +241,7 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
 
   return (
     <div className="space-y-6">
-      {isOwner && (
+      {(userRole === 'owner' || userRole === 'co_owner' || userRole === 'admin') && (
         <div className="flex justify-end">
           <AddWineDialog cellarId={cellarId} onWineAdded={fetchWines} />
         </div>
@@ -396,7 +396,7 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
                   alt={wine.wine?.name}
                   className="w-full h-full object-cover"
                 />
-                {isOwner && (
+                {userRole && (
                   <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-background/80 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-xs sm:text-sm">
                     <span className="hidden sm:inline">Stock: </span>{wine.quantity || 0}
                   </div>
@@ -460,7 +460,7 @@ export function CellarCatalog({ cellarId, isOwner }: CellarCatalogProps) {
       {selectedWine && (
         <CellarWineDetailsDialog
           wineData={selectedWine}
-          isOwner={isOwner}
+          userRole={userRole}
           cellarId={cellarId}
           onClose={() => setSelectedWine(null)}
           onUpdated={() => {

@@ -12,10 +12,10 @@ import { InviteMemberDialog } from './InviteMemberDialog';
 interface CellarMembersProps {
   cellarId: string;
   cellarName: string;
-  isOwner: boolean;
+  userRole: 'owner' | 'co_owner' | 'admin' | null;
 }
 
-export function CellarMembers({ cellarId, cellarName, isOwner }: CellarMembersProps) {
+export function CellarMembers({ cellarId, cellarName, userRole }: CellarMembersProps) {
   const { user } = useAuth();
   const [members, setMembers] = useState<any[]>([]);
   const [invitations, setInvitations] = useState<any[]>([]);
@@ -55,8 +55,8 @@ export function CellarMembers({ cellarId, cellarName, isOwner }: CellarMembersPr
 
     setMembers(membs || []);
 
-    // Récupérer les invitations en attente (si owner)
-    if (isOwner) {
+    // Récupérer les invitations en attente (si owner ou co_owner)
+    if (userRole === 'owner' || userRole === 'co_owner') {
       const { data: invites } = await supabase
         .from('cellar_invitation')
         .select('*')
@@ -126,7 +126,7 @@ export function CellarMembers({ cellarId, cellarName, isOwner }: CellarMembersPr
       <Card>
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <CardTitle>Membres de la cave</CardTitle>
-          {isOwner && (
+          {(userRole === 'owner' || userRole === 'co_owner') && (
             <InviteMemberDialog 
               cellarId={cellarId} 
               cellarName={cellarName}
@@ -152,7 +152,7 @@ export function CellarMembers({ cellarId, cellarName, isOwner }: CellarMembersPr
                   </Badge>
                 </div>
               </div>
-              {isOwner && member.user_id !== user?.id && (
+              {userRole === 'owner' && member.user_id !== user?.id && (
                 <Button 
                   size="sm" 
                   variant="outline" 
@@ -166,7 +166,7 @@ export function CellarMembers({ cellarId, cellarName, isOwner }: CellarMembersPr
         </CardContent>
       </Card>
 
-      {isOwner && invitations.length > 0 && (
+      {(userRole === 'owner' || userRole === 'co_owner') && invitations.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Invitations en attente</CardTitle>

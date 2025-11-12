@@ -28,7 +28,7 @@ export default function CellarDetails() {
   const { user } = useAuth();
   const [cellar, setCellar] = useState<Cellar | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
+  const [userRole, setUserRole] = useState<'owner' | 'co_owner' | 'admin' | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -48,17 +48,16 @@ export default function CellarDetails() {
 
     setCellar(cellarData as any);
 
-    // Check if user is owner
+    // Get user's role in this cellar
     if (user && cellarData) {
-      const { data: ownership } = await supabase
+      const { data: membership } = await supabase
         .from('user_cellar' as any)
         .select('role')
         .eq('user_id', user.id)
         .eq('user_cellar_id', (cellarData as any).id)
-        .eq('role', 'owner')
-        .single();
+        .maybeSingle();
 
-      setIsOwner(!!ownership);
+      setUserRole((membership as any)?.role || null);
     }
 
     setLoading(false);
@@ -115,7 +114,7 @@ export default function CellarDetails() {
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-2">
               <h1 className="text-2xl md:text-4xl font-bold break-words flex-1 min-w-0">{cellar.name}</h1>
-              {isOwner && (
+              {userRole === 'owner' && (
                 <EditCellarDialog cellar={cellar} onCellarUpdated={fetchCellarData} />
               )}
             </div>
@@ -139,7 +138,7 @@ export default function CellarDetails() {
           </TabsList>
 
           <TabsContent value="catalog" className="mt-6">
-            <CellarCatalog cellarId={cellar.id} isOwner={isOwner} />
+            <CellarCatalog cellarId={cellar.id} userRole={userRole} />
           </TabsContent>
 
           <TabsContent value="about" className="mt-6">
@@ -170,7 +169,7 @@ export default function CellarDetails() {
               <CellarMembers 
                 cellarId={cellar.id} 
                 cellarName={cellar.name}
-                isOwner={isOwner}
+                userRole={userRole}
               />
             </div>
           </TabsContent>

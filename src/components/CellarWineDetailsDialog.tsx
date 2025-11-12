@@ -80,7 +80,7 @@ interface WineData {
 
 interface CellarWineDetailsDialogProps {
   wineData: WineData;
-  isOwner: boolean;
+  userRole: 'owner' | 'co_owner' | 'admin' | null;
   cellarId: string;
   onClose: () => void;
   onUpdated: () => void;
@@ -109,7 +109,7 @@ const COMMENTS_PER_PAGE = 8;
 
 export function CellarWineDetailsDialog({
   wineData,
-  isOwner,
+  userRole,
   cellarId,
   onClose,
   onUpdated,
@@ -217,7 +217,7 @@ export function CellarWineDetailsDialog({
       await fetchComments(0);
 
       // Initialize edit values
-      if (isOwner) {
+      if (userRole === 'owner' || userRole === 'co_owner' || userRole === 'admin') {
         setEditedDescription(wineData.description || wineData.wine.description || '');
         setEditedQuantity(wineData.quantity || 0);
         setEditedPrice(wineData.price);
@@ -225,7 +225,7 @@ export function CellarWineDetailsDialog({
     };
 
     fetchData();
-  }, [user, wineData.wine_id, isOwner]);
+  }, [user, wineData.wine_id, userRole]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -751,7 +751,7 @@ export function CellarWineDetailsDialog({
   };
 
   const handleSaveEdits = async () => {
-    if (!user || !isOwner) return;
+    if (!user || !(userRole === 'owner' || userRole === 'co_owner' || userRole === 'admin')) return;
     
     setLoading(true);
 
@@ -868,7 +868,7 @@ export function CellarWineDetailsDialog({
             )}
 
             {/* Owner Edit Mode */}
-            {isOwner && isEditing && (
+            {(userRole === 'owner' || userRole === 'co_owner' || userRole === 'admin') && isEditing && (
               <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                 <div>
                   <Label>Description personnalisée</Label>
@@ -936,7 +936,7 @@ export function CellarWineDetailsDialog({
             )}
 
             {/* Actions du propriétaire */}
-            {isOwner && (
+            {(userRole === 'owner' || userRole === 'co_owner' || userRole === 'admin') && (
               <Button
                 variant={isEditing ? 'secondary' : 'outline'}
                 onClick={() => setIsEditing(!isEditing)}
@@ -1224,7 +1224,7 @@ export function CellarWineDetailsDialog({
         </div>
 
         {/* Owner Delete Button */}
-        {isOwner && (
+        {(userRole === 'owner' || userRole === 'co_owner' || userRole === 'admin') && (
           <div className="border-t pt-4 mt-6 px-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>

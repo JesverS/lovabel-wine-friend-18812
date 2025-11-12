@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 const inviteSchema = z.object({
   email: z.string().email('Email invalide'),
-  role: z.enum(['admin', 'co_owner', 'owner']),
+  role: z.enum(['admin', 'co_owner']),
 });
 
 interface InviteMemberDialogProps {
@@ -24,7 +24,7 @@ interface InviteMemberDialogProps {
 export function InviteMemberDialog({ cellarId, cellarName, inviterName, onInvitationSent }: InviteMemberDialogProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'admin' | 'co_owner' | 'owner'>('admin');
+  const [role, setRole] = useState<'admin' | 'co_owner'>('admin');
   const [loading, setLoading] = useState(false);
 
   const handleInvite = async () => {
@@ -90,22 +90,19 @@ export function InviteMemberDialog({ cellarId, cellarName, inviterName, onInvita
           
           <div className="space-y-2">
             <Label htmlFor="role">Rôle</Label>
-            <Select value={role} onValueChange={(val) => setRole(val as 'admin' | 'co_owner' | 'owner')}>
+            <Select value={role} onValueChange={(val) => setRole(val as 'admin' | 'co_owner')}>
               <SelectTrigger id="role">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Administrateur</SelectItem>
                 <SelectItem value="co_owner">Copropriétaire</SelectItem>
-                <SelectItem value="owner">Propriétaire</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground">
               {role === 'admin' 
                 ? 'Peut gérer les vins et les stocks' 
-                : role === 'co_owner'
-                ? 'Peut tout gérer, sauf supprimer la cave'
-                : 'Peut tout gérer, y compris supprimer la cave'}
+                : 'Peut inviter des membres et gérer les vins'}
             </p>
           </div>
         </div>
