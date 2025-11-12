@@ -94,6 +94,7 @@ const EventDetails = () => {
   const [canDeleteEvent, setCanDeleteEvent] = useState(false);
   const [deleteEventDialogOpen, setDeleteEventDialogOpen] = useState(false);
   const [eventNameConfirmation, setEventNameConfirmation] = useState('');
+  const [leaveEventDialogOpen, setLeaveEventDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -397,6 +398,34 @@ const EventDetails = () => {
     }
   };
 
+  const handleLeaveEvent = async () => {
+    if (!user || !id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_event')
+        .delete()
+        .eq('event_id', id)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Succès',
+        description: 'Vous avez quitté l\'équipe organisatrice',
+      });
+      navigate('/events');
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de quitter l\'équipe',
+        variant: 'destructive',
+      });
+    } finally {
+      setLeaveEventDialogOpen(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -658,11 +687,26 @@ const EventDetails = () => {
                     />
                   </div>
                 )}
-                {userRole && (
-                  <EventAdministration 
-                    eventId={id!} 
-                    userRole={userRole as 'organizer' | 'co_organizer' | 'admin'} 
-                  />
+                <EventAdministration 
+                  eventId={id!} 
+                  userRole={userRole || null} 
+                />
+
+                {(userRole === 'co_organizer' || userRole === 'admin') && (
+                  <Card className="mt-8 border-destructive">
+                    <div className="p-6">
+                      <h3 className="text-lg font-semibold text-destructive mb-2">Zone Danger</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Quitter l'équipe organisatrice est irréversible. Vous perdrez tous vos droits d'administration.
+                      </p>
+                      <Button
+                        variant="destructive"
+                        onClick={() => setLeaveEventDialogOpen(true)}
+                      >
+                        Quitter l'équipe organisatrice
+                      </Button>
+                    </div>
+                  </Card>
                 )}
 
                 {canDeleteEvent && (
@@ -764,6 +808,28 @@ const EventDetails = () => {
               className="bg-destructive hover:bg-destructive/90 disabled:opacity-50"
             >
               Supprimer définitivement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={leaveEventDialogOpen} onOpenChange={setLeaveEventDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitter l'équipe organisatrice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir quitter l'équipe organisatrice de <strong>{event?.name}</strong> ?
+              <br /><br />
+              Cette action est irréversible. Vous perdrez tous vos droits d'administration et ne pourrez plus gérer cet événement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLeaveEvent}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Quitter l'équipe
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -20,7 +20,7 @@ import {
 
 interface EventAdministrationProps {
   eventId: string;
-  userRole: 'organizer' | 'co_organizer' | 'admin';
+  userRole: 'organizer' | 'co_organizer' | 'admin' | null;
 }
 
 interface Member {
@@ -48,6 +48,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
   const [deletingItem, setDeletingItem] = useState<{ type: 'member' | 'invitation', id: string, name: string } | null>(null);
 
   const canManageMembers = userRole === 'organizer' || userRole === 'co_organizer';
+  const isReadOnly = userRole === null;
 
   useEffect(() => {
     fetchData();
@@ -215,7 +216,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                   </Badge>
                 </div>
               </div>
-              {canDeleteMember(member.role, member.user_id) && (
+              {!isReadOnly && canDeleteMember(member.role, member.user_id) && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -236,7 +237,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       </Card>
 
       {/* Invitations en attente */}
-      {canManageMembers && invitations.length > 0 && (
+      {!isReadOnly && canManageMembers && invitations.length > 0 && (
         <Card className="p-6">
           <h3 className="text-xl font-semibold mb-4">Invitations en attente</h3>
           <div className="space-y-2">

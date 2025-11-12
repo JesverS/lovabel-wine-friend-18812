@@ -45,6 +45,7 @@ export default function CellarDetails() {
   const [userRole, setUserRole] = useState<'owner' | 'co_owner' | 'admin' | null>(null);
   const [deleteCellarDialogOpen, setDeleteCellarDialogOpen] = useState(false);
   const [cellarNameConfirmation, setCellarNameConfirmation] = useState('');
+  const [leaveCellarDialogOpen, setLeaveCellarDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -104,6 +105,34 @@ export default function CellarDetails() {
     } finally {
       setDeleteCellarDialogOpen(false);
       setCellarNameConfirmation('');
+    }
+  };
+
+  const handleLeaveCellar = async () => {
+    if (!user || !id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_cellar' as any)
+        .delete()
+        .eq('user_cellar_id', id)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Succès',
+        description: 'Vous avez quitté la cave',
+      });
+      navigate('/cellars');
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de quitter la cave',
+        variant: 'destructive',
+      });
+    } finally {
+      setLeaveCellarDialogOpen(false);
     }
   };
 
@@ -216,6 +245,23 @@ export default function CellarDetails() {
                 userRole={userRole}
               />
 
+              {(userRole === 'co_owner' || userRole === 'admin') && (
+                <Card className="mt-8 border-destructive">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold text-destructive mb-2">Quitter la cave</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Quitter cette cave est irréversible. Vous perdrez tous vos droits d'accès et ne pourrez plus gérer son contenu.
+                    </p>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setLeaveCellarDialogOpen(true)}
+                    >
+                      Quitter la cave
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               {userRole === 'owner' && (
                 <Card className="mt-8 border-destructive">
                   <CardContent className="p-6">
@@ -275,6 +321,28 @@ export default function CellarDetails() {
               className="bg-destructive hover:bg-destructive/90 disabled:opacity-50"
             >
               Supprimer définitivement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={leaveCellarDialogOpen} onOpenChange={setLeaveCellarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitter la cave</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir quitter la cave <strong>{cellar?.name}</strong> ?
+              <br /><br />
+              Cette action est irréversible. Vous perdrez tous vos droits d'accès et ne pourrez plus consulter ou gérer cette cave.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLeaveCellar}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Quitter la cave
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
