@@ -209,7 +209,7 @@ export default function CellarInvitation() {
                 className="flex-1 w-full md:w-auto"
                 variant="outline"
                 onClick={handleReject}
-                disabled={processing}
+                disabled={processing || !user || !emailMatches}
               >
                 <X className="w-4 h-4 mr-2" />
                 Refuser
