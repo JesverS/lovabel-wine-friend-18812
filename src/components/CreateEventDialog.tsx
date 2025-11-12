@@ -122,7 +122,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
         .insert({
           user_id: user.id,
           event_id: eventData.id,
-          role: 'admin',
+          role: 'organizer',
         });
 
       if (userEventError) throw userEventError;

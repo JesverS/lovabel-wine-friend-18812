@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,10 @@ import { WineDetailsDialog } from "@/components/WineDetailsDialog";
 import { AddDomainToEventDialog } from "@/components/AddDomainToEventDialog";
 import { AddWineToEventDialog } from "@/components/AddWineToEventDialog";
 import { EditEventDialog } from "@/components/EditEventDialog";
+import { InviteMemberToEventDialog } from "@/components/InviteMemberToEventDialog";
+import { EventAdministration } from "@/components/EventAdministration";
 import { toast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Collapsible,
   CollapsibleContent,
@@ -76,6 +79,7 @@ interface DomainWithWines {
 const EventDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [domainsWithWines, setDomainsWithWines] = useState<DomainWithWines[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +88,9 @@ const EventDetails = () => {
   const [canEdit, setCanEdit] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ type: 'domain' | 'wine', id: string, domainId?: string, name: string } | null>(null);
+  const [userRole, setUserRole] = useState<'organizer' | 'co_organizer' | 'admin' | null>(null);
+  const [canManageMembers, setCanManageMembers] = useState(false);
+  const [canDeleteEvent, setCanDeleteEvent] = useState(false);
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -105,18 +112,24 @@ const EventDetails = () => {
 
       setEvent(eventData);
 
-      // Check if user can edit (is organizer or participant)
+      // Check if user can edit and get their role
       if (user) {
-        const isOrganizer = eventData.organizer_id === user.id;
-        
-        const { data: participantData } = await supabase
+        const { data: userEventData } = await supabase
           .from("user_event")
-          .select("*")
+          .select("role")
           .eq("event_id", id)
           .eq("user_id", user.id)
           .single();
 
-        setCanEdit(isOrganizer || !!participantData);
+        const role = userEventData?.role;
+        const canManageContent = role && ['organizer', 'co_organizer', 'admin'].includes(role);
+        const canManageMembers = role && ['organizer', 'co_organizer'].includes(role);
+        const canDeleteEvent = role === 'organizer';
+
+        setCanEdit(canManageContent);
+        setUserRole(role);
+        setCanManageMembers(canManageMembers);
+        setCanDeleteEvent(canDeleteEvent);
       }
 
       // Fetch domains
@@ -355,6 +368,33 @@ const EventDetails = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleDeleteEvent = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('event')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Succès',
+        description: 'Événement supprimé',
+      });
+      navigate('/events');
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Erreur lors de la suppression',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -400,11 +440,19 @@ const EventDetails = () => {
                 {event.name}
               </h1>
               {canEdit && (
-                <div className="w-full md:w-auto">
+                <div className="w-full md:w-auto flex gap-2">
                   <EditEventDialog 
                     eventId={id!} 
                     onEventUpdated={refetchData}
                   />
+                  {canDeleteEvent && (
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteEvent}
+                    >
+                      Supprimer l'événement
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -442,6 +490,47 @@ const EventDetails = () => {
                 </a>
               </Button>
             )}
+
+            {/* Section À propos */}
+            <div className="mb-12">
+              <h2 className="text-3xl font-serif font-bold mb-6">À propos</h2>
+              <Tabs defaultValue="presentation">
+                <TabsList>
+                  <TabsTrigger value="presentation">Présentation</TabsTrigger>
+                  <TabsTrigger value="organisateurs">Organisateurs</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="presentation" className="mt-6">
+                  {event.description && (
+                    <div className="prose max-w-none">
+                      <p className="text-lg">{event.description}</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="organisateurs" className="mt-6">
+                  {canManageMembers && userRole && (
+                    <div className="mb-6">
+                      <InviteMemberToEventDialog
+                        eventId={id!}
+                        eventName={event.name}
+                        inviterName={user?.email || 'Organisateur'}
+                        userRole={userRole as 'organizer' | 'co_organizer'}
+                        onInvitationSent={() => {
+                          // Optionnel : refresh
+                        }}
+                      />
+                    </div>
+                  )}
+                  {userRole && (
+                    <EventAdministration 
+                      eventId={id!} 
+                      userRole={userRole as 'organizer' | 'co_organizer' | 'admin'} 
+                    />
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
 
             <div className="space-y-6">
               <div className="flex items-center justify-between mb-6">

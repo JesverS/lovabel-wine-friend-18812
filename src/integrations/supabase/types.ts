@@ -415,6 +415,60 @@ export type Database = {
           },
         ]
       }
+      event_invitation: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          expires_at: string | null
+          id: string
+          invitee_email: string
+          invitee_user_id: string | null
+          inviter_id: string
+          role: Database["public"]["Enums"]["event_role"]
+          status: string
+          token: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          expires_at?: string | null
+          id?: string
+          invitee_email: string
+          invitee_user_id?: string | null
+          inviter_id: string
+          role?: Database["public"]["Enums"]["event_role"]
+          status?: string
+          token: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          expires_at?: string | null
+          id?: string
+          invitee_email?: string
+          invitee_user_id?: string | null
+          inviter_id?: string
+          role?: Database["public"]["Enums"]["event_role"]
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_invitation_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_invitation_invitee_user_id_fkey"
+            columns: ["invitee_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_question: {
         Row: {
           created_at: string
@@ -723,19 +777,19 @@ export type Database = {
         Row: {
           created_at: string
           event_id: string
-          role: string
+          role: Database["public"]["Enums"]["event_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           event_id: string
-          role?: string
+          role?: Database["public"]["Enums"]["event_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           event_id?: string
-          role?: string
+          role?: Database["public"]["Enums"]["event_role"]
           user_id?: string
         }
         Relationships: [
@@ -1214,6 +1268,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_event_invitations: { Args: never; Returns: undefined }
       cleanup_expired_invitations: { Args: never; Returns: undefined }
       create_cellar_with_owner: {
         Args: {
@@ -1335,6 +1390,7 @@ export type Database = {
         | "Sud-Ouest"
         | "Corse"
         | "Provence"
+      event_role: "organizer" | "co_organizer" | "admin"
       wine_type_enum:
         | "champagne"
         | "crémant"
@@ -1486,6 +1542,7 @@ export const Constants = {
         "Corse",
         "Provence",
       ],
+      event_role: ["organizer", "co_organizer", "admin"],
       wine_type_enum: [
         "champagne",
         "crémant",

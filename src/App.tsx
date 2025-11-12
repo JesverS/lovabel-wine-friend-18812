@@ -24,6 +24,7 @@ import LessonDetails from "./pages/LessonDetails";
 import GameMultiplayer from "./pages/GameMultiplayer";
 import GamePlay from "./pages/GamePlay";
 import CellarInvitation from "./pages/CellarInvitation";
+import EventInvitation from "./pages/EventInvitation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/game" element={<GameMultiplayer />} />
             <Route path="/game/play" element={<GamePlay />} />
             <Route path="/cellar-invitation/:token" element={<CellarInvitation />} />
+            <Route path="/event-invitation/:token" element={<EventInvitation />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
