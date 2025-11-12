@@ -104,6 +104,20 @@ export type Database = {
             referencedRelation: "cellar"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cellar_invitation_invitee_user_id_fkey"
+            columns: ["invitee_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cellar_invitation_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cellar_wine: {
@@ -1227,6 +1241,7 @@ export type Database = {
           user_profiles: Json
         }[]
       }
+      get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_role: { Args: never; Returns: string }
       has_role: {
         Args: {
