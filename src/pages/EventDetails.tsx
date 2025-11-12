@@ -457,231 +457,221 @@ const EventDetails = () => {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-4 mb-6 text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                <span>
-                  {format(new Date(event.start_date), "PPP", { locale: fr })}
-                  {event.end_date &&
-                    ` - ${format(new Date(event.end_date), "PPP", { locale: fr })}`}
-                </span>
-              </div>
-              {(event.city || event.location) && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  <span>{event.city || event.location}</span>
+            <Tabs defaultValue="presentation" className="mt-8">
+              <TabsList className="mb-6">
+                <TabsTrigger value="presentation">Présentation</TabsTrigger>
+                <TabsTrigger value="organisateurs">Organisateurs</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="presentation" className="space-y-8">
+                <div className="flex flex-wrap gap-4 text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <span>
+                      {format(new Date(event.start_date), "PPP", { locale: fr })}
+                      {event.end_date &&
+                        ` - ${format(new Date(event.end_date), "PPP", { locale: fr })}`}
+                    </span>
+                  </div>
+                  {(event.city || event.location) && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      <span>{event.city || event.location}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {event.address && (
-              <p className="text-muted-foreground mb-6">{event.address}</p>
-            )}
+                {event.address && (
+                  <p className="text-muted-foreground">{event.address}</p>
+                )}
 
-            {event.description && (
-              <p className="text-lg mb-8">{event.description}</p>
-            )}
+                {event.description && (
+                  <p className="text-lg">{event.description}</p>
+                )}
 
-            {event.registration_link && (
-              <Button asChild className="mb-12">
-                <a href={event.registration_link} target="_blank" rel="noopener noreferrer">
-                  S'inscrire à l'événement
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
-            )}
+                {event.registration_link && (
+                  <Button asChild>
+                    <a href={event.registration_link} target="_blank" rel="noopener noreferrer">
+                      S'inscrire à l'événement
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
 
-            {/* Section À propos */}
-            <div className="mb-12">
-              <h2 className="text-3xl font-serif font-bold mb-6">À propos</h2>
-              <Tabs defaultValue="presentation">
-                <TabsList>
-                  <TabsTrigger value="presentation">Présentation</TabsTrigger>
-                  <TabsTrigger value="organisateurs">Organisateurs</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="presentation" className="mt-6">
-                  {event.description && (
-                    <div className="prose max-w-none">
-                      <p className="text-lg">{event.description}</p>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="organisateurs" className="mt-6">
-                  {canManageMembers && userRole && (
-                    <div className="mb-6">
-                      <InviteMemberToEventDialog
-                        eventId={id!}
-                        eventName={event.name}
-                        inviterName={user?.email || 'Organisateur'}
-                        userRole={userRole as 'organizer' | 'co_organizer'}
-                        onInvitationSent={() => {
-                          // Optionnel : refresh
-                        }}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-3xl font-serif font-bold">
+                      Domaines présents
+                    </h2>
+                    {canEdit && (
+                      <AddDomainToEventDialog 
+                        eventId={id!} 
+                        onDomainAdded={refetchData}
                       />
-                    </div>
-                  )}
-                  {userRole && (
-                    <EventAdministration 
-                      eventId={id!} 
-                      userRole={userRole as 'organizer' | 'co_organizer' | 'admin'} 
-                    />
-                  )}
-                </TabsContent>
-              </Tabs>
-            </div>
+                    )}
+                  </div>
 
-            <div className="space-y-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-serif font-bold">
-                  Domaines présents
-                </h2>
-                {canEdit && (
-                  <AddDomainToEventDialog 
+                  {domainsWithWines.length === 0 ? (
+                    <Card className="p-8 text-center">
+                      <p className="text-muted-foreground">
+                        Aucun domaine n'a été ajouté à cet événement
+                      </p>
+                    </Card>
+                  ) : (
+                    domainsWithWines.map(({ domain, wines }) => (
+                    <Card key={domain.id} className="p-4 md:p-6 overflow-hidden">
+                      <div className="space-y-4">
+                        <Collapsible
+                          open={openDomains[domain.id]}
+                          onOpenChange={() => toggleDomain(domain.id)}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <CollapsibleTrigger className="flex-1 min-w-0 text-left flex items-center gap-3">
+                              {domain.logo_url && (
+                                <img
+                                  src={domain.logo_url}
+                                  alt={domain.name}
+                                  className="w-12 h-12 object-cover rounded flex-shrink-0"
+                                />
+                              )}
+                              <h3 className="text-xl md:text-2xl font-serif font-bold break-words flex-1">
+                                {domain.name}
+                              </h3>
+                              {openDomains[domain.id] ? (
+                                <ChevronUp className="h-5 w-5 flex-shrink-0" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5 flex-shrink-0" />
+                              )}
+                            </CollapsibleTrigger>
+                            
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDeleteDialog('domain', domain.id, domain.name);
+                                }}
+                                className="flex-shrink-0"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                          
+                          <div className="mt-3 pt-3 border-t">
+                            <Link to={`/domain/${domain.id}`}>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="w-full md:w-auto"
+                              >
+                                Voir le domaine
+                                <ExternalLink className="ml-2 h-3 w-3" />
+                              </Button>
+                            </Link>
+                          </div>
+
+                          <CollapsibleContent className="mt-6 space-y-4">
+                            {canEdit && (
+                              <div className="flex justify-end">
+                                <AddWineToEventDialog
+                                  eventId={id!}
+                                  domainId={domain.id}
+                                  domainName={domain.name}
+                                  onWineAdded={refetchData}
+                                />
+                              </div>
+                            )}
+                            
+                            {wines.length === 0 ? (
+                              <p className="text-center text-muted-foreground py-4">
+                                Aucun vin ajouté pour ce domaine
+                              </p>
+                            ) : (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {wines.map((wine) => (
+                                  <Card
+                                    key={wine.id}
+                                    className="p-4 cursor-pointer hover:shadow-lg transition-shadow relative group"
+                                    onClick={() => setSelectedWine(wine)}
+                                  >
+                                    {canEdit && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openDeleteDialog('wine', wine.id, wine.name, domain.id);
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    )}
+                                    {wine.label_url && (
+                                      <img
+                                        src={wine.label_url}
+                                        alt={wine.name}
+                                        className="w-full h-48 object-contain mb-3"
+                                      />
+                                    )}
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="font-semibold">{wine.name}</h4>
+                                        {wine.year && (
+                                          <span className="text-sm text-muted-foreground">{wine.year}</span>
+                                        )}
+                                      </div>
+                                      {(wine.wine_type?.type || wine.wine_classification_data?.nom) && (
+                                        <p className="text-sm text-muted-foreground">
+                                          {wine.wine_type?.type && (
+                                            <span className="capitalize">{wine.wine_type.type}</span>
+                                          )}
+                                          {wine.wine_type?.type && wine.wine_classification_data?.nom && (
+                                            <span> - </span>
+                                          )}
+                                          {wine.wine_classification_data?.nom && (
+                                            <span>{wine.wine_classification_data.nom}</span>
+                                          )}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </Card>
+                                ))}
+                              </div>
+                            )}
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="organisateurs" className="mt-6">
+                {canManageMembers && userRole && (
+                  <div className="mb-6">
+                    <InviteMemberToEventDialog
+                      eventId={id!}
+                      eventName={event.name}
+                      inviterName={user?.email || 'Organisateur'}
+                      userRole={userRole as 'organizer' | 'co_organizer'}
+                      onInvitationSent={() => {
+                        // Optionnel : refresh
+                      }}
+                    />
+                  </div>
+                )}
+                {userRole && (
+                  <EventAdministration 
                     eventId={id!} 
-                    onDomainAdded={refetchData}
+                    userRole={userRole as 'organizer' | 'co_organizer' | 'admin'} 
                   />
                 )}
-              </div>
-
-              {domainsWithWines.length === 0 ? (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">
-                    Aucun domaine n'a été ajouté à cet événement
-                  </p>
-                </Card>
-              ) : (
-                domainsWithWines.map(({ domain, wines }) => (
-                <Card key={domain.id} className="p-4 md:p-6 overflow-hidden">
-                  <div className="space-y-4">
-                    <Collapsible
-                      open={openDomains[domain.id]}
-                      onOpenChange={() => toggleDomain(domain.id)}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <CollapsibleTrigger className="flex-1 min-w-0 text-left flex items-center gap-3">
-                          {domain.logo_url && (
-                            <img
-                              src={domain.logo_url}
-                              alt={domain.name}
-                              className="w-12 h-12 object-cover rounded flex-shrink-0"
-                            />
-                          )}
-                          <h3 className="text-xl md:text-2xl font-serif font-bold break-words flex-1">
-                            {domain.name}
-                          </h3>
-                          {openDomains[domain.id] ? (
-                            <ChevronUp className="h-5 w-5 flex-shrink-0" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 flex-shrink-0" />
-                          )}
-                        </CollapsibleTrigger>
-                        
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openDeleteDialog('domain', domain.id, domain.name);
-                            }}
-                            className="flex-shrink-0"
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <div className="mt-3 pt-3 border-t">
-                        <Link to={`/domain/${domain.id}`}>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="w-full md:w-auto"
-                          >
-                            Voir le domaine
-                            <ExternalLink className="ml-2 h-3 w-3" />
-                          </Button>
-                        </Link>
-                      </div>
-
-                      <CollapsibleContent className="mt-6 space-y-4">
-                        {canEdit && (
-                          <div className="flex justify-end">
-                            <AddWineToEventDialog
-                              eventId={id!}
-                              domainId={domain.id}
-                              domainName={domain.name}
-                              onWineAdded={refetchData}
-                            />
-                          </div>
-                        )}
-                        
-                        {wines.length === 0 ? (
-                          <p className="text-center text-muted-foreground py-4">
-                            Aucun vin ajouté pour ce domaine
-                          </p>
-                        ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {wines.map((wine) => (
-                              <Card
-                                key={wine.id}
-                                className="p-4 cursor-pointer hover:shadow-lg transition-shadow relative group"
-                                onClick={() => setSelectedWine(wine)}
-                              >
-                                {canEdit && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openDeleteDialog('wine', wine.id, wine.name, domain.id);
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                )}
-                                {wine.label_url && (
-                                  <img
-                                    src={wine.label_url}
-                                    alt={wine.name}
-                                    className="w-full h-48 object-contain mb-3"
-                                  />
-                                )}
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-semibold">{wine.name}</h4>
-                                    {wine.year && (
-                                      <span className="text-sm text-muted-foreground">{wine.year}</span>
-                                    )}
-                                  </div>
-                                  {(wine.wine_type?.type || wine.wine_classification_data?.nom) && (
-                                    <p className="text-sm text-muted-foreground">
-                                      {wine.wine_type?.type && (
-                                        <span className="capitalize">{wine.wine_type.type}</span>
-                                      )}
-                                      {wine.wine_type?.type && wine.wine_classification_data?.nom && (
-                                        <span> - </span>
-                                      )}
-                                      {wine.wine_classification_data?.nom && (
-                                        <span>{wine.wine_classification_data.nom}</span>
-                                      )}
-                                    </p>
-                                  )}
-                                </div>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                </Card>
-                ))
-              )}
-            </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </section>
       </main>
