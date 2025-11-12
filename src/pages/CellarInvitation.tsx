@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,14 +17,17 @@ export default function CellarInvitation() {
   const [cellar, setCellar] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const hasCheckedEmail = useRef(false);
 
   useEffect(() => {
     if (token) {
       fetchInvitation();
     }
-  }, [token, user]);
+  }, [token]);
 
   const fetchInvitation = async () => {
+    if (hasCheckedEmail.current) return;
+    
     setLoading(true);
     try {
       const { data: inv, error } = await supabase
@@ -35,14 +38,20 @@ export default function CellarInvitation() {
         .single();
 
       if (error || !inv) {
-        toast.error('Invitation introuvable ou expirée');
+        hasCheckedEmail.current = true;
+        toast.error('Invitation introuvable ou expirée', {
+          duration: 8000,
+        });
         navigate('/');
         return;
       }
 
       // Vérifier si expirée
       if (new Date(inv.expires_at) < new Date()) {
-        toast.error('Cette invitation a expiré');
+        hasCheckedEmail.current = true;
+        toast.error('Cette invitation a expiré', {
+          duration: 8000,
+        });
         navigate('/');
         return;
       }
@@ -52,12 +61,16 @@ export default function CellarInvitation() {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         
         if (authUser && authUser.email !== inv.invitee_email) {
-          toast.error('Votre compte ne correspond pas à l\'adresse email de cette invitation.');
+          hasCheckedEmail.current = true;
+          toast.error('Votre compte ne correspond pas à l\'adresse email de cette invitation.', {
+            duration: 10000,
+          });
           navigate('/');
           return;
         }
       }
 
+      hasCheckedEmail.current = true;
       setInvitation(inv);
       setCellar(inv.cellar);
     } catch (error: any) {
@@ -79,7 +92,9 @@ export default function CellarInvitation() {
     // Vérifier l'email avant d'accepter
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (authUser && authUser.email !== invitation.invitee_email) {
-      toast.error('Votre compte ne correspond pas à l\'adresse email de cette invitation.');
+      toast.error('Votre compte ne correspond pas à l\'adresse email de cette invitation.', {
+        duration: 10000,
+      });
       return;
     }
 
