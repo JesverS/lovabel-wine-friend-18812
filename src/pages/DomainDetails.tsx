@@ -5,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { WineCard } from '@/components/WineCard';
 import { Store, MapPin, Globe, Phone, Mail, ArrowLeft } from 'lucide-react';
@@ -167,12 +166,19 @@ export default function DomainDetails() {
         <Card className="mb-8">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row gap-6 items-start">
-              <Avatar className="w-32 h-32">
-                <AvatarImage src={domain.logo_url || undefined} />
-                <AvatarFallback>
-                  <Store className="w-16 h-16" />
-                </AvatarFallback>
-              </Avatar>
+              <div className="h-32 w-auto max-w-[180px] flex items-center justify-center flex-shrink-0">
+                {domain.logo_url ? (
+                  <img 
+                    src={domain.logo_url} 
+                    alt={domain.name}
+                    className="h-full w-auto object-contain"
+                  />
+                ) : (
+                  <div className="h-32 w-32 bg-muted rounded flex items-center justify-center">
+                    <Store className="w-16 h-16" />
+                  </div>
+                )}
+              </div>
 
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-4">
