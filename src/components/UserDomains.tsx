@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
 import { Store } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -82,12 +82,19 @@ export function UserDomains() {
               <Card key={app.domain.id} className="border-yellow-500/50">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={app.domain.logo_url || undefined} />
-                      <AvatarFallback>
-                        <Store className="w-6 h-6" />
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="h-12 w-auto max-w-[80px] flex items-center justify-center flex-shrink-0">
+                      {app.domain.logo_url ? (
+                        <img 
+                          src={app.domain.logo_url} 
+                          alt={app.domain.name}
+                          className="h-full w-auto object-contain"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 bg-muted rounded flex items-center justify-center">
+                          <Store className="w-6 h-6" />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold truncate">{app.domain.name}</h4>
                       <p className="text-sm text-muted-foreground">
@@ -122,12 +129,19 @@ export function UserDomains() {
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src={domain.logo_url || undefined} />
-                    <AvatarFallback>
-                      <Store className="w-8 h-8" />
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="h-16 w-auto max-w-[100px] flex items-center justify-center flex-shrink-0">
+                    {domain.logo_url ? (
+                      <img 
+                        src={domain.logo_url} 
+                        alt={domain.name}
+                        className="h-full w-auto object-contain"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 bg-muted rounded flex items-center justify-center">
+                        <Store className="w-8 h-8" />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="font-semibold text-lg truncate">{domain.name}</h3>
