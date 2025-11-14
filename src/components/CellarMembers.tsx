@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { UserCircle, Trash2 } from 'lucide-react';
 import { InviteMemberDialog } from './InviteMemberDialog';
+import { Link } from 'react-router-dom';
 
 interface CellarMembersProps {
   cellarId: string;
@@ -145,12 +146,16 @@ export function CellarMembers({ cellarId, cellarName, userRole }: CellarMembersP
                     <UserCircle className="w-6 h-6" />
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="font-semibold">{member.user_profiles?.full_name || 'Utilisateur'}</p>
-                  <Badge variant={getRoleBadgeVariant(member.role)}>
-                    {getRoleLabel(member.role)}
-                  </Badge>
-                </div>
+              <div>
+                <Link to={`/user/${member.user_id}`}>
+                  <p className="font-semibold hover:underline cursor-pointer text-primary">
+                    {member.user_profiles?.full_name || 'Utilisateur'}
+                  </p>
+                </Link>
+                <Badge variant={getRoleBadgeVariant(member.role)}>
+                  {getRoleLabel(member.role)}
+                </Badge>
+              </div>
               </div>
               {userRole === 'owner' && member.user_id !== user?.id && (
                 <Button 

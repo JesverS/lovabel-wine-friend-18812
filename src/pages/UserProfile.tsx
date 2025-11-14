@@ -44,11 +44,9 @@ export default function UserProfile() {
   const fetchProfileData = async () => {
     setLoading(true);
 
-    // Fetch profile
-    const ownProfile = user?.id === id;
-    const table = ownProfile ? 'user_profiles' : 'user_profiles_public';
+    // Fetch profile - always use public view
     const { data: profileData } = await supabase
-      .from(table as any)
+      .from('user_profiles_public' as any)
       .select('id, full_name, logo_adress, description, city, address, level, phone_number, email')
       .eq('id', id)
       .single();
@@ -198,9 +196,26 @@ export default function UserProfile() {
                 <p className="text-foreground mb-4 break-words">{profile.description}</p>
               )}
               
-              {profile.address && (
-                <p className="text-sm text-muted-foreground break-words">📍 {profile.address}</p>
-              )}
+              {/* Informations de contact - affichées si disponibles */}
+              <div className="space-y-1 mb-2">
+                {profile.email && (
+                  <p className="text-sm text-muted-foreground break-words">
+                    📧 {profile.email}
+                  </p>
+                )}
+                
+                {profile.phone_number && (
+                  <p className="text-sm text-muted-foreground break-words">
+                    📞 {profile.phone_number}
+                  </p>
+                )}
+                
+                {profile.address && (
+                  <p className="text-sm text-muted-foreground break-words">
+                    📍 {profile.address}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
