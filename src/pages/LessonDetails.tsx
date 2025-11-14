@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Course {
   id: number;
@@ -22,6 +23,7 @@ interface Lesson {
   lesson_number: number;
   title: string;
   estimated_time: string;
+  global_order: number;
   pages: Record<string, string>;
   quizzes: Record<string, {
     question: string;
@@ -31,9 +33,16 @@ interface Lesson {
   }>;
 }
 
+interface LessonAccess {
+  is_unlocked: boolean;
+  is_completed: boolean;
+}
+
 const LessonDetails = () => {
   const { courseId, lessonId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string | null>>({});
@@ -72,6 +81,27 @@ const LessonDetails = () => {
     }
   });
 
+  // Check lesson access
+  const { data: lessonAccess } = useQuery({
+    queryKey: ["lesson-access", lessonId, user?.id],
+    queryFn: async () => {
+      if (!user || !lessonId) return { is_unlocked: false, is_completed: false };
+      
+      const { data, error } = await supabase.rpc('get_user_accessible_lessons', {
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+      
+      const currentLesson = (data as any[]).find(l => l.lesson_id === parseInt(lessonId));
+      return {
+        is_unlocked: currentLesson?.is_unlocked || false,
+        is_completed: currentLesson?.is_completed || false
+      } as LessonAccess;
+    },
+    enabled: !!user && !!lessonId
+  });
+
   const { data: nextLesson } = useQuery({
     queryKey: ["nextLesson", courseId, lesson?.lesson_number],
     queryFn: async () => {
@@ -89,6 +119,54 @@ const LessonDetails = () => {
     enabled: !!lesson
   });
 
+  // Mutation to submit quiz
+  const submitQuizMutation = useMutation({
+    mutationFn: async ({ answers, score, maxScore }: { answers: Record<string, string | null>, score: number, maxScore: number }) => {
+      if (!user || !lessonId) throw new Error("User or lesson not found");
+      
+      // @ts-ignore - lesson_quiz_result table exists but types not yet regenerated
+      const { data, error } = await (supabase as any)
+        .from("lesson_quiz_result")
+        .insert({
+          user_id: user.id,
+          lesson_id: parseInt(lessonId),
+          answers: answers,
+          score: score,
+          max_score: maxScore,
+          submitted_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["lesson-access", lessonId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["lessons-with-status"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-slots", user?.id] });
+      
+      const percentage = (data.score / data.max_score) * 100;
+      if (percentage >= 80) {
+        toast.success("Quiz complété avec succès ! Vous avez gagné un nouveau slot de déverrouillage.");
+      } else {
+        toast.success("Quiz complété ! Score insuffisant pour gagner un slot (minimum 80%).");
+      }
+      setQuizCompleted(true);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erreur lors de la soumission du quiz");
+    }
+  });
+
+  // Redirect if lesson is locked
+  useEffect(() => {
+    if (lessonAccess && !lessonAccess.is_unlocked) {
+      toast.error("Cette leçon est verrouillée");
+      navigate(`/course/${courseId}`);
+    }
+  }, [lessonAccess, navigate, courseId]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/5 to-background">
@@ -100,12 +178,12 @@ const LessonDetails = () => {
     );
   }
 
-  if (!lesson || !course) {
+  if (!lesson || !course || !lessonAccess?.is_unlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="p-8 text-center">
-          <p className="text-lg mb-4">Leçon introuvable</p>
-          <Button onClick={() => navigate("/learning")}>Retour aux cours</Button>
+          <p className="text-lg mb-4">Leçon introuvable ou verrouillée</p>
+          <Button onClick={() => navigate(`/course/${courseId}`)}>Retour au cours</Button>
         </Card>
       </div>
     );

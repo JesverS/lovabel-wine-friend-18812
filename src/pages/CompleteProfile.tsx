@@ -48,7 +48,7 @@ export default function CompleteProfile() {
           city: profile.city || '',
           address: profile.address || '',
           description: profile.description || '',
-          téléphone: profile.téléphone?.toString() || '',
+          téléphone: profile.phone_number?.toString() || '',
           logo_adress: profile.logo_adress || '',
         });
       }
