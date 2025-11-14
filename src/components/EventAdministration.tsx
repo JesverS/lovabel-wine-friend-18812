@@ -64,7 +64,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       .select(`
         user_id,
         role,
-        user_profiles_public!user_event_user_id_fkey (
+        user_profiles_public (
           full_name,
           logo_adress
         )

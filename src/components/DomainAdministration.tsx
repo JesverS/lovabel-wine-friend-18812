@@ -33,7 +33,7 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
       .from('user_domain_application')
       .select(`
         *,
-        user_profiles_public!user_domain_application_user_id_fkey (
+        user_profiles_public (
           full_name,
           logo_adress
         )
@@ -55,7 +55,7 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
       .from('user_domain')
       .select(`
         *,
-        user_profiles_public!user_domain_user_id_fkey (
+        user_profiles_public (
           full_name,
           logo_adress
         )

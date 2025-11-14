@@ -165,7 +165,7 @@ export const WineDetailsDialog = ({
         user_id,
         comment,
         created_at,
-        user_profiles_public!user_wine_comment_user_id_fkey (
+        user_profiles_public (
           full_name,
           logo_adress
         )
