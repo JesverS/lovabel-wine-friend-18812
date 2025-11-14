@@ -124,33 +124,32 @@ const LessonDetails = () => {
     mutationFn: async ({ answers, score, maxScore }: { answers: Record<string, string | null>, score: number, maxScore: number }) => {
       if (!user || !lessonId) throw new Error("User or lesson not found");
       
-      // @ts-ignore - lesson_quiz_result table exists but types not yet regenerated
-      const { data, error } = await (supabase as any)
-        .from("lesson_quiz_result")
-        .insert({
-          user_id: user.id,
+      const { data, error } = await supabase.functions.invoke('submit-lesson-quiz', {
+        body: {
           lesson_id: parseInt(lessonId),
           answers: answers,
           score: score,
-          max_score: maxScore,
-          submitted_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+          max_score: maxScore
+        }
+      });
 
       if (error) throw error;
-      return data as any;
+      return data;
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["lesson-access", lessonId, user?.id] });
       queryClient.invalidateQueries({ queryKey: ["lessons-with-status"] });
       queryClient.invalidateQueries({ queryKey: ["weekly-slots", user?.id] });
       
-      const percentage = (data.score / data.max_score) * 100;
-      if (percentage >= 80) {
-        toast.success("Quiz complété avec succès ! Vous avez gagné un nouveau slot de déverrouillage.");
+      if (data.leveledUp) {
+        toast.success(`🎉 Félicitations ! Vous êtes passé au niveau ${data.newLevel} ! +${data.xpEarned} XP`);
       } else {
-        toast.success("Quiz complété ! Score insuffisant pour gagner un slot (minimum 80%).");
+        const percentage = ((data.score || 0) / (data.max_score || 1)) * 100;
+        if (percentage >= 80) {
+          toast.success(`✅ Quiz complété avec succès ! +${data.xpEarned} XP`);
+        } else {
+          toast.success(`Quiz complété ! +${data.xpEarned} XP (Score: ${percentage.toFixed(0)}%)`);
+        }
       }
       setQuizCompleted(true);
     },

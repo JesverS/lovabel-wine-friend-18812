@@ -1590,6 +1590,41 @@ export type Database = {
         }
         Relationships: []
       }
+      xp_history: {
+        Row: {
+          created_at: string
+          id: string
+          lesson_id: number
+          reason: string
+          user_id: string
+          xp_earned: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lesson_id: number
+          reason: string
+          user_id: string
+          xp_earned: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lesson_id?: number
+          reason?: string
+          user_id?: string
+          xp_earned?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xp_history_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       user_profiles_public: {
