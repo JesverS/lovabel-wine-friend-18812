@@ -233,9 +233,11 @@ const LessonDetails = () => {
       quizAnswers[key] === quiz.correct_answer
     ).length;
     
-    setQuizCompleted(true);
-    toast.success(`Quiz terminé !`, {
-      description: `Tu as obtenu ${correctAnswers}/${totalQuizzes} bonnes réponses`
+    // Appeler la mutation pour soumettre le quiz
+    submitQuizMutation.mutate({
+      answers: quizAnswers,
+      score: correctAnswers,
+      maxScore: totalQuizzes
     });
   };
 
