@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Trash2, Mail, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -201,12 +202,14 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">
-                    {member.user_profiles_public?.full_name || 'Utilisateur'}
-                    {member.user_id === user?.id && (
-                      <span className="text-sm text-muted-foreground ml-2">(Vous)</span>
-                    )}
-                  </p>
+                  <Link to={`/user/${member.user_id}`}>
+                    <p className="font-medium hover:underline cursor-pointer text-primary">
+                      {member.user_profiles_public?.full_name || 'Utilisateur'}
+                      {member.user_id === user?.id && (
+                        <span className="text-sm text-muted-foreground ml-2">(Vous)</span>
+                      )}
+                    </p>
+                  </Link>
                   {/* Distinction interne visible uniquement par l'organizer */}
                   {userRole === 'organizer' && member.role === 'co_organizer' && (
                     <p className="text-xs text-muted-foreground">(Co-organisateur - distinction interne)</p>
