@@ -242,7 +242,19 @@ const LessonDetails = () => {
       quizAnswers[key] === quiz.correct_answer
     ).length;
     
-    // Appeler la mutation pour soumettre le quiz
+    // 🔍 Vérifier si c'est déjà complété
+    if (lessonAccess?.is_completed) {
+      // ✅ Traitement local sans appel backend
+      const percentage = (correctAnswers / totalQuizzes) * 100;
+      toast.success(`✅ Quiz complété ! Score: ${percentage.toFixed(0)}% (0 XP - déjà complété)`);
+      setQuizCompleted(true);
+      
+      // Invalider les queries pour rafraîchir l'UI
+      queryClient.invalidateQueries({ queryKey: ["lesson-access", lessonId, user?.id] });
+      return;
+    }
+    
+    // ✅ Appel backend normal pour la première tentative
     submitQuizMutation.mutate({
       answers: quizAnswers,
       score: correctAnswers,
