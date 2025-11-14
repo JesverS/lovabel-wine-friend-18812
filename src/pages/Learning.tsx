@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { BookOpen, Award, Trophy, Sparkles, Lock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Course {
   id: number;
@@ -24,6 +25,7 @@ interface Course {
 
 export default function Learning() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [userPoints] = useState(0);
   const [userLevel] = useState(1);
 
@@ -31,22 +33,54 @@ export default function Learning() {
     queryKey: ['courses'],
     queryFn: async () => {
       // @ts-ignore - courses table exists in DB but types may not be regenerated yet
-      const { data, error } = await supabase.from('courses').select('*').order('is_available', { ascending: false }).order('id', { ascending: true });
+      const { data, error } = await supabase.from('courses').select('*').order('id', { ascending: true });
       
       if (error) throw error;
       return (data || []) as unknown as Course[];
     }
   }) as { data: Course[] | undefined; isLoading: boolean };
 
-  // Identifier les 2 cours les plus récents disponibles (IDs les plus élevés parmi les disponibles)
+  const { data: userLessons } = useQuery({
+    queryKey: ['user-lessons', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await (supabase.rpc as any)('get_user_accessible_lessons', {
+        p_user_id: user.id
+      });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user
+  });
+
+  const courseAccessMap = useMemo(() => {
+    if (!userLessons) return {};
+    
+    const map: Record<number, { hasAccess: boolean; unlockedCount: number }> = {};
+    
+    userLessons.forEach((lesson: any) => {
+      if (!map[lesson.course_id]) {
+        map[lesson.course_id] = { hasAccess: false, unlockedCount: 0 };
+      }
+      if (lesson.is_unlocked) {
+        map[lesson.course_id].hasAccess = true;
+        map[lesson.course_id].unlockedCount++;
+      }
+    });
+    
+    return map;
+  }, [userLessons]);
+
+  // Identifier les 2 cours les plus récents (IDs les plus élevés)
   const maxIds = courses ? 
     [...courses]
-      .filter(c => c.is_available)
       .sort((a, b) => b.id - a.id)
       .slice(0, 2)
       .map(c => c.id) : [];
 
   const totalLessons = courses?.reduce((sum, course) => sum + course.lesson_count, 0) || 0;
+  const completedLessons = userLessons?.filter((l: any) => l.is_completed).length || 0;
+  const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -84,9 +118,9 @@ export default function Learning() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Progression globale</span>
-                <span className="text-sm text-muted-foreground">0 / {totalLessons} leçons</span>
+                <span className="text-sm text-muted-foreground">{completedLessons} / {totalLessons} leçons</span>
               </div>
-              <Progress value={0} className="h-3" />
+              <Progress value={progressPercentage} className="h-3" />
             </CardContent>
           </Card>
         </div>
@@ -100,12 +134,14 @@ export default function Learning() {
           ) : courses?.map((course, index) => {
             const isNew = maxIds.includes(course.id);
             const keywords = Array.isArray(course.keywords) ? course.keywords.join(', ') : '';
+            const hasAccess = user ? (courseAccessMap[course.id]?.hasAccess || false) : false;
+            const unlockedLessons = courseAccessMap[course.id]?.unlockedCount || 0;
             
             return (
               <Card 
                 key={course.id}
                 className={`group relative overflow-hidden border-2 transition-all duration-300 animate-fade-up ${
-                  !course.is_available 
+                  !hasAccess && user
                     ? 'opacity-60 cursor-not-allowed' 
                     : 'hover:border-primary hover-lift cursor-pointer'
                 }`}
@@ -120,36 +156,45 @@ export default function Learning() {
                         <CardDescription className="mt-1">{keywords}</CardDescription>
                       </div>
                     </div>
-                    {!course.is_available && (
+                    {(!hasAccess && user) && (
                       <Lock className="h-5 w-5 text-muted-foreground" />
                     )}
                   </div>
                 </CardHeader>
                 
                 <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <BookOpen className="h-4 w-4" />
-                    <span>{course.lesson_count} leçons</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <BookOpen className="h-4 w-4" />
+                      <span>{course.lesson_count} leçons</span>
+                    </div>
+                    {hasAccess && user && (
+                      <span className="text-xs text-muted-foreground">
+                        {unlockedLessons} disponible{unlockedLessons > 1 ? 's' : ''}
+                      </span>
+                    )}
                   </div>
 
                   <Button 
                     className={`w-full ${
-                      !course.is_available 
+                      (!hasAccess && user)
                         ? 'bg-muted text-muted-foreground' 
                         : 'bg-gradient-wine hover:opacity-90'
                     }`}
-                    disabled={!course.is_available}
+                    disabled={!hasAccess && !!user}
                     onClick={() => {
-                      if (course.is_available) {
+                      if (!user) {
+                        navigate('/auth');
+                      } else if (hasAccess) {
                         navigate(`/course/${course.id}`);
                       }
                     }}
                   >
-                    {!course.is_available ? 'Bientôt disponible' : 'Commencer'}
+                    {!user ? 'Se connecter' : (!hasAccess ? 'Bientôt disponible' : 'Commencer')}
                   </Button>
                 </CardContent>
 
-                {course.is_available && isNew && (
+                {hasAccess && isNew && (
                   <div className="absolute top-4 right-4">
                     <Badge className="badge-wine">Nouveau</Badge>
                   </div>
