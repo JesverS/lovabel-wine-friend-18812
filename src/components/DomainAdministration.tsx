@@ -33,12 +33,12 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
       .from('user_domain_application')
       .select(`
         *,
-        user_profiles (
+        user_profiles_public!user_domain_application_user_id_fkey (
           full_name,
           logo_adress
         )
       `)
-      .eq('domain_id', domainId);
+      .eq('domain_id', domainId) as any;
 
     // Filtrage selon le rôle de l'utilisateur connecté
     if (userRole === 2) {
@@ -55,12 +55,12 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
       .from('user_domain')
       .select(`
         *,
-        user_profiles (
+        user_profiles_public!user_domain_user_id_fkey (
           full_name,
           logo_adress
         )
       `)
-      .eq('domain_id', domainId);
+      .eq('domain_id', domainId) as any;
 
     setMembers(membs || []);
     setLoading(false);
@@ -167,13 +167,13 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
               <div key={app.user_id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={app.user_profiles?.logo_adress || undefined} />
+                    <AvatarImage src={app.user_profiles_public?.logo_adress || undefined} />
                     <AvatarFallback>
                       <UserCircle className="w-6 h-6" />
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">{app.user_profiles?.full_name || 'Utilisateur'}</p>
+                    <p className="font-semibold">{app.user_profiles_public?.full_name || 'Utilisateur'}</p>
                     <p className="text-sm text-muted-foreground">
                       Demande : {getRoleLabel(app.role)}
                     </p>
@@ -204,13 +204,13 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
             <div key={member.user_id} className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage src={member.user_profiles?.logo_adress || undefined} />
+                  <AvatarImage src={member.user_profiles_public?.logo_adress || undefined} />
                   <AvatarFallback>
                     <UserCircle className="w-6 h-6" />
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold">{member.user_profiles?.full_name || 'Utilisateur'}</p>
+                  <p className="font-semibold">{member.user_profiles_public?.full_name || 'Utilisateur'}</p>
                   <Badge variant={getRoleBadgeVariant(member.role)}>
                     {getRoleLabel(member.role)}
                   </Badge>
