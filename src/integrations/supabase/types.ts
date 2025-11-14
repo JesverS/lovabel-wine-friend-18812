@@ -112,10 +112,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cellar_invitation_invitee_user_id_fkey"
+            columns: ["invitee_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cellar_invitation_inviter_id_fkey"
             columns: ["inviter_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cellar_invitation_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -325,6 +339,20 @@ export type Database = {
             referencedRelation: "cellar"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "event_organizer_id_fkey1"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_organizer_id_fkey1"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       event_domain: {
@@ -467,6 +495,13 @@ export type Database = {
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "event_invitation_invitee_user_id_fkey"
+            columns: ["invitee_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       game_question: {
@@ -495,6 +530,7 @@ export type Database = {
           course_id: number
           created_at: string
           estimated_time: string | null
+          global_order: number | null
           id: number
           lesson_number: number
           pages: Json
@@ -506,6 +542,7 @@ export type Database = {
           course_id: number
           created_at?: string
           estimated_time?: string | null
+          global_order?: number | null
           id?: number
           lesson_number: number
           pages: Json
@@ -517,6 +554,7 @@ export type Database = {
           course_id?: number
           created_at?: string
           estimated_time?: string | null
+          global_order?: number | null
           id?: number
           lesson_number?: number
           pages?: Json
@@ -589,6 +627,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "post_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "post_vin_id_fkey"
             columns: ["wine_id"]
             isOneToOne: false
@@ -635,6 +680,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comment_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -699,6 +751,13 @@ export type Database = {
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_cellar_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_domain: {
@@ -733,6 +792,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_domain_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -771,6 +837,13 @@ export type Database = {
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_domain_application_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_event: {
@@ -805,6 +878,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_event_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -844,6 +924,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_favorite_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_favorite_wine_id_fkey"
             columns: ["wine_id"]
             isOneToOne: false
@@ -873,45 +960,66 @@ export type Database = {
       user_profiles: {
         Row: {
           address: string | null
+          allow_adress: boolean
+          allow_email: boolean
+          allow_phone: boolean
+          allow_xp: boolean
           city: string | null
           created_at: string | null
           description: string | null
+          email: string | null
           full_name: string | null
           id: string
           last_name: string | null
           latitude: number | null
+          level: number | null
           logo_adress: string | null
           longitude: number | null
-          téléphone: number | null
+          phone_number: number | null
           updated_at: string | null
+          xp: number
         }
         Insert: {
           address?: string | null
+          allow_adress?: boolean
+          allow_email?: boolean
+          allow_phone?: boolean
+          allow_xp?: boolean
           city?: string | null
           created_at?: string | null
           description?: string | null
+          email?: string | null
           full_name?: string | null
           id: string
           last_name?: string | null
           latitude?: number | null
+          level?: number | null
           logo_adress?: string | null
           longitude?: number | null
-          téléphone?: number | null
+          phone_number?: number | null
           updated_at?: string | null
+          xp?: number
         }
         Update: {
           address?: string | null
+          allow_adress?: boolean
+          allow_email?: boolean
+          allow_phone?: boolean
+          allow_xp?: boolean
           city?: string | null
           created_at?: string | null
           description?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
           last_name?: string | null
           latitude?: number | null
+          level?: number | null
           logo_adress?: string | null
           longitude?: number | null
-          téléphone?: number | null
+          phone_number?: number | null
           updated_at?: string | null
+          xp?: number
         }
         Relationships: []
       }
@@ -940,6 +1048,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -972,6 +1087,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_wine_comment_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
           {
@@ -1015,6 +1137,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_comment_reaction_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1265,9 +1394,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_profiles_public: {
+        Row: {
+          address: string | null
+          city: string | null
+          description: string | null
+          email: string | null
+          experience: number | null
+          full_name: string | null
+          id: string | null
+          level: number | null
+          logo_adress: string | null
+          phone_number: number | null
+        }
+        Insert: {
+          address?: never
+          city?: string | null
+          description?: string | null
+          email?: never
+          experience?: never
+          full_name?: string | null
+          id?: string | null
+          level?: number | null
+          logo_adress?: string | null
+          phone_number?: never
+        }
+        Update: {
+          address?: never
+          city?: string | null
+          description?: string | null
+          email?: never
+          experience?: never
+          full_name?: string | null
+          id?: string | null
+          level?: number | null
+          logo_adress?: string | null
+          phone_number?: never
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      can_user_unlock_lesson: { Args: { p_user_id: string }; Returns: boolean }
       cleanup_expired_event_invitations: { Args: never; Returns: undefined }
       cleanup_expired_invitations: { Args: never; Returns: undefined }
       create_cellar_with_owner: {
@@ -1296,8 +1464,31 @@ export type Database = {
           user_profiles: Json
         }[]
       }
+      get_user_accessible_lessons: {
+        Args: { p_user_id: string }
+        Returns: {
+          completed_at: string
+          course_id: number
+          estimated_time: string
+          global_order: number
+          is_completed: boolean
+          is_unlocked: boolean
+          lesson_id: number
+          lesson_number: number
+          title: string
+          unlocked_at: string
+        }[]
+      }
       get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_role: { Args: never; Returns: string }
+      get_weekly_lesson_slots: {
+        Args: { p_user_id: string }
+        Returns: {
+          available_unlocks: number
+          total_completions: number
+          week_number: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1351,6 +1542,7 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
+      unlock_next_lesson: { Args: { p_user_id: string }; Returns: number }
       upsert_wine_notice_with_event: {
         Args: {
           p_details: Json
