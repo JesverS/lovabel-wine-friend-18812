@@ -40,6 +40,7 @@ export const PostCard = ({ post }: PostCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
 
   useEffect(() => {
     fetchPostData();
@@ -95,12 +96,22 @@ export const PostCard = ({ post }: PostCardProps) => {
       .eq('id', post.user_id)
       .maybeSingle();
     setAuthor(authorData);
+
+    // Fetch current user profile if logged in
+    if (user) {
+      const { data: currentProfile } = await supabase
+        .from('user_profiles_public' as any)
+        .select('id, full_name, logo_adress')
+        .eq('id', user.id)
+        .maybeSingle();
+      setCurrentUserProfile(currentProfile);
+    }
   };
 
   const fetchComments = async () => {
     const { data } = await supabase
       .from('post_comment')
-      .select('*, user_profiles_public!post_comment_user_id_fkey(id, full_name, logo_adress)')
+      .select('*, user_profiles_public(id, full_name, logo_adress)')
       .eq('post_id', post.id)
       .order('created_at', { ascending: false }) as any;
     setComments(data || []);
@@ -338,9 +349,9 @@ export const PostCard = ({ post }: PostCardProps) => {
           {user && (
             <form onSubmit={handleSubmitComment} className="flex gap-2">
               <Avatar className="w-8 h-8">
-                <AvatarImage src={author?.logo_adress || undefined} />
+                <AvatarImage src={currentUserProfile?.logo_adress || undefined} />
                 <AvatarFallback className="text-sm">
-                  {user.email?.[0]?.toUpperCase()}
+                  {currentUserProfile?.full_name?.[0] || user.email?.[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 flex gap-2">
@@ -377,9 +388,9 @@ export const PostCard = ({ post }: PostCardProps) => {
                 {comments.slice(0, displayedCommentsCount).map((comment) => (
                   <div key={comment.id} className="flex gap-3">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
+                      <AvatarImage src={comment.user_profiles_public?.logo_adress || undefined} />
                       <AvatarFallback className="text-sm">
-                        {comment.user_profiles?.full_name?.[0] || 'U'}
+                        {comment.user_profiles_public?.full_name?.[0] || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 bg-muted rounded-lg p-3">
@@ -389,7 +400,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                             to={`/user/${comment.user_id}`}
                             className="font-semibold text-sm hover:underline"
                           >
-                            {comment.user_profiles?.full_name || 'Utilisateur'}
+                            {comment.user_profiles_public?.full_name || 'Utilisateur'}
                           </Link>
                           <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(comment.created_at), {
