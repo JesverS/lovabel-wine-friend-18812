@@ -56,27 +56,24 @@ export default function Learning() {
   const courseAccessMap = useMemo(() => {
     if (!userLessons) return {};
     
-    const map: Record<number, { hasAccess: boolean; unlockedCount: number }> = {};
+    const map: Record<number, { hasAccess: boolean; unlockedCount: number; hasUncompletedLessons: boolean }> = {};
     
     userLessons.forEach((lesson: any) => {
       if (!map[lesson.course_id]) {
-        map[lesson.course_id] = { hasAccess: false, unlockedCount: 0 };
+        map[lesson.course_id] = { hasAccess: false, unlockedCount: 0, hasUncompletedLessons: false };
       }
       if (lesson.is_unlocked) {
         map[lesson.course_id].hasAccess = true;
         map[lesson.course_id].unlockedCount++;
+        
+        if (!lesson.is_completed) {
+          map[lesson.course_id].hasUncompletedLessons = true;
+        }
       }
     });
     
     return map;
   }, [userLessons]);
-
-  // Identifier les 2 cours les plus récents (IDs les plus élevés)
-  const maxIds = courses ? 
-    [...courses]
-      .sort((a, b) => b.id - a.id)
-      .slice(0, 2)
-      .map(c => c.id) : [];
 
   const totalLessons = courses?.reduce((sum, course) => sum + course.lesson_count, 0) || 0;
   const completedLessons = userLessons?.filter((l: any) => l.is_completed).length || 0;
@@ -132,10 +129,10 @@ export default function Learning() {
               <p className="text-muted-foreground">Chargement des cours...</p>
             </div>
           ) : courses?.map((course, index) => {
-            const isNew = maxIds.includes(course.id);
             const keywords = Array.isArray(course.keywords) ? course.keywords.join(', ') : '';
             const hasAccess = user ? (courseAccessMap[course.id]?.hasAccess || false) : false;
             const unlockedLessons = courseAccessMap[course.id]?.unlockedCount || 0;
+            const hasUncompletedLessons = courseAccessMap[course.id]?.hasUncompletedLessons || false;
             
             return (
               <Card 
@@ -194,7 +191,7 @@ export default function Learning() {
                   </Button>
                 </CardContent>
 
-                {hasAccess && isNew && (
+                {hasAccess && hasUncompletedLessons && (
                   <div className="absolute top-4 right-4">
                     <Badge className="badge-wine">Nouveau</Badge>
                   </div>
