@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, ArrowLeft, BookOpen } from "lucide-react";
+import { Clock, ArrowLeft, BookOpen, Lock, CheckCircle, Unlock } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Course {
   id: number;
@@ -19,21 +21,29 @@ interface Course {
   is_available: boolean;
 }
 
-interface Lesson {
-  id: number;
+interface LessonWithStatus {
+  lesson_id: number;
   course_id: number;
   lesson_number: number;
-  title?: string | null;
-  estimated_time?: string | null;
-  pages: any;
-  quizzes: any;
-  created_at: string;
-  updated_at: string;
+  title: string;
+  estimated_time: string;
+  global_order: number;
+  is_unlocked: boolean;
+  is_completed: boolean;
+  unlocked_at: string | null;
+  completed_at: string | null;
+}
+
+interface WeeklySlot {
+  week_number: number;
+  total_completions: number;
+  available_unlocks: number;
 }
 
 const CourseDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", id],
@@ -50,19 +60,68 @@ const CourseDetails = () => {
   });
 
   const { data: lessons, isLoading: lessonsLoading } = useQuery({
-    queryKey: ["lessons", id],
+    queryKey: ["lessons-with-status", id, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("*")
-        .eq("course_id", parseInt(id || "0"))
-        .order("lesson_number", { ascending: true });
+      if (!user) return [];
+      
+      const { data, error } = await supabase.rpc('get_user_accessible_lessons', {
+        p_user_id: user.id
+      });
 
       if (error) throw error;
-      return data as unknown as Lesson[];
+      
+      const courseLessons = (data as LessonWithStatus[]).filter(
+        lesson => lesson.course_id === parseInt(id || "0")
+      );
+      
+      return courseLessons;
     },
-    enabled: !!course?.is_available,
+    enabled: !!course?.is_available && !!user,
   });
+
+  const { data: weeklySlots, refetch: refetchWeeklySlots } = useQuery({
+    queryKey: ["weekly-slots", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase.rpc('get_weekly_lesson_slots', {
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+      return data as WeeklySlot[];
+    },
+    enabled: !!user,
+  });
+
+  const currentWeekSlots = weeklySlots?.[weeklySlots.length - 1];
+  const availableUnlocks = currentWeekSlots?.available_unlocks || 0;
+
+  const handleUnlockNextLesson = async () => {
+    if (!user) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
+
+    if (availableUnlocks <= 0) {
+      toast.error("Plus de déverrouillages disponibles cette semaine");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('unlock_next_lesson', {
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+
+      toast.success("Leçon déverrouillée avec succès !");
+      refetchWeeklySlots();
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors du déverrouillage");
+    }
+  };
 
   // Si le cours n'est pas disponible, rediriger vers la page verrouillée
   if (course && !course.is_available) {
@@ -163,37 +222,50 @@ const CourseDetails = () => {
                 ))}
               </div>
             ) : lessons && lessons.length > 0 ? (
-              <div className="grid gap-4">
+              <div className="divide-y">
                 {lessons.map((lesson) => (
-                  <Card
-                    key={lesson.id}
-                    className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary/50"
+                  <div
+                    key={lesson.lesson_id}
+                    className={`p-6 hover:bg-muted/50 transition-colors ${
+                      !lesson.is_unlocked ? 'opacity-60' : ''
+                    }`}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <CardTitle className="text-xl mb-2">
-                            <span className="text-primary font-bold mr-2">
-                              Leçon {lesson.lesson_number}
-                            </span>
-                            {lesson.title || `Leçon ${lesson.lesson_number}`}
-                          </CardTitle>
-                          {lesson.estimated_time && (
-                            <CardDescription className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {lesson.estimated_time}
-                            </CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Badge variant="outline" className="text-xs">
+                            Leçon {lesson.lesson_number}
+                          </Badge>
+                          {lesson.is_completed && (
+                            <Badge className="bg-green-500 text-white">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Complétée
+                            </Badge>
+                          )}
+                          {!lesson.is_unlocked && (
+                            <Badge variant="secondary">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Verrouillée
+                            </Badge>
                           )}
                         </div>
-                        <Button
-                          onClick={() => navigate(`/course/${id}/lesson/${lesson.id}`)}
-                          className="shrink-0"
-                        >
-                          Commencer
-                        </Button>
+                        <h3 className="font-semibold text-lg mb-1">
+                          {lesson.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          <span>{lesson.estimated_time}</span>
+                        </div>
                       </div>
-                    </CardHeader>
-                  </Card>
+                      <Button
+                        onClick={() => lesson.is_unlocked && navigate(`/course/${id}/lesson/${lesson.lesson_id}`)}
+                        disabled={!lesson.is_unlocked}
+                        variant={lesson.is_completed ? "outline" : "default"}
+                      >
+                        {lesson.is_completed ? "Revoir" : lesson.is_unlocked ? "Commencer" : "Verrouillée"}
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
