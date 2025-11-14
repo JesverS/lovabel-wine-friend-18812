@@ -45,13 +45,13 @@ export function CellarMembers({ cellarId, cellarName, userRole }: CellarMembersP
       .from('user_cellar')
       .select(`
         *,
-        user_profiles (
+        user_profiles_public!user_cellar_user_id_fkey (
           full_name,
           logo_adress
         )
       `)
       .eq('user_cellar_id', cellarId)
-      .order('role', { ascending: true });
+      .order('role', { ascending: true }) as any;
 
     setMembers(membs || []);
 

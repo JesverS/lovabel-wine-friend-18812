@@ -90,8 +90,8 @@ export const PostCard = ({ post }: PostCardProps) => {
 
     // Fetch author
     const { data: authorData } = await supabase
-      .from('user_profiles')
-      .select('*')
+      .from('user_profiles_public' as any)
+      .select('id, full_name, logo_adress, description, city, level')
       .eq('id', post.user_id)
       .maybeSingle();
     setAuthor(authorData);
@@ -100,9 +100,9 @@ export const PostCard = ({ post }: PostCardProps) => {
   const fetchComments = async () => {
     const { data } = await supabase
       .from('post_comment')
-      .select('*, user_profiles(*)')
+      .select('*, user_profiles_public!post_comment_user_id_fkey(id, full_name, logo_adress)')
       .eq('post_id', post.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as any;
     setComments(data || []);
   };
 

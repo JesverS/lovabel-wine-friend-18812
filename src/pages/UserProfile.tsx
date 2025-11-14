@@ -45,9 +45,11 @@ export default function UserProfile() {
     setLoading(true);
 
     // Fetch profile
+    const ownProfile = user?.id === id;
+    const table = ownProfile ? 'user_profiles' : 'user_profiles_public';
     const { data: profileData } = await supabase
-      .from('user_profiles')
-      .select('*')
+      .from(table as any)
+      .select('id, full_name, logo_adress, description, city, address, level, phone_number, email')
       .eq('id', id)
       .single();
     setProfile(profileData);

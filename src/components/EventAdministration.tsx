@@ -26,7 +26,7 @@ interface EventAdministrationProps {
 interface Member {
   user_id: string;
   role: string;
-  user_profiles: {
+  user_profiles_public: {
     full_name: string | null;
     logo_adress: string | null;
   } | null;
@@ -63,13 +63,13 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       .select(`
         user_id,
         role,
-        user_profiles:user_id (
+        user_profiles_public!user_event_user_id_fkey (
           full_name,
           logo_adress
         )
       `)
       .eq('event_id', eventId)
-      .order('role', { ascending: true });
+      .order('role', { ascending: true }) as any;
 
     if (membersData) {
       setMembers(membersData);
@@ -195,14 +195,14 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
             >
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage src={member.user_profiles?.logo_adress || undefined} />
+                  <AvatarImage src={member.user_profiles_public?.logo_adress || undefined} />
                   <AvatarFallback>
                     <UserCircle className="w-6 h-6" />
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="font-medium">
-                    {member.user_profiles?.full_name || 'Utilisateur'}
+                    {member.user_profiles_public?.full_name || 'Utilisateur'}
                     {member.user_id === user?.id && (
                       <span className="text-sm text-muted-foreground ml-2">(Vous)</span>
                     )}
@@ -224,7 +224,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                     openDeleteDialog(
                       'member',
                       member.user_id,
-                      member.user_profiles?.full_name || 'ce membre'
+                      member.user_profiles_public?.full_name || 'ce membre'
                     )
                   }
                 >
