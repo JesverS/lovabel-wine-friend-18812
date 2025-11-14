@@ -525,12 +525,111 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_completion: {
+        Row: {
+          completed_at: string
+          counted_for_unlock: boolean
+          lesson_id: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          counted_for_unlock?: boolean
+          lesson_id: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          counted_for_unlock?: boolean
+          lesson_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_completion_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_completion_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_completion_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_quiz_result: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          lesson_id: number
+          max_score: number
+          score: number
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          answers: Json
+          created_at?: string
+          id?: string
+          lesson_id: number
+          max_score: number
+          score: number
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          lesson_id?: number
+          max_score?: number
+          score?: number
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_quiz_result_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_quiz_result_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_quiz_result_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lessons: {
         Row: {
           course_id: number
           created_at: string
+          difficulty: number | null
           estimated_time: string | null
-          global_order: number | null
+          global_order: number
           id: number
           lesson_number: number
           pages: Json
@@ -541,8 +640,9 @@ export type Database = {
         Insert: {
           course_id: number
           created_at?: string
+          difficulty?: number | null
           estimated_time?: string | null
-          global_order?: number | null
+          global_order: number
           id?: number
           lesson_number: number
           pages: Json
@@ -553,8 +653,9 @@ export type Database = {
         Update: {
           course_id?: number
           created_at?: string
+          difficulty?: number | null
           estimated_time?: string | null
-          global_order?: number | null
+          global_order?: number
           id?: number
           lesson_number?: number
           pages?: Json
@@ -713,6 +814,20 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "post"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_like_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_like_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -955,7 +1070,76 @@ export type Database = {
           follower_id?: string
           following_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_follow_follower_id_fkey1"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follow_follower_id_fkey1"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follow_following_id_fkey1"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follow_following_id_fkey1"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_lesson_unlock: {
+        Row: {
+          lesson_id: number
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          lesson_id: number
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          lesson_id?: number
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_lesson_unlock_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_lesson_unlock_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_lesson_unlock_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_profiles: {
         Row: {
@@ -1188,6 +1372,20 @@ export type Database = {
             columns: ["wine_id"]
             isOneToOne: false
             referencedRelation: "wine"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_wine_notice_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_wine_notice_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
         ]
