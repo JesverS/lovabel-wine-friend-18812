@@ -141,9 +141,17 @@ const LessonDetails = () => {
       queryClient.invalidateQueries({ queryKey: ["lessons-with-status"] });
       queryClient.invalidateQueries({ queryKey: ["weekly-slots", user?.id] });
       
-      if (data.leveledUp) {
+      // 👉 Cas où l'utilisateur a déjà fait le quiz (xpEarned === 0)
+      if (data.xpEarned === 0) {
+        const percentage = ((data.score || 0) / (data.max_score || 1)) * 100;
+        toast.success(`✅ Quiz complété ! Score: ${percentage.toFixed(0)}% (0 XP - déjà complété)`);
+      } 
+      // 👉 Première tentative avec level up
+      else if (data.leveledUp) {
         toast.success(`🎉 Félicitations ! Vous êtes passé au niveau ${data.newLevel} ! +${data.xpEarned} XP`);
-      } else {
+      } 
+      // 👉 Première tentative normale
+      else {
         const percentage = ((data.score || 0) / (data.max_score || 1)) * 100;
         if (percentage >= 80) {
           toast.success(`✅ Quiz complété avec succès ! +${data.xpEarned} XP`);
@@ -151,6 +159,7 @@ const LessonDetails = () => {
           toast.success(`Quiz complété ! +${data.xpEarned} XP (Score: ${percentage.toFixed(0)}%)`);
         }
       }
+      
       setQuizCompleted(true);
     },
     onError: (error: any) => {
@@ -298,6 +307,15 @@ const LessonDetails = () => {
             <Card className="p-8 text-center bg-gradient-to-br from-primary/5 to-secondary/5">
               <h2 className="text-3xl font-bold mb-2">🧩 Mini Quiz</h2>
               <p className="text-muted-foreground">Teste tes connaissances sur cette leçon</p>
+              
+              {/* 👉 MESSAGE D'AVERTISSEMENT SI DÉJÀ COMPLÉTÉ */}
+              {lessonAccess?.is_completed && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    ℹ️ Vous avez déjà complété ce quiz. Cette nouvelle tentative ne vous rapportera pas d'XP, mais renforcera vos connaissances.
+                  </p>
+                </div>
+              )}
             </Card>
 
             {quizzes.map(([key, quiz], index) => (

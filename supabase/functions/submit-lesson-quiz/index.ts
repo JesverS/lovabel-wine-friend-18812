@@ -45,6 +45,69 @@ serve(async (req) => {
 
     console.log(`[submit-lesson-quiz] User ${user.id} submitting quiz for lesson ${lesson_id}`);
 
+    // 🔍 Vérification si la leçon est déjà complétée
+    const { data: existingCompletions, error: checkError } = await supabase
+      .from("lesson_completion")
+      .select("lesson_id")
+      .eq("user_id", user.id)
+      .eq("lesson_id", lesson_id);
+
+    if (checkError) {
+      console.error("[submit-lesson-quiz] Error checking completion:", checkError);
+    }
+
+    // Si déjà complété, on récupère le profil et on traite différemment
+    if (existingCompletions && existingCompletions.length > 0) {
+      const { data: profile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("xp, level")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error("[submit-lesson-quiz] Error fetching user profile:", profileError);
+        throw new Error("User profile not found");
+      }
+
+      // 👉 1️⃣ Insérer quand même les nouvelles réponses
+      const { error: secondAttemptError } = await supabase
+        .from("lesson_quiz_result")
+        .insert({
+          user_id: user.id,
+          lesson_id,
+          answers,
+          score,
+          max_score,
+          submitted_at: new Date().toISOString()
+        });
+
+      if (secondAttemptError) {
+        throw new Error("Impossible d'enregistrer les nouvelles réponses.");
+      }
+
+      // 👉 2️⃣ Retourner un succès COMPLET, sans donner d'XP
+      return new Response(
+        JSON.stringify({
+          success: true,
+          alreadyCompleted: true,
+          message: "Vous avez déjà complété cette leçon. Aucun XP ne sera ajouté.",
+          xpEarned: 0,
+          score: score,
+          max_score: max_score,
+          // on renvoie les valeurs actuelles du profil
+          newXP: profile.xp,
+          newLevel: profile.level
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+    }
+
     // 🧾 1️⃣ Récupération de la difficulté
     const { data: lesson, error: lessonError } = await supabase
       .from("lessons")
