@@ -31,7 +31,7 @@ export function CellarMembers({ cellarId, cellarName, userRole }: CellarMembersP
   const fetchUserProfile = async () => {
     if (!user) return;
     const { data } = await supabase
-      .from('user_profiles')
+      .from('user_profiles_public' as any)
       .select('full_name')
       .eq('id', user.id)
       .single();
