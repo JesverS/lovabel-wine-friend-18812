@@ -26,9 +26,6 @@ interface Course {
 export default function Learning() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [userPoints] = useState(0);
-  const [userLevel] = useState(1);
-
   const { data: courses, isLoading } = useQuery({
     queryKey: ['courses'],
     queryFn: async () => {
@@ -49,6 +46,21 @@ export default function Learning() {
       });
       if (error) throw error;
       return data || [];
+    },
+    enabled: !!user
+  });
+
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('xp, level')
+        .eq('id', user.id)
+        .single();
+      if (error) throw error;
+      return data;
     },
     enabled: !!user
   });
@@ -75,9 +87,14 @@ export default function Learning() {
     return map;
   }, [userLessons]);
 
+  const userLevel = userProfile?.level ?? 0;
+  const userXp = userProfile?.xp ?? 0;
+  const xpNeeded = Math.round(300 * Math.pow(userLevel, 1.4));
+  const progressToNextLevel = userLevel === 0 ? 0 : (userXp / xpNeeded) * 100;
+  const userBadge = userLevel < 10 ? "Débutant" : "Intermédiaire";
+
   const totalLessons = courses?.reduce((sum, course) => sum + course.lesson_count, 0) || 0;
   const completedLessons = userLessons?.filter((l: any) => l.is_completed).length || 0;
-  const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -98,14 +115,15 @@ export default function Learning() {
             
             <div className="hidden md:flex items-center gap-6">
               <div className="text-center">
-                <Trophy className="h-8 w-8 text-secondary mx-auto mb-1" />
-                <div className="font-semibold text-xl">{userPoints}</div>
-                <div className="text-xs text-muted-foreground">Points</div>
+                <BookOpen className="h-8 w-8 text-secondary mx-auto mb-1" />
+                <div className="font-semibold text-xl">{completedLessons}</div>
+                <div className="text-xs text-muted-foreground">Leçons</div>
               </div>
               <div className="text-center">
-                <Sparkles className="h-8 w-8 text-primary mx-auto mb-1" />
-                <div className="font-semibold text-xl">Niveau {userLevel}</div>
-                <div className="text-xs text-muted-foreground">Débutant</div>
+                <Badge variant="outline" className="px-4 py-2 text-sm font-medium mb-1">
+                  Niveau {userLevel}
+                </Badge>
+                <div className="text-xs text-muted-foreground">{userBadge}</div>
               </div>
             </div>
           </div>
@@ -114,10 +132,20 @@ export default function Learning() {
           <Card className="glass-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Progression globale</span>
-                <span className="text-sm text-muted-foreground">{completedLessons} / {totalLessons} leçons</span>
+                <span className="text-sm font-medium">
+                  {userLevel === 0 ? "Débloquez votre premier niveau" : `Progression vers le niveau ${userLevel + 1}`}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {userLevel === 0 ? "0 XP" : `${userXp} / ${xpNeeded} XP`}
+                </span>
               </div>
-              <Progress value={progressPercentage} className="h-3" />
+              <Progress value={progressToNextLevel} className="h-3" />
+              
+              {userLevel === 0 && (
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  🎯 Réponds à ton premier quiz pour passer niveau 1 !
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
