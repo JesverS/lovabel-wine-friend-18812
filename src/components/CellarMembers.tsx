@@ -46,7 +46,7 @@ export function CellarMembers({ cellarId, cellarName, userRole }: CellarMembersP
       .from('user_cellar')
       .select(`
         *,
-        user_profiles_public!user_cellar_user_id_fkey (
+        user_profiles_public (
           full_name,
           logo_adress
         )
@@ -140,18 +140,18 @@ export function CellarMembers({ cellarId, cellarName, userRole }: CellarMembersP
           {members.map((member) => (
             <div key={member.user_id} className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
-                <Avatar className="bg-white">
-                  <AvatarImage src={member.user_profiles?.logo_adress || undefined} />
-                  <AvatarFallback>
-                    <UserCircle className="w-6 h-6" />
-                  </AvatarFallback>
-                </Avatar>
-              <div>
-                <Link to={`/user/${member.user_id}`}>
-                  <p className="font-semibold hover:underline cursor-pointer text-primary">
-                    {member.user_profiles?.full_name || 'Utilisateur'}
-                  </p>
-                </Link>
+              <Avatar className="bg-white">
+                <AvatarImage src={member.user_profiles_public?.logo_adress || undefined} />
+                <AvatarFallback>
+                  <UserCircle className="w-6 h-6" />
+                </AvatarFallback>
+              </Avatar>
+            <div>
+              <Link to={`/user/${member.user_id}`}>
+                <p className="font-semibold hover:underline cursor-pointer text-primary">
+                  {member.user_profiles_public?.full_name || 'Utilisateur'}
+                </p>
+              </Link>
                 <Badge variant={getRoleBadgeVariant(member.role)}>
                   {getRoleLabel(member.role)}
                 </Badge>
