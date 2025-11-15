@@ -77,25 +77,41 @@ Deno.serve(async (req) => {
       throw type1Error;
     }
 
-    // 3. Sélectionner les questions de type 3 avec LEFT JOIN sur game_wine_facts
-    const { data: type3QuestionsRaw, error: type3Error } = await supabase
+    // 3. Sélectionner les questions de type 3
+    const { data: type3Questions, error: type3Error } = await supabase
       .from('game_question')
-      .select(`
-        *,
-        game_wine_facts!inner (
-          fact_key,
-          correct_answers,
-          incorrect_answers
-        )
-      `)
+      .select('*')
       .eq('answer_type', 3)
-      .eq('game_wine_facts.region', wineRegion)
-      .or(`wine_type.eq.${wineColor},wine_type.eq.all`, { foreignTable: 'game_wine_facts' })
+      .or(`apply_to_region.eq.${wineRegion},apply_to_region.is.null`)
+      .or(`apply_to_color.eq.${wineColor},apply_to_color.eq.all`)
       .limit(nbPlayers * 2);
 
     if (type3Error) {
       console.error('Error fetching type 3 questions:', type3Error);
       throw type3Error;
+    }
+
+    // 3b. Récupérer les facts correspondants
+    const factKeys = type3Questions?.map(q => q.fact_key).filter(Boolean) || [];
+    let factsMap: Record<string, any> = {};
+    
+    if (factKeys.length > 0) {
+      const { data: facts, error: factsError } = await supabase
+        .from('game_wine_facts')
+        .select('*')
+        .in('fact_key', factKeys)
+        .eq('region', wineRegion)
+        .or(`wine_type.eq.${wineColor},wine_type.eq.all`);
+
+      if (factsError) {
+        console.error('Error fetching wine facts:', factsError);
+        throw factsError;
+      }
+
+      factsMap = (facts || []).reduce((acc, fact) => {
+        acc[fact.fact_key] = fact;
+        return acc;
+      }, {} as Record<string, any>);
     }
 
     // 4. Sélectionner les questions de type 4
@@ -123,7 +139,7 @@ Deno.serve(async (req) => {
     };
 
     const selectedType1 = shuffleArray(type1Questions || []).slice(0, nbPlayers);
-    const selectedType3 = shuffleArray(type3QuestionsRaw || []).slice(0, nbPlayers);
+    const selectedType3 = shuffleArray(type3Questions || []).slice(0, nbPlayers);
     const selectedType4 = shuffleArray(type4Questions || []).slice(0, 4);
 
     // 6. Assigner les joueurs pour les questions de type 1 et 3
@@ -138,15 +154,18 @@ Deno.serve(async (req) => {
     }));
 
     const shuffledPlayerIndicesType3 = shuffleArray(playerIndices);
-    const formattedType3 = selectedType3.map((q: any, idx) => ({
-      id: q.id,
-      question: q.question,
-      answer_type: 3,
-      fact_key: q.fact_key,
-      correct_answers: q.game_wine_facts?.correct_answers || [],
-      incorrect_answers: q.game_wine_facts?.incorrect_answers || [],
-      assigned_player: shuffledPlayerIndicesType3[idx % nbPlayers],
-    }));
+    const formattedType3 = selectedType3.map((q: any, idx) => {
+      const fact = factsMap[q.fact_key];
+      return {
+        id: q.id,
+        question: q.question,
+        answer_type: 3,
+        fact_key: q.fact_key,
+        correct_answers: fact?.correct_answers || [],
+        incorrect_answers: fact?.incorrect_answers || [],
+        assigned_player: shuffledPlayerIndicesType3[idx % nbPlayers],
+      };
+    });
 
     const formattedType4 = selectedType4.map((q) => ({
       id: q.id,
