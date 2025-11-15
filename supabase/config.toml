@@ -1,1 +1,4 @@
 project_id = "amzutunyjouejovlrlah"
+
+[functions.fetch-game-questions]
+verify_jwt = false

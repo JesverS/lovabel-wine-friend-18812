@@ -1,125 +1,29 @@
-import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wine, Trophy, Home, RotateCcw } from "lucide-react";
+import { Trophy, Home, RotateCcw } from "lucide-react";
 import confetti from "canvas-confetti";
 
-// 16 questions génériques sur le vin
-const WINE_QUESTIONS = [
-  {
-    id: 1,
-    question: "De quelle couleur est le vin dans cette bouteille ?",
-    answers: ["Rouge", "Blanc", "Rosé", "Orange"],
-    correctAnswer: 0,
-  },
-  {
-    id: 2,
-    question: "Quel arôme ressens-tu le plus en le sentant ?",
-    answers: ["Fruité", "Boisé", "Floral", "Épicé"],
-    correctAnswer: 0,
-  },
-  {
-    id: 3,
-    question: "Ce vin est plutôt…",
-    answers: ["Doux", "Sec", "Sucré", "Moelleux"],
-    correctAnswer: 1,
-  },
-  {
-    id: 4,
-    question: "Quelle est la température idéale pour servir ce vin ?",
-    answers: ["6–8°C", "10–12°C", "16–18°C", "20°C"],
-    correctAnswer: 1,
-  },
-  {
-    id: 5,
-    question: "Quelle région produit le plus de vin en France ?",
-    answers: ["Bordeaux", "Champagne", "Alsace", "Loire"],
-    correctAnswer: 0,
-  },
-  {
-    id: 6,
-    question: "Quel type de verre est le plus adapté à ce vin ?",
-    answers: ["Verre à flûte", "Verre à pied large", "Coupe plate", "Tasse"],
-    correctAnswer: 1,
-  },
-  {
-    id: 7,
-    question: "Le vin rouge tire sa couleur principalement de…",
-    answers: [
-      "La peau du raisin",
-      "La pulpe du raisin",
-      "La fermentation",
-      "L'ajout de colorant naturel",
-    ],
-    correctAnswer: 0,
-  },
-  {
-    id: 8,
-    question: "Quel aliment s'accorde le mieux avec ce vin ?",
-    answers: ["Poisson", "Fromage", "Dessert", "Salade"],
-    correctAnswer: 1,
-  },
-  {
-    id: 9,
-    question: "Quel est le pourcentage d'alcool moyen d'un vin classique ?",
-    answers: ["5 %", "8 %", "12 %", "20 %"],
-    correctAnswer: 2,
-  },
-  {
-    id: 10,
-    question: "Que signifie \"millésime\" sur une étiquette de vin ?",
-    answers: [
-      "L'année d'embouteillage",
-      "L'année de naissance du vigneron",
-      "L'année de récolte des raisins",
-      "L'année d'achat",
-    ],
-    correctAnswer: 2,
-  },
-  {
-    id: 11,
-    question: "Combien de bouteilles fait un magnum de vin ?",
-    answers: ["1", "1,5", "2", "3"],
-    correctAnswer: 2,
-  },
-  {
-    id: 12,
-    question: "Quel vin sert-on souvent à l'apéritif ?",
-    answers: ["Rouge corsé", "Blanc sec", "Vin doux", "Rosé sucré"],
-    correctAnswer: 1,
-  },
-  {
-    id: 13,
-    question: "Que signifie \"terroir\" ?",
-    answers: [
-      "Le goût du vin",
-      "Le sol, le climat et le savoir-faire",
-      "La variété de raisin",
-      "La méthode de fermentation",
-    ],
-    correctAnswer: 1,
-  },
-  {
-    id: 14,
-    question: "Quelle est la contenance standard d'une bouteille de vin ?",
-    answers: ["50 cl", "75 cl", "1 L", "1,5 L"],
-    correctAnswer: 1,
-  },
-  {
-    id: 15,
-    question: "Le mot \"tannique\" décrit…",
-    answers: ["Le taux de sucre", "L'acidité", "L'amertume", "Le parfum"],
-    correctAnswer: 2,
-  },
-  {
-    id: 16,
-    question: "Lequel de ces vins est naturellement effervescent ?",
-    answers: ["Bordeaux", "Champagne", "Bourgogne", "Beaujolais"],
-    correctAnswer: 1,
-  },
-];
+interface GameQuestion {
+  id: number;
+  question: string;
+  answer_type: 1 | 3 | 4;
+  fact_key?: string;
+  correct_answers?: string[];
+  incorrect_answers?: string[];
+  assigned_player?: number;
+}
+
+interface Wine {
+  id: string;
+  name: string;
+  year?: number;
+  domain: string;
+  region: string;
+  color: string;
+}
 
 interface Player {
   name: string;
@@ -129,281 +33,321 @@ interface Player {
 export default function GamePlay() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { players: playerNames = [], wine } = location.state || {};
+  const { players: playerNames, wine, questions } = location.state || {} as {
+    players: string[];
+    wine: Wine;
+    questions: GameQuestion[];
+  };
 
   const [players, setPlayers] = useState<Player[]>(
-    playerNames.map((name: string) => ({ name, score: 0 }))
+    playerNames?.map((name: string) => ({ name, score: 0 })) || []
   );
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null);
+  const [gameStatus, setGameStatus] = useState<"playing" | "finished">("playing");
   const [showResult, setShowResult] = useState(false);
-  const [gameFinished, setGameFinished] = useState(false);
 
-  // Redirect if no players
-  useEffect(() => {
-    if (!playerNames || playerNames.length === 0) {
-      navigate("/game");
-    }
-  }, [playerNames, navigate]);
+  // Rediriger si pas de données
+  if (!playerNames || !wine || !questions || questions.length === 0) {
+    navigate("/game");
+    return null;
+  }
 
-  const currentQuestion = WINE_QUESTIONS[currentQuestionIndex];
+  const currentQuestion = questions[currentQuestionIndex];
 
-  const handleAnswerClick = (answerIndex: number) => {
-    if (selectedAnswer !== null) return; // Already answered
+  // Mélanger les réponses pour les questions de type 3
+  const shuffledAnswers = useMemo(() => {
+    if (currentQuestion.answer_type !== 3) return [];
+    const all = [
+      ...(currentQuestion.correct_answers || []),
+      ...(currentQuestion.incorrect_answers || [])
+    ];
+    return all.sort(() => Math.random() - 0.5);
+  }, [currentQuestionIndex]);
 
-    setSelectedAnswer(answerIndex);
+  const handleAnswerClick = (answer: string) => {
+    if (selectedAnswer !== null) return;
+    
+    setSelectedAnswer(answer);
     setShowResult(true);
-
-    // Update scores if correct answer
-    if (answerIndex === currentQuestion.correctAnswer) {
-      setPlayers((prev) =>
-        prev.map((player, idx) =>
-          idx === currentQuestionIndex % players.length
-            ? { ...player, score: player.score + 1 }
-            : player
-        )
-      );
+    
+    // Vérifier si la réponse est correcte (pour type 3)
+    if (currentQuestion.answer_type === 3) {
+      const isCorrect = currentQuestion.correct_answers?.includes(answer);
+      if (isCorrect && currentQuestion.assigned_player !== undefined) {
+        const newPlayers = [...players];
+        newPlayers[currentQuestion.assigned_player].score += 1;
+        setPlayers(newPlayers);
+      }
     }
   };
 
+  const handleVote = (correct: boolean) => {
+    if (selectedAnswer !== null) return;
+    
+    setSelectedAnswer(correct ? 1 : 0);
+    setShowResult(true);
+    
+    // Attribuer le point si "bien répondu"
+    if (correct && currentQuestion.assigned_player !== undefined) {
+      const newPlayers = [...players];
+      newPlayers[currentQuestion.assigned_player].score += 1;
+      setPlayers(newPlayers);
+    }
+  };
+
+  const handlePlayerVote = (playerIndex: number) => {
+    if (selectedAnswer !== null) return;
+    
+    setSelectedAnswer(playerIndex);
+    setShowResult(true);
+    
+    // Attribuer le point au joueur sélectionné
+    const newPlayers = [...players];
+    newPlayers[playerIndex].score += 1;
+    setPlayers(newPlayers);
+  };
+
   const handleNextQuestion = () => {
-    if (currentQuestionIndex < WINE_QUESTIONS.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
       setShowResult(false);
     } else {
-      // Game finished
-      setGameFinished(true);
-      // Trigger confetti
+      setGameStatus("finished");
       confetti({
         particleCount: 100,
         spread: 70,
-        origin: { y: 0.6 },
+        origin: { y: 0.6 }
       });
     }
   };
 
-  const getAnswerClass = (answerIndex: number) => {
-    if (!showResult) {
-      return selectedAnswer === answerIndex
-        ? "border-primary bg-primary/10"
-        : "hover:border-primary/50 hover:bg-primary/5";
+  const getAnswerClass = (answer: string) => {
+    if (!showResult) return "";
+    
+    if (currentQuestion.answer_type === 3) {
+      const isCorrect = currentQuestion.correct_answers?.includes(answer);
+      const isSelected = selectedAnswer === answer;
+      
+      if (isSelected && isCorrect) return "bg-green-500 hover:bg-green-600 text-white";
+      if (isSelected && !isCorrect) return "bg-red-500 hover:bg-red-600 text-white";
+      if (!isSelected && isCorrect) return "bg-green-500 hover:bg-green-600 text-white";
+      return "opacity-50";
     }
-
-    if (answerIndex === currentQuestion.correctAnswer) {
-      return "border-green-500 bg-green-500/20 text-green-700";
-    }
-
-    if (selectedAnswer === answerIndex && answerIndex !== currentQuestion.correctAnswer) {
-      return "border-red-500 bg-red-500/20 text-red-700";
-    }
-
-    return "opacity-50";
+    
+    return "";
   };
 
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-
-  if (gameFinished) {
+  if (gameStatus === "playing") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-primary/5 via-secondary/5 to-background flex items-center justify-center p-4">
-        <Card className="max-w-2xl w-full border-2 shadow-xl animate-fade-up">
-          <CardContent className="pt-8 pb-6">
-            {/* Winner Section */}
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 mb-4 animate-bounce">
-                <Trophy className="h-10 w-10 text-white" />
+      <div className="min-h-screen bg-gradient-to-b from-wine-light to-wine-DEFAULT p-4">
+        <div className="container mx-auto py-8">
+          {/* En-tête avec scores */}
+          <Card className="mb-6 p-4">
+            <div className="flex justify-between items-center mb-4">
+              <Badge variant="outline" className="text-lg">
+                Question {currentQuestionIndex + 1}/{questions.length}
+              </Badge>
+              <div className="text-sm text-muted-foreground">
+                {wine.name} {wine.year ? `${wine.year}` : ''} - {wine.domain}
               </div>
-              <h2 className="font-serif text-4xl font-bold mb-2">
-                Bravo {sortedPlayers[0]?.name} !
-              </h2>
-              <p className="text-lg text-muted-foreground">
-                🎉 Vous avez gagné avec {sortedPlayers[0]?.score} points !
-              </p>
             </div>
-
-            {/* Leaderboard */}
-            <div className="space-y-3 mb-8">
-              <h3 className="font-semibold text-lg text-center mb-4">
-                🏆 Classement Final
-              </h3>
-              {sortedPlayers.map((player, index) => (
-                <div
-                  key={player.name}
-                  className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
-                    index === 0
-                      ? "bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-400 shadow-md"
-                      : index === 1
-                      ? "bg-gradient-to-r from-gray-50 to-gray-100 border-gray-300"
-                      : index === 2
-                      ? "bg-gradient-to-r from-orange-50 to-orange-100 border-orange-300"
-                      : "bg-muted/50 border-muted"
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                        index === 0
-                          ? "bg-yellow-500 text-white text-lg"
-                          : index === 1
-                          ? "bg-gray-400 text-white"
-                          : index === 2
-                          ? "bg-orange-400 text-white"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {index + 1}
-                    </div>
-                    <span className="font-semibold text-lg">{player.name}</span>
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className="text-lg px-4 py-2 font-bold"
-                  >
-                    {player.score} pts
-                  </Badge>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {players.map((player, idx) => (
+                <div key={idx} className="text-center">
+                  <div className="font-semibold">{player.name}</div>
+                  <div className="text-2xl font-bold text-wine-dark">{player.score}</div>
                 </div>
               ))}
             </div>
+          </Card>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button
-                onClick={() => navigate("/game")}
-                variant="outline"
-                className="flex-1"
-                size="lg"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Rejouer
-              </Button>
-              <Button
-                onClick={() => navigate("/")}
-                className="flex-1 bg-gradient-wine"
-                size="lg"
-              >
-                <Home className="h-4 w-4 mr-2" />
-                Accueil
+          {/* Question - Type 1: Vote du peuple */}
+          {currentQuestion.answer_type === 1 && (
+            <Card className="p-6 mb-6">
+              <div className="space-y-6">
+                <div className="text-center">
+                  <Badge className="mb-4 text-lg">
+                    Question pour {players[currentQuestion.assigned_player!].name}
+                  </Badge>
+                  <h2 className="text-2xl font-bold mb-6">{currentQuestion.question}</h2>
+                </div>
+                
+                {!showResult && (
+                  <>
+                    <div className="text-center mb-6">
+                      <p className="text-muted-foreground text-lg">🗳️ À vous de voter</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+                      <Button 
+                        onClick={() => handleVote(true)} 
+                        className="h-20 text-lg"
+                        size="lg"
+                      >
+                        ✅ Bien répondu
+                      </Button>
+                      <Button 
+                        onClick={() => handleVote(false)} 
+                        className="h-20 text-lg"
+                        size="lg"
+                        variant="destructive"
+                      >
+                        ❌ Mal répondu
+                      </Button>
+                    </div>
+                  </>
+                )}
+                
+                {showResult && (
+                  <div className="text-center">
+                    <p className="text-lg mb-4">
+                      {selectedAnswer === 1 
+                        ? `✅ ${players[currentQuestion.assigned_player!].name} gagne 1 point !` 
+                        : `❌ ${players[currentQuestion.assigned_player!].name} ne gagne pas de point.`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Question - Type 3: Réponses multiples */}
+          {currentQuestion.answer_type === 3 && (
+            <Card className="p-6 mb-6">
+              <div className="space-y-6">
+                <div className="text-center">
+                  <Badge className="mb-4 text-lg">
+                    Question pour {players[currentQuestion.assigned_player!].name}
+                  </Badge>
+                  <h2 className="text-2xl font-bold mb-6">{currentQuestion.question}</h2>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+                  {shuffledAnswers.map((answer, index) => (
+                    <Button
+                      key={index}
+                      onClick={() => handleAnswerClick(answer)}
+                      disabled={selectedAnswer !== null}
+                      className={`h-20 text-lg ${getAnswerClass(answer)}`}
+                      variant="outline"
+                    >
+                      {answer}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Question - Type 4: Question collective */}
+          {currentQuestion.answer_type === 4 && (
+            <Card className="p-6 mb-6">
+              <div className="space-y-6">
+                <div className="text-center">
+                  <Badge className="mb-4 text-lg">Question pour tout le monde</Badge>
+                  <h2 className="text-2xl font-bold mb-4">
+                    Chacun son tour, faites l'action suivante :
+                  </h2>
+                  <p className="text-xl mb-6">{currentQuestion.question}</p>
+                </div>
+                
+                {!showResult && (
+                  <>
+                    <div className="text-center mb-6">
+                      <p className="text-muted-foreground text-lg">🗳️ Qui a le mieux répondu ?</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+                      {players.map((player, index) => (
+                        <Button
+                          key={index}
+                          onClick={() => handlePlayerVote(index)}
+                          className="h-20 text-lg"
+                          variant="outline"
+                        >
+                          {player.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                
+                {showResult && typeof selectedAnswer === 'number' && (
+                  <div className="text-center">
+                    <p className="text-lg">
+                      🏆 {players[selectedAnswer].name} gagne 1 point !
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Bouton suivant */}
+          {showResult && (
+            <div className="text-center">
+              <Button size="lg" onClick={handleNextQuestion}>
+                {currentQuestionIndex < questions.length - 1
+                  ? "Question suivante"
+                  : "Voir les résultats"}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
       </div>
     );
   }
 
+  // Écran de résultats
+  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  const winner = sortedPlayers[0];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-secondary/5 to-background">
-      {/* Header with Scores */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Wine className="h-5 w-5 text-primary" />
-              <span className="font-semibold">Question {currentQuestionIndex + 1}/16</span>
-            </div>
-            {wine && (
-              <div className="text-sm text-muted-foreground hidden sm:block">
-                🍷 {wine.name}
+    <div className="min-h-screen bg-gradient-to-b from-wine-light to-wine-DEFAULT p-4">
+      <div className="container mx-auto py-8">
+        <Card className="max-w-2xl mx-auto p-8">
+          <div className="text-center space-y-6">
+            <Trophy className="w-24 h-24 mx-auto text-yellow-500" />
+            <h1 className="text-4xl font-bold">Fin de la partie !</h1>
+            
+            <div className="space-y-4">
+              <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 p-6 rounded-lg">
+                <h2 className="text-2xl font-bold mb-2">🏆 Vainqueur</h2>
+                <p className="text-3xl font-bold text-wine-dark">{winner.name}</p>
+                <p className="text-xl text-muted-foreground">{winner.score} points</p>
               </div>
-            )}
-          </div>
 
-          {/* Players Scoreboard */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {players.map((player, idx) => (
-              <div
-                key={player.name}
-                className={`p-2 rounded-lg border transition-all ${
-                  idx === currentQuestionIndex % players.length
-                    ? "bg-primary/10 border-primary shadow-md scale-105"
-                    : "bg-muted/50 border-muted"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm truncate">{player.name}</span>
-                  <Badge variant="secondary" className="font-bold">
-                    {player.score}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Question Area */}
-      <main className="container mx-auto px-4 py-8">
-        <Card className="max-w-3xl mx-auto border-2 shadow-xl animate-fade-up">
-          <CardContent className="pt-8 pb-6">
-            {/* Question */}
-            <div className="text-center mb-8">
-              <Badge
-                variant="outline"
-                className="mb-4 text-base px-4 py-2 font-semibold"
-              >
-                Question {currentQuestionIndex + 1}
-              </Badge>
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-tight">
-                {currentQuestion.question}
-              </h2>
-            </div>
-
-            {/* Answer Buttons */}
-            <div className="space-y-3 mb-8">
-              {currentQuestion.answers.map((answer, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleAnswerClick(index)}
-                  disabled={selectedAnswer !== null}
-                  className={`w-full p-4 rounded-lg border-2 text-left font-medium transition-all disabled:cursor-not-allowed ${getAnswerClass(
-                    index
-                  )}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center font-bold">
-                      {String.fromCharCode(65 + index)}
-                    </div>
-                    <span>{answer}</span>
-                    {showResult && index === currentQuestion.correctAnswer && (
-                      <span className="ml-auto">✅</span>
-                    )}
-                    {showResult &&
-                      selectedAnswer === index &&
-                      index !== currentQuestion.correctAnswer && (
-                        <span className="ml-auto">❌</span>
-                      )}
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold">Classement final</h3>
+                {sortedPlayers.map((player, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center p-3 bg-secondary/20 rounded"
+                  >
+                    <span className="font-medium">
+                      {index + 1}. {player.name}
+                    </span>
+                    <span className="font-bold">{player.score} pts</span>
                   </div>
-                </button>
-              ))}
+                ))}
+              </div>
             </div>
 
-            {/* Next Button */}
-            {showResult && (
-              <div className="text-center animate-fade-up">
-                <Button
-                  onClick={handleNextQuestion}
-                  size="lg"
-                  className="bg-gradient-wine px-8"
-                >
-                  {currentQuestionIndex < WINE_QUESTIONS.length - 1
-                    ? "Question suivante"
-                    : "Voir le classement final"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
+            <div className="flex gap-4 justify-center pt-4">
+              <Button onClick={() => navigate("/game")} variant="outline">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Nouvelle partie
+              </Button>
+              <Button onClick={() => navigate("/")}>
+                <Home className="mr-2 h-4 w-4" />
+                Accueil
+              </Button>
+            </div>
+          </div>
         </Card>
-
-        {/* Current Player Indicator */}
-        <div className="text-center mt-6 animate-fade-up">
-          <p className="text-muted-foreground">
-            🎯 C'est au tour de{" "}
-            <span className="font-semibold text-foreground">
-              {players[currentQuestionIndex % players.length]?.name}
-            </span>
-          </p>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }
