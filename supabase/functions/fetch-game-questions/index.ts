@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       `)
       .eq('answer_type', 3)
       .eq('game_wine_facts.region', wineRegion)
-      .or(`game_wine_facts.wine_type.eq.${wineColor},game_wine_facts.wine_type.eq.all`, { foreignTable: 'game_wine_facts' })
+      .or(`wine_type.eq.${wineColor},wine_type.eq.all`, { foreignTable: 'game_wine_facts' })
       .limit(nbPlayers * 2);
 
     if (type3Error) {
