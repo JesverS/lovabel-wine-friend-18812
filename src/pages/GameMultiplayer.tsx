@@ -85,6 +85,48 @@ export default function GameMultiplayer() {
   };
 
   const canStartGame = players.length >= 1 && selectedWine;
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleStartGame = async () => {
+    if (!canStartGame) return;
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-game-questions', {
+        body: { 
+          wineId: selectedWine.id, 
+          nbPlayers: players.length 
+        }
+      });
+
+      if (error) {
+        console.error('Error fetching questions:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les questions du jeu",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      navigate("/game/play", {
+        state: {
+          players: players,
+          wine: data.wine,
+          questions: data.questions,
+        },
+      });
+    } catch (error) {
+      console.error('Error starting game:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors du lancement du jeu",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background flex flex-col">
@@ -322,12 +364,21 @@ export default function GameMultiplayer() {
         <div className="mt-8 text-center animate-fade-up" style={{ animationDelay: "300ms" }}>
           <Button
             size="lg"
-            disabled={!canStartGame}
-            onClick={() => navigate("/game/play", { state: { players, wine: selectedWine } })}
+            disabled={!canStartGame || isLoading}
+            onClick={handleStartGame}
             className="bg-gradient-wine hover:opacity-90 px-12 text-lg h-14 disabled:opacity-50"
           >
-            <Play className="h-5 w-5 mr-2" />
-            Commencer la partie
+            {isLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Chargement...
+              </>
+            ) : (
+              <>
+                <Play className="h-5 w-5 mr-2" />
+                Commencer la partie
+              </>
+            )}
           </Button>
           {!canStartGame && (
             <p className="text-sm text-muted-foreground mt-3">

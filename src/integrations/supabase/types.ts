@@ -506,22 +506,58 @@ export type Database = {
       }
       game_question: {
         Row: {
-          created_at: string
+          answer_type: number
+          apply_to_color: Database["public"]["Enums"]["quiz_wine_color"]
+          apply_to_region: Database["public"]["Enums"]["domain_region"] | null
+          fact_key: string | null
           id: number
+          is_fun: boolean
           question: string | null
-          reply: Json | null
         }
         Insert: {
-          created_at?: string
+          answer_type: number
+          apply_to_color?: Database["public"]["Enums"]["quiz_wine_color"]
+          apply_to_region?: Database["public"]["Enums"]["domain_region"] | null
+          fact_key?: string | null
           id?: number
+          is_fun?: boolean
           question?: string | null
-          reply?: Json | null
         }
         Update: {
-          created_at?: string
+          answer_type?: number
+          apply_to_color?: Database["public"]["Enums"]["quiz_wine_color"]
+          apply_to_region?: Database["public"]["Enums"]["domain_region"] | null
+          fact_key?: string | null
           id?: number
+          is_fun?: boolean
           question?: string | null
-          reply?: Json | null
+        }
+        Relationships: []
+      }
+      game_wine_facts: {
+        Row: {
+          correct_answers: Json
+          fact_key: string
+          id: number
+          incorrect_answers: Json
+          region: Database["public"]["Enums"]["domain_region"]
+          wine_type: Database["public"]["Enums"]["quiz_wine_color"]
+        }
+        Insert: {
+          correct_answers: Json
+          fact_key: string
+          id?: number
+          incorrect_answers: Json
+          region: Database["public"]["Enums"]["domain_region"]
+          wine_type: Database["public"]["Enums"]["quiz_wine_color"]
+        }
+        Update: {
+          correct_answers?: Json
+          fact_key?: string
+          id?: number
+          incorrect_answers?: Json
+          region?: Database["public"]["Enums"]["domain_region"]
+          wine_type?: Database["public"]["Enums"]["quiz_wine_color"]
         }
         Relationships: []
       }
@@ -1816,6 +1852,7 @@ export type Database = {
         | "Corse"
         | "Provence"
       event_role: "organizer" | "co_organizer" | "admin"
+      quiz_wine_color: "red" | "white" | "rose" | "eff" | "all"
       wine_type_enum:
         | "champagne"
         | "crémant"
@@ -1968,6 +2005,7 @@ export const Constants = {
         "Provence",
       ],
       event_role: ["organizer", "co_organizer", "admin"],
+      quiz_wine_color: ["red", "white", "rose", "eff", "all"],
       wine_type_enum: [
         "champagne",
         "crémant",
