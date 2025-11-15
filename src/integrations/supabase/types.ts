@@ -511,7 +511,7 @@ export type Database = {
           apply_to_region: Database["public"]["Enums"]["domain_region"] | null
           fact_key: string | null
           id: number
-          is_fun: boolean
+          is_fun: boolean | null
           question: string | null
         }
         Insert: {
@@ -520,7 +520,7 @@ export type Database = {
           apply_to_region?: Database["public"]["Enums"]["domain_region"] | null
           fact_key?: string | null
           id?: number
-          is_fun?: boolean
+          is_fun?: boolean | null
           question?: string | null
         }
         Update: {
@@ -529,7 +529,7 @@ export type Database = {
           apply_to_region?: Database["public"]["Enums"]["domain_region"] | null
           fact_key?: string | null
           id?: number
-          is_fun?: boolean
+          is_fun?: boolean | null
           question?: string | null
         }
         Relationships: []
