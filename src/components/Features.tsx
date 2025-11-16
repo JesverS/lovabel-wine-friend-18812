@@ -1,10 +1,10 @@
-import { Sparkles, MapPin, Users, Calendar } from "lucide-react";
+import { GraduationCap, MapPin, Gamepad2, Calendar } from "lucide-react";
 
 const FEATURES = [
   {
-    icon: Sparkles,
-    title: "IA Sommelier",
-    description: "Notre intelligence artificielle analyse vos goûts et vos plats pour vous recommander le vin parfait en quelques secondes.",
+    icon: GraduationCap,
+    title: "Cours d'Œnologie",
+    description: "Suivez des cours en ligne pour approfondir vos connaissances, progressez à votre rythme et suivez votre évolution avec des quiz interactifs.",
   },
   {
     icon: MapPin,
@@ -12,9 +12,9 @@ const FEATURES = [
     description: "Trouvez instantanément les bouteilles disponibles près de chez vous ou en livraison directe depuis les domaines.",
   },
   {
-    icon: Users,
-    title: "Communauté passionnée",
-    description: "Partagez vos découvertes, suivez des cavistes et domaines, et inspirez-vous des suggestions de la communauté.",
+    icon: Gamepad2,
+    title: "Jeux Festifs",
+    description: "Défiez vos amis avec des mini-jeux amusants sur le vin. Soirées conviviales garanties pour partager votre passion dans la bonne humeur.",
   },
   {
     icon: Calendar,
@@ -29,7 +29,7 @@ export const Features = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16 animate-fade-up">
           <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4">
-            L'expérience <span className="text-gradient-wine">Lovabel</span>
+            L'expérience <span className="text-gradient-wine">Wine Note</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Une nouvelle façon de découvrir, apprendre et partager votre passion du vin
