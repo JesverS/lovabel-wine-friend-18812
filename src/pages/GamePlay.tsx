@@ -75,6 +75,22 @@ export default function GamePlay() {
     );
   }
 
+  // Vérification immédiate pour éviter le crash si accès direct sans données
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/5 to-background">
+        <Card className="p-8 text-center max-w-md">
+          <div className="text-6xl mb-4">🎮</div>
+          <h2 className="text-2xl font-bold mb-4">Aucune partie en cours</h2>
+          <p className="text-muted-foreground mb-6">
+            Vous allez être redirigé vers la page de jeu...
+          </p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        </Card>
+      </div>
+    );
+  }
+
   const currentQuestion = questions[currentQuestionIndex];
 
   // Mélanger les réponses pour les questions de type 3
