@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,11 +46,33 @@ export default function GamePlay() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null);
   const [gameStatus, setGameStatus] = useState<"playing" | "finished">("playing");
   const [showResult, setShowResult] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Rediriger si pas de données
-  if (!playerNames || !wine || !questions || questions.length === 0) {
-    navigate("/game");
-    return null;
+  useEffect(() => {
+    if (!playerNames || !wine || !questions || questions.length === 0) {
+      setIsRedirecting(true);
+      const timer = setTimeout(() => {
+        navigate("/game");
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [playerNames, wine, questions, navigate]);
+
+  // Afficher un écran de redirection si aucune partie en cours
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/5 to-background">
+        <Card className="p-8 text-center max-w-md">
+          <div className="text-6xl mb-4">🎮</div>
+          <h2 className="text-2xl font-bold mb-4">Aucune partie en cours</h2>
+          <p className="text-muted-foreground mb-6">
+            Vous allez être redirigé vers la page de jeu...
+          </p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        </Card>
+      </div>
+    );
   }
 
   const currentQuestion = questions[currentQuestionIndex];

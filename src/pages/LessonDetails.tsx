@@ -370,8 +370,9 @@ const LessonDetails = () => {
                 onClick={handleCompleteQuiz}
                 size="lg"
                 className="w-full"
+                disabled={submitQuizMutation.isPending}
               >
-                Terminer le quiz 🎉
+                {submitQuizMutation.isPending ? "Chargement..." : "Terminer le quiz 🎉"}
               </Button>
             )}
           </div>
