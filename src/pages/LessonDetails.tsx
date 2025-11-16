@@ -24,7 +24,7 @@ interface Lesson {
   title: string;
   estimated_time: string;
   global_order: number;
-  pages: Record<string, string>;
+  pages: Record<string, { title: string; content: string; }>;
   quizzes: Record<string, {
     question: string;
     text?: string;
@@ -308,7 +308,10 @@ const LessonDetails = () => {
           <Card className="p-8 mb-6 animate-fade-in">
             <div className="prose prose-lg max-w-none dark:prose-invert">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {pages[currentPage - 1].replace(/\\n/g, '\n')}
+                {pages[currentPage - 1].title}
+              </ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {pages[currentPage - 1].content.replace(/\\n/g, '\n')}
               </ReactMarkdown>
             </div>
           </Card>
