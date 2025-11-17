@@ -104,7 +104,9 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
         .from('avatars')
         .getPublicUrl(fileName);
 
-      setAvatarPreview(publicUrl);
+      // Add cache buster to force browser reload
+      const avatarUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
+      setAvatarPreview(avatarUrlWithTimestamp);
       setCropDialogOpen(false);
 
       toast({

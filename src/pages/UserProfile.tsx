@@ -159,7 +159,7 @@ export default function UserProfile() {
         <div className="bg-card rounded-lg border p-4 md:p-8 mb-8">
           <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
             <Avatar className="w-20 h-20 md:w-24 md:h-24 mx-auto md:mx-0">
-              <AvatarImage src={profile.logo_adress || undefined} />
+              <AvatarImage src={profile.logo_adress ? `${profile.logo_adress.split('?')[0]}?t=${Date.now()}` : undefined} />
               <AvatarFallback className="text-2xl md:text-3xl">
                 {profile.full_name?.[0] || 'U'}
               </AvatarFallback>
