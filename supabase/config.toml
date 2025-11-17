@@ -1,7 +1,7 @@
 project_id = "amzutunyjouejovlrlah"
 
 [functions.fetch-game-questions]
-verify_jwt = false
+verify_jwt = true
 
 [functions.weekly-lesson-reset]
 verify_jwt = false

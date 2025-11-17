@@ -11,10 +11,24 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Vérifier l'authentification
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Authentication required');
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Vérifier que l'utilisateur est authentifié
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      throw new Error('Invalid authentication');
+    }
 
     const { wineId, nbPlayers } = await req.json();
     
