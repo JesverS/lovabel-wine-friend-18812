@@ -51,7 +51,7 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
     description: profile?.description || '',
     address: profile?.address || '',
     city: profile?.city || '',
-    téléphone: profile?.téléphone?.toString() || '',
+    téléphone: profile?.phone_number?.toString() || '',
   });
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,7 +141,7 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
           description: validated.description || null,
           address: validated.address || null,
           city: validated.city || null,
-          téléphone: validated.téléphone && validated.téléphone.trim() ? parseInt(validated.téléphone) : null,
+          phone_number: validated.téléphone && validated.téléphone.trim() ? parseInt(validated.téléphone) : null,
           logo_adress: avatarPreview || null,
         })
         .eq('id', user.id);

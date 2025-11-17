@@ -167,7 +167,7 @@ export default function CompleteProfile() {
           city: formData.city.trim(),
           address: formData.address.trim() || null,
           description: formData.description.trim() || null,
-          téléphone: formData.téléphone ? parseInt(formData.téléphone) : null,
+          phone_number: formData.téléphone ? parseInt(formData.téléphone) : null,
           logo_adress: formData.logo_adress || null,
           latitude,
           longitude,
