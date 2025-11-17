@@ -374,6 +374,37 @@ const EventDetails = () => {
 
   const handleDeleteEvent = async () => {
     try {
+      // 1. Récupérer l'événement pour obtenir le banner_url
+      const { data: eventData, error: fetchError } = await supabase
+        .from('event')
+        .select('banner_url')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. Si un banner existe, le supprimer du bucket
+      if (eventData?.banner_url) {
+        try {
+          // Extraire le nom du fichier depuis l'URL
+          const urlParts = eventData.banner_url.split('/event/');
+          if (urlParts.length > 1) {
+            const fileName = urlParts[1].split('?')[0];
+            
+            const { error: storageError } = await supabase.storage
+              .from('event')
+              .remove([fileName]);
+            
+            if (storageError) {
+              console.warn('Erreur lors de la suppression du banner:', storageError);
+            }
+          }
+        } catch (storageError) {
+          console.warn('Erreur lors de la suppression du banner:', storageError);
+        }
+      }
+
+      // 3. Supprimer l'événement de la base de données
       const { error } = await supabase
         .from('event')
         .delete()
@@ -383,7 +414,7 @@ const EventDetails = () => {
 
       toast({
         title: 'Succès',
-        description: 'Événement supprimé',
+        description: 'Événement et fichiers associés supprimés',
       });
       navigate('/events');
     } catch (error: any) {
