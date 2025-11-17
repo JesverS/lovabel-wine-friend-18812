@@ -84,6 +84,42 @@ export default function CellarDetails() {
     if (!cellar) return;
 
     try {
+      // 1. Récupérer les URLs des fichiers
+      const { data: cellarData, error: fetchError } = await supabase
+        .from('cellar' as any)
+        .select('logo_url, banner_url')
+        .eq('id', cellar.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. Supprimer le logo s'il existe
+      if ((cellarData as any)?.logo_url) {
+        try {
+          const urlParts = (cellarData as any).logo_url.split('/avatars/');
+          if (urlParts.length > 1) {
+            const fileName = urlParts[1].split('?')[0];
+            await supabase.storage.from('avatars').remove([fileName]);
+          }
+        } catch (error) {
+          console.warn('Erreur suppression logo:', error);
+        }
+      }
+
+      // 3. Supprimer la bannière si elle existe
+      if ((cellarData as any)?.banner_url) {
+        try {
+          const urlParts = (cellarData as any).banner_url.split('/domain/');
+          if (urlParts.length > 1) {
+            const fileName = urlParts[1].split('?')[0];
+            await supabase.storage.from('domain').remove([fileName]);
+          }
+        } catch (error) {
+          console.warn('Erreur suppression banner:', error);
+        }
+      }
+
+      // 4. Supprimer la cave (cascade automatique pour les relations)
       const { error } = await supabase
         .from('cellar' as any)
         .delete()
@@ -93,7 +129,7 @@ export default function CellarDetails() {
 
       toast({
         title: 'Succès',
-        description: 'Cave supprimée',
+        description: 'Cave et fichiers associés supprimés',
       });
       navigate('/cellars');
     } catch (error: any) {
