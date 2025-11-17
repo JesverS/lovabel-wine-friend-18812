@@ -20,6 +20,7 @@ export default function EventInvitation() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [invitationNotFound, setInvitationNotFound] = useState(false);
 
   useEffect(() => {
     if (token && !invitation) {
@@ -52,19 +53,13 @@ export default function EventInvitation() {
         .single();
 
       if (error || !inv) {
-        toast.error('Invitation introuvable ou expirée', {
-          duration: 8000,
-        });
-        navigate('/');
+        setInvitationNotFound(true);
         return;
       }
 
       // Vérifier si expirée
       if (new Date(inv.expires_at) < new Date()) {
-        toast.error('Cette invitation a expiré', {
-          duration: 8000,
-        });
-        navigate('/');
+        setInvitationNotFound(true);
         return;
       }
 
@@ -72,8 +67,7 @@ export default function EventInvitation() {
       setEvent(inv.event);
     } catch (error: any) {
       console.error('Error fetching invitation:', error);
-      toast.error(error.message);
-      navigate('/');
+      setInvitationNotFound(true);
     } finally {
       setLoading(false);
     }
@@ -141,6 +135,38 @@ export default function EventInvitation() {
         <div className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (invitationNotFound) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <main className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Invitation à rejoindre un événement</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center p-6 bg-amber-50 rounded-lg border border-amber-200">
+                <p className="text-amber-800 font-medium mb-2">
+                  🔒 Accès restreint
+                </p>
+                <p className="text-sm text-amber-700">
+                  Merci de vous connecter et de vérifier que vous disposez bien d'un lien d'invitation valide pour votre email.
+                </p>
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => navigate(`/auth?redirect=/event-invitation/${token}`)}
+              >
+                Se connecter
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
         <Footer />
       </div>
     );
