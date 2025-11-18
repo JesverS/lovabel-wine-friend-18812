@@ -7,9 +7,9 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, XCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { useAuth } from "@/contexts/AuthContext";
+import HeroBlock from "@/components/lesson/HeroBlock";
+import SectionBlock from "@/components/lesson/SectionBlock";
 
 interface Course {
   id: number;
@@ -24,7 +24,20 @@ interface Lesson {
   title: string;
   estimated_time: string;
   global_order: number;
-  pages: Record<string, { title: string; content: string; }>;
+  pages: Array<{
+    type: "hero" | "section";
+    title?: string;
+    duration?: string;
+    level?: string;
+    illustration?: string;
+    icon?: "grapes" | "history" | "sparkles" | "wine-glass" | "book";
+    content?: Array<{
+      type: "text" | "subsection" | "highlight" | "list";
+      value?: string;
+      title?: string;
+      items?: string[];
+    }>;
+  }>;
   quizzes: Record<string, {
     question: string;
     text?: string;
@@ -305,16 +318,22 @@ const LessonDetails = () => {
       {/* Contenu */}
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {!showQuiz && !quizCompleted && (
-          <Card className="p-8 mb-6 animate-fade-in">
-            <div className="prose prose-lg max-w-none dark:prose-invert">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {pages[currentPage - 1].title}
-              </ReactMarkdown>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {pages[currentPage - 1].content.replace(/\\n/g, '\n')}
-              </ReactMarkdown>
-            </div>
-          </Card>
+          <div className="mb-6 animate-fade-in">
+            {(() => {
+              const currentPageData = pages[currentPage - 1];
+              
+              switch (currentPageData.type) {
+                case "hero":
+                  return <HeroBlock data={currentPageData} />;
+                
+                case "section":
+                  return <SectionBlock data={currentPageData} />;
+                
+                default:
+                  return null;
+              }
+            })()}
+          </div>
         )}
 
         {showQuiz && !quizCompleted && (
