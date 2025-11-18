@@ -4,12 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, ChevronRight, CheckCircle, XCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import HeroBlock from "@/components/lesson/HeroBlock";
-import SectionBlock from "@/components/lesson/SectionBlock";
+import LessonPagination from "@/components/lesson/LessonPagination";
 
 interface Course {
   id: number;
@@ -56,15 +55,15 @@ const LessonDetails = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pageInfo, setPageInfo] = useState({ currentPage: 1, totalPages: 0 });
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string | null>>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
 
-  // Scroll to top when page or quiz changes
+  // Scroll to top when quiz or completion state changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentPage, showQuiz, quizCompleted]);
+  }, [showQuiz, quizCompleted]);
 
   const { data: course } = useQuery({
     queryKey: ["course", courseId],
@@ -212,28 +211,11 @@ const LessonDetails = () => {
 
   const pages = Object.values(lesson.pages);
   const totalPages = pages.length;
-  const progressPercent = ((currentPage - 1) / totalPages) * 100;
+  const progressPercent = ((pageInfo.currentPage - 1) / totalPages) * 100;
 
   const quizzes = lesson.quizzes ? Object.entries(lesson.quizzes) : [];
   const totalQuizzes = quizzes.length;
   const answeredQuizzes = Object.values(quizAnswers).filter(a => a !== null).length;
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    } else if (!showQuiz && quizzes.length > 0) {
-      setShowQuiz(true);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (showQuiz) {
-      setShowQuiz(false);
-      setCurrentPage(totalPages);
-    } else if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
 
   const handleQuizAnswer = (quizKey: string, answer: string) => {
     const quiz = lesson.quizzes[quizKey];
@@ -305,7 +287,7 @@ const LessonDetails = () => {
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>
-                  {showQuiz ? `Quiz: ${answeredQuizzes}/${totalQuizzes}` : `Page ${currentPage}/${totalPages}`}
+                  {showQuiz ? `Quiz: ${answeredQuizzes}/${totalQuizzes}` : `Page ${pageInfo.currentPage}/${pageInfo.totalPages}`}
                 </span>
                 <span>{Math.round(showQuiz ? (answeredQuizzes / totalQuizzes) * 100 : progressPercent)}%</span>
               </div>
@@ -318,22 +300,11 @@ const LessonDetails = () => {
       {/* Contenu */}
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {!showQuiz && !quizCompleted && (
-          <div className="mb-6 animate-fade-in">
-            {(() => {
-              const currentPageData = pages[currentPage - 1];
-              
-              switch (currentPageData.type) {
-                case "hero":
-                  return <HeroBlock data={currentPageData} />;
-                
-                case "section":
-                  return <SectionBlock data={currentPageData} />;
-                
-                default:
-                  return null;
-              }
-            })()}
-          </div>
+          <LessonPagination 
+            pages={pages}
+            onComplete={() => setShowQuiz(true)}
+            onPageChange={(current, total) => setPageInfo({ currentPage: current, totalPages: total })}
+          />
         )}
 
         {showQuiz && !quizCompleted && (
@@ -434,30 +405,6 @@ const LessonDetails = () => {
               </div>
             )}
           </Card>
-        )}
-
-        {/* Navigation */}
-        {!quizCompleted && (
-          <div className="flex justify-between items-center mt-8">
-            <Button
-              variant="outline"
-              onClick={handlePrevPage}
-              disabled={currentPage === 1 && !showQuiz}
-              className="gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Précédent
-            </Button>
-
-            <Button
-              onClick={handleNextPage}
-              disabled={showQuiz && answeredQuizzes < totalQuizzes}
-              className="gap-2"
-            >
-              {currentPage < totalPages ? "Suivant" : showQuiz ? "Terminer" : "Passer au quiz"}
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
         )}
       </div>
     </div>
