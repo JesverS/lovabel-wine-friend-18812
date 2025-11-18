@@ -209,7 +209,9 @@ const LessonDetails = () => {
     );
   }
 
-  const pages = Object.values(lesson.pages);
+    const pages = Array.isArray(lesson.pages) 
+      ? lesson.pages 
+      : ((lesson.pages as any).pages || Object.values(lesson.pages));
   const totalPages = pages.length;
   const progressPercent = ((pageInfo.currentPage - 1) / totalPages) * 100;
 
