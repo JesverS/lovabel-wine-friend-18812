@@ -29,18 +29,20 @@ export default function SectionBlock({ data }: SectionBlockProps) {
   const icon = data.icon ? iconMap[data.icon] || "📘" : "📘";
 
   return (
-    <div className="bg-card shadow-sm rounded-xl p-6 space-y-6">
+    <div className="bg-card shadow-md rounded-2xl p-8 space-y-6 border border-border/50 hover:shadow-lg transition-shadow duration-300">
       {/* Titre + icône */}
       {data.title && (
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">{icon}</span>
-          <h2 className="text-xl font-bold text-foreground">{data.title}</h2>
+        <div className="flex items-center gap-4 pb-4 border-b border-border/50">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-3xl">
+            {icon}
+          </div>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">{data.title}</h2>
         </div>
       )}
 
       {/* Contenu dynamique */}
       {data.content && data.content.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-5">
           {data.content.map((block, i) => {
             switch (block.type) {
               case "text":
