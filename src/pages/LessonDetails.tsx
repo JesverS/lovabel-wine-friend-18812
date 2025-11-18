@@ -9,6 +9,8 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import LessonPagination from "@/components/lesson/LessonPagination";
+import QuizPagination from "@/components/lesson/QuizPagination";
+import confetti from "canvas-confetti";
 
 interface Course {
   id: number;
@@ -327,6 +329,23 @@ const LessonDetails = () => {
         </div>
       </header>
 
+      {/* Mobile Progress Bar */}
+      {showHeaderProgress && (
+        <div className="sm:hidden px-4 py-3 bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-gray-600">
+              {showQuiz ? "Progression du quiz" : "Progression de la leçon"}
+            </span>
+            <span className="text-xs text-gray-500">
+              {showQuiz
+                ? `${answeredQuizzes}/${totalQuizzes}`
+                : `${pageInfo.currentPage}/${pageInfo.totalPages || totalPages}`}
+            </span>
+          </div>
+          <Progress value={headerProgressValue} className="h-2" />
+        </div>
+      )}
+
       {/* CONTENU */}
       <main className="max-w-4xl mx-auto px-4 py-10 space-y-10">
         {/* Pages de cours */}
@@ -341,64 +360,30 @@ const LessonDetails = () => {
         {/* Quiz */}
         {showQuiz && !quizCompleted && (
           <div className="space-y-6 animate-fade-in">
-            <Card className="p-8 text-center bg-gradient-to-br from-[#FDF2E9] to-[#FDEBF3] border border-[#F3D3B8]">
-              <h2 className="text-3xl font-bold mb-2">🧩 Mini Quiz</h2>
-              <p className="text-gray-600">Teste tes connaissances sur cette leçon</p>
+            <Card className="p-6 sm:p-8 text-center bg-gradient-to-br from-rose-50 to-pink-50 border-2 border-rose-200 rounded-3xl shadow-lg">
+              <div className="text-4xl sm:text-5xl mb-3">🧩</div>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900">Mini Quiz</h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                Teste tes connaissances sur cette leçon
+              </p>
 
               {lessonAccess?.is_completed && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    ℹ️ Vous avez déjà complété ce quiz. Cette nouvelle tentative ne vous rapportera pas d&apos;XP, mais
-                    renforcera vos connaissances.
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <p className="text-xs sm:text-sm text-blue-700">
+                    ℹ️ Quiz déjà complété. Cette tentative ne rapporte pas d&apos;XP.
                   </p>
                 </div>
               )}
             </Card>
 
-            {quizzes.map(([key, quiz], index) => (
-              <Card key={key} className="p-6 bg-white border border-gray-200">
-                <h3 className="text-xl font-semibold mb-4">
-                  Question {index + 1} : {quiz.question}
-                </h3>
-                <div className="grid gap-3">
-                  {quiz.answers.map((answer) => {
-                    const isSelected = quizAnswers[key] === answer;
-                    const isCorrect = answer === quiz.correct_answer;
-                    const showFeedback = isSelected;
-                    const isAnswered = quizAnswers[key] !== null && quizAnswers[key] !== undefined;
-
-                    return (
-                      <Button
-                        key={answer}
-                        variant={isSelected ? (isCorrect ? "default" : "destructive") : "outline"}
-                        className={`justify-start text-left h-auto py-4 px-6 rounded-xl ${
-                          showFeedback && isCorrect ? "bg-green-500 hover:bg-green-600 text-white" : ""
-                        }`}
-                        onClick={() => handleQuizAnswer(key, answer)}
-                        disabled={isAnswered}
-                      >
-                        <span className="flex items-center gap-3 flex-1">
-                          {showFeedback &&
-                            (isCorrect ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />)}
-                          {answer}
-                        </span>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </Card>
-            ))}
-
-            {answeredQuizzes === totalQuizzes && totalQuizzes > 0 && (
-              <Button
-                onClick={handleCompleteQuiz}
-                size="lg"
-                className="w-full rounded-xl bg-[#7A1F24] hover:bg-[#66191E]"
-                disabled={submitQuizMutation.isPending}
-              >
-                {submitQuizMutation.isPending ? "Chargement..." : "Terminer le quiz 🎉"}
-              </Button>
-            )}
+            <QuizPagination
+              quizzes={quizzes}
+              onComplete={(finalAnswers) => {
+                setQuizAnswers(finalAnswers);
+                handleCompleteQuiz();
+              }}
+              isCompleted={lessonAccess?.is_completed}
+            />
           </div>
         )}
 

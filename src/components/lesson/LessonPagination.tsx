@@ -92,8 +92,8 @@ export default function LessonPagination({ pages, onComplete, onPageChange }: Le
         {/* NEXT */}
         <Button onClick={handleNextPage} className="gap-2 px-3 py-2 sm:px-6 sm:py-5 rounded-xl bg-[#7A1F24] hover:bg-[#66191E]">
           <span className="hidden sm:inline">{currentPage < totalPages ? "Suivant" : "Passer au quiz"}</span>
-          <span className="sm:hidden">{currentPage < totalPages ? "→" : "Quiz"}</span>
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4 hidden sm:inline" />
+          <span className="sm:hidden">{currentPage < totalPages ? "→" : "Quiz →"}</span>
         </Button>
       </div>
     </div>
