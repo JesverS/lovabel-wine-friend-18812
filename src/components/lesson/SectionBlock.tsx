@@ -23,11 +23,11 @@ export default function SectionBlock({ data }: SectionBlockProps) {
   const icon = data.icon ? iconMap[data.icon] || "📘" : "📘";
 
   return (
-    <div className="bg-white shadow-md rounded-3xl p-8 border border-gray-200 space-y-6">
+    <div className="bg-white shadow-md rounded-3xl p-4 sm:p-6 lg:p-8 border border-gray-200 space-y-6">
       {/* Titre */}
-      <div className="flex items-center gap-4">
-        <span className="text-4xl">{icon}</span>
-        <h2 className="text-2xl font-serif font-bold text-gray-900">{data.title}</h2>
+      <div className="flex items-center gap-2 sm:gap-4">
+        <span className="text-3xl sm:text-4xl">{icon}</span>
+        <h2 className="text-xl sm:text-2xl font-serif font-bold text-gray-900">{data.title}</h2>
       </div>
 
       <div className="space-y-5">

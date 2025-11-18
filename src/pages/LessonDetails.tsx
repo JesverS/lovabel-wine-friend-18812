@@ -23,12 +23,14 @@ interface Lesson {
   title: string;
   estimated_time: string;
   global_order: number;
+  baner_url?: string;
   pages: Array<{
     type: "hero" | "section";
     title?: string;
     duration?: string;
     level?: string;
     illustration?: string;
+    banner_url?: string;
     icon?: "grapes" | "history" | "sparkles" | "wine-glass" | "book";
     content?: Array<{
       type: "text" | "subsection" | "highlight" | "list";
@@ -89,11 +91,11 @@ const LessonDetails = () => {
   const { data: lesson, isLoading } = useQuery({
     queryKey: ["lesson", lessonId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("*")
-        .eq("id", parseInt(lessonId || "0"))
-        .single();
+    const { data, error } = await supabase
+      .from("lessons")
+      .select("*, baner_url")
+      .eq("id", parseInt(lessonId || "0"))
+      .single();
 
       if (error) throw error;
       return data as unknown as Lesson;
@@ -228,6 +230,11 @@ const LessonDetails = () => {
   // ─────────────────────────────────────
 
   const pages = Array.isArray(lesson.pages) ? lesson.pages : (lesson.pages as any).pages || Object.values(lesson.pages);
+
+  // Ajouter banner_url à la première page hero
+  if (pages.length > 0 && pages[0].type === "hero" && lesson.baner_url) {
+    pages[0] = { ...pages[0], banner_url: lesson.baner_url };
+  }
 
   const totalPages = pages.length;
   const progressPercent = totalPages > 1 ? ((pageInfo.currentPage - 1) / totalPages) * 100 : 0;
