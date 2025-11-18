@@ -52,31 +52,47 @@ export default function LessonPagination({ pages, onComplete, onPageChange }: Le
   };
 
   return (
-    <div>
+    <div className="space-y-8">
       {/* Render current page */}
-      <div className="mb-6 animate-fade-in">
+      <div className="animate-fade-in">
         <LessonPage page={pages[currentPage - 1]} />
       </div>
 
       {/* Navigation buttons */}
-      <div className="flex justify-between items-center mt-8">
+      <div className="flex items-center justify-between bg-card border border-border rounded-xl p-4 shadow-sm">
         <Button
           variant="outline"
           onClick={handlePrevPage}
           disabled={currentPage === 1}
-          className="gap-2"
+          className="gap-2 px-6"
+          size="lg"
         >
           <ChevronLeft className="w-4 h-4" />
           Précédent
         </Button>
 
-        <span className="text-sm text-muted-foreground">
-          Page {currentPage} / {totalPages}
-        </span>
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-sm font-medium text-muted-foreground">
+            Page {currentPage} sur {totalPages}
+          </span>
+          <div className="flex gap-1">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <div 
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i + 1 === currentPage 
+                    ? 'w-8 bg-primary' 
+                    : 'w-1.5 bg-muted'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
 
         <Button
           onClick={handleNextPage}
-          className="gap-2"
+          className="gap-2 px-6"
+          size="lg"
         >
           {currentPage < totalPages ? "Suivant" : "Passer au quiz"}
           <ChevronRight className="w-4 h-4" />
