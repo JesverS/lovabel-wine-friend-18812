@@ -96,7 +96,7 @@ export default function QuizPagination({ quizzes, onComplete, isCompleted }: Qui
             <Button
               key={answer}
               variant="outline"
-              className={`w-full max-w-full justify-start text-left h-auto py-4 sm:py-5 px-4 sm:px-6 rounded-2xl transition-all duration-200 text-sm sm:text-base ${
+              className={`w-full max-w-full whitespace-normal justify-start text-left h-auto py-4 sm:py-5 px-4 sm:px-6 rounded-2xl transition-all duration-200 text-sm sm:text-base ${
                 showAsCorrect
                   ? "bg-green-500 hover:bg-green-600 text-white border-green-600"
                   : showAsIncorrect
