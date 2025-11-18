@@ -5,15 +5,9 @@ import ListBlock from "./ListBlock";
 
 interface SectionBlockProps {
   data: {
-    type?: "hero" | "section";
     title?: string;
-    icon?: "grapes" | "history" | "sparkles" | "wine-glass" | "book";
-    content?: Array<{
-      type: "text" | "subsection" | "highlight" | "list";
-      value?: string;
-      title?: string;
-      items?: string[];
-    }>;
+    icon?: string;
+    content?: any[];
   };
 }
 
@@ -23,48 +17,39 @@ export default function SectionBlock({ data }: SectionBlockProps) {
     history: "📜",
     sparkles: "✨",
     "wine-glass": "🍷",
-    book: "📘"
+    book: "📘",
   };
 
   const icon = data.icon ? iconMap[data.icon] || "📘" : "📘";
 
   return (
-    <div className="bg-card shadow-md rounded-2xl p-8 space-y-6 border border-border/50 hover:shadow-lg transition-shadow duration-300">
-      {/* Titre + icône */}
-      {data.title && (
-        <div className="flex items-center gap-4 pb-4 border-b border-border/50">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-3xl">
-            {icon}
-          </div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">{data.title}</h2>
-        </div>
-      )}
+    <div className="bg-white shadow-md rounded-3xl p-8 border border-gray-200 space-y-6">
+      {/* Titre */}
+      <div className="flex items-center gap-4">
+        <span className="text-4xl">{icon}</span>
+        <h2 className="text-2xl font-serif font-bold text-gray-900">{data.title}</h2>
+      </div>
 
-      {/* Contenu dynamique */}
-      {data.content && data.content.length > 0 && (
-        <div className="space-y-5">
-          {data.content.map((block, i) => {
-            switch (block.type) {
-              case "text":
-                return block.value ? <TextBlock key={i} value={block.value} /> : null;
+      <div className="space-y-5">
+        {data.content?.map((block, i) => {
+          switch (block.type) {
+            case "text":
+              return <TextBlock key={i} value={block.value!} />;
 
-              case "subsection":
-                return block.title && block.items ? (
-                  <SubsectionBlock key={i} title={block.title} items={block.items} />
-                ) : null;
+            case "subsection":
+              return <SubsectionBlock key={i} title={block.title!} items={block.items!} />;
 
-              case "highlight":
-                return block.value ? <HighlightBlock key={i} value={block.value} /> : null;
+            case "highlight":
+              return <HighlightBlock key={i} value={block.value!} />;
 
-              case "list":
-                return block.items ? <ListBlock key={i} items={block.items} /> : null;
+            case "list":
+              return <ListBlock key={i} items={block.items!} />;
 
-              default:
-                return null;
-            }
-          })}
-        </div>
-      )}
+            default:
+              return null;
+          }
+        })}
+      </div>
     </div>
   );
 }
