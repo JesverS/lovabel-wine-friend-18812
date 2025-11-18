@@ -37,12 +37,15 @@ interface Lesson {
       items?: string[];
     }>;
   }>;
-  quizzes: Record<string, {
-    question: string;
-    text?: string;
-    answers: string[];
-    correct_answer: string;
-  }>;
+  quizzes: Record<
+    string,
+    {
+      question: string;
+      text?: string;
+      answers: string[];
+      correct_answer: string;
+    }
+  >;
 }
 
 interface LessonAccess {
@@ -60,10 +63,14 @@ const LessonDetails = () => {
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string | null>>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
 
-  // Scroll to top when quiz or completion state changes
+  // Scroll top when quiz or completion changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [showQuiz, quizCompleted]);
+
+  // ─────────────────────────────────────
+  // QUERIES SUPABASE (inchangées)
+  // ─────────────────────────────────────
 
   const { data: course } = useQuery({
     queryKey: ["course", courseId],
@@ -73,10 +80,10 @@ const LessonDetails = () => {
         .select("*")
         .eq("id", parseInt(courseId || "0"))
         .single();
-      
+
       if (error) throw error;
       return data as Course;
-    }
+    },
   });
 
   const { data: lesson, isLoading } = useQuery({
@@ -87,31 +94,30 @@ const LessonDetails = () => {
         .select("*")
         .eq("id", parseInt(lessonId || "0"))
         .single();
-      
+
       if (error) throw error;
       return data as unknown as Lesson;
-    }
+    },
   });
 
-  // Check lesson access
   const { data: lessonAccess } = useQuery({
     queryKey: ["lesson-access", lessonId, user?.id],
     queryFn: async () => {
       if (!user || !lessonId) return { is_unlocked: false, is_completed: false };
-      
-      const { data, error } = await supabase.rpc('get_user_accessible_lessons', {
-        p_user_id: user.id
+
+      const { data, error } = await supabase.rpc("get_user_accessible_lessons", {
+        p_user_id: user.id,
       });
 
       if (error) throw error;
-      
-      const currentLesson = (data as any[]).find(l => l.lesson_id === parseInt(lessonId));
+
+      const currentLesson = (data as any[]).find((l) => l.lesson_id === parseInt(lessonId));
       return {
         is_unlocked: currentLesson?.is_unlocked || false,
-        is_completed: currentLesson?.is_completed || false
+        is_completed: currentLesson?.is_completed || false,
       } as LessonAccess;
     },
-    enabled: !!user && !!lessonId
+    enabled: !!user && !!lessonId,
   });
 
   const { data: nextLesson } = useQuery({
@@ -124,46 +130,50 @@ const LessonDetails = () => {
         .eq("course_id", parseInt(courseId || "0"))
         .eq("lesson_number", lesson.lesson_number + 1)
         .single();
-      
+
       if (error) return null;
       return data as unknown as Lesson;
     },
-    enabled: !!lesson
+    enabled: !!lesson,
   });
 
-  // Mutation to submit quiz
   const submitQuizMutation = useMutation({
-    mutationFn: async ({ answers, score, maxScore }: { answers: Record<string, string | null>, score: number, maxScore: number }) => {
+    mutationFn: async ({
+      answers,
+      score,
+      maxScore,
+    }: {
+      answers: Record<string, string | null>;
+      score: number;
+      maxScore: number;
+    }) => {
       if (!user || !lessonId) throw new Error("User or lesson not found");
-      
-      const { data, error } = await supabase.functions.invoke('submit-lesson-quiz', {
+
+      const { data, error } = await supabase.functions.invoke("submit-lesson-quiz", {
         body: {
           lesson_id: parseInt(lessonId),
           answers: answers,
           score: score,
-          max_score: maxScore
-        }
+          max_score: maxScore,
+        },
       });
 
       if (error) throw error;
       return data;
     },
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["lesson-access", lessonId, user?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["lesson-access", lessonId, user?.id],
+      });
       queryClient.invalidateQueries({ queryKey: ["lessons-with-status"] });
       queryClient.invalidateQueries({ queryKey: ["weekly-slots", user?.id] });
-      
-      // 👉 Cas où l'utilisateur a déjà fait le quiz (xpEarned === 0)
+
       if (data.xpEarned === 0) {
         const percentage = ((data.score || 0) / (data.max_score || 1)) * 100;
         toast.success(`✅ Quiz complété ! Score: ${percentage.toFixed(0)}% (0 XP - déjà complété)`);
-      } 
-      // 👉 Première tentative avec level up
-      else if (data.leveledUp) {
+      } else if (data.leveledUp) {
         toast.success(`🎉 Félicitations ! Vous êtes passé au niveau ${data.newLevel} ! +${data.xpEarned} XP`);
-      } 
-      // 👉 Première tentative normale
-      else {
+      } else {
         const percentage = ((data.score || 0) / (data.max_score || 1)) * 100;
         if (percentage >= 80) {
           toast.success(`✅ Quiz complété avec succès ! +${data.xpEarned} XP`);
@@ -171,12 +181,12 @@ const LessonDetails = () => {
           toast.success(`Quiz complété ! +${data.xpEarned} XP (Score: ${percentage.toFixed(0)}%)`);
         }
       }
-      
+
       setQuizCompleted(true);
     },
     onError: (error: any) => {
       toast.error(error.message || "Erreur lors de la soumission du quiz");
-    }
+    },
   });
 
   // Redirect if lesson is locked
@@ -187,12 +197,16 @@ const LessonDetails = () => {
     }
   }, [lessonAccess, navigate, courseId]);
 
+  // ─────────────────────────────────────
+  // LOADING & ERREURS
+  // ─────────────────────────────────────
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/5 to-background">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF7F1]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Chargement de la leçon...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7A1F24] mx-auto mb-4"></div>
+          <p className="text-gray-500">Chargement de la leçon...</p>
         </div>
       </div>
     );
@@ -200,7 +214,7 @@ const LessonDetails = () => {
 
   if (!lesson || !course || !lessonAccess?.is_unlocked) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF7F1]">
         <Card className="p-8 text-center">
           <p className="text-lg mb-4">Leçon introuvable ou verrouillée</p>
           <Button onClick={() => navigate(`/course/${courseId}`)}>Retour au cours</Button>
@@ -209,15 +223,18 @@ const LessonDetails = () => {
     );
   }
 
-    const pages = Array.isArray(lesson.pages) 
-      ? lesson.pages 
-      : ((lesson.pages as any).pages || Object.values(lesson.pages));
+  // ─────────────────────────────────────
+  // PAGES + QUIZ (logique inchangée)
+  // ─────────────────────────────────────
+
+  const pages = Array.isArray(lesson.pages) ? lesson.pages : (lesson.pages as any).pages || Object.values(lesson.pages);
+
   const totalPages = pages.length;
-  const progressPercent = ((pageInfo.currentPage - 1) / totalPages) * 100;
+  const progressPercent = totalPages > 1 ? ((pageInfo.currentPage - 1) / totalPages) * 100 : 0;
 
   const quizzes = lesson.quizzes ? Object.entries(lesson.quizzes) : [];
   const totalQuizzes = quizzes.length;
-  const answeredQuizzes = Object.values(quizAnswers).filter(a => a !== null).length;
+  const answeredQuizzes = Object.values(quizAnswers).filter((a) => a !== null).length;
 
   const handleQuizAnswer = (quizKey: string, answer: string) => {
     const quiz = lesson.quizzes[quizKey];
@@ -225,110 +242,116 @@ const LessonDetails = () => {
 
     if (answer === quiz.correct_answer) {
       toast.success("Bravo ! 🎉", {
-        description: "Bonne réponse !"
+        description: "Bonne réponse !",
       });
     } else {
       toast.error("Pas tout à fait...", {
-        description: "Réessaye ou passe à la question suivante"
+        description: "Réessaye ou passe à la question suivante",
       });
     }
   };
 
   const handleCompleteQuiz = () => {
-    const correctAnswers = quizzes.filter(([key, quiz]) => 
-      quizAnswers[key] === quiz.correct_answer
-    ).length;
-    
-    // 🔍 Vérifier si c'est déjà complété
+    const correctAnswers = quizzes.filter(([key, quiz]) => {
+      // @ts-ignore
+      return quizAnswers[key] === quiz.correct_answer;
+    }).length;
+
     if (lessonAccess?.is_completed) {
-      // ✅ Traitement local sans appel backend
       const percentage = (correctAnswers / totalQuizzes) * 100;
       toast.success(`✅ Quiz complété ! Score: ${percentage.toFixed(0)}% (0 XP - déjà complété)`);
       setQuizCompleted(true);
-      
-      // Invalider les queries pour rafraîchir l'UI
-      queryClient.invalidateQueries({ queryKey: ["lesson-access", lessonId, user?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["lesson-access", lessonId, user?.id],
+      });
       return;
     }
-    
-    // ✅ Appel backend normal pour la première tentative
+
     submitQuizMutation.mutate({
       answers: quizAnswers,
       score: correctAnswers,
-      maxScore: totalQuizzes
+      maxScore: totalQuizzes,
     });
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-background">
-      {/* En-tête */}
-      <div className="border-b bg-card/50 backdrop-blur sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/course/${courseId}`)}
-              className="gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Retour au cours
-            </Button>
-          </div>
+  // ─────────────────────────────────────
+  // RENDER UI PREMIUM
+  // ─────────────────────────────────────
 
-          <div className="flex items-start gap-4 mb-4">
-            <div className="text-4xl">{course.icon_emoji}</div>
-            <div className="flex-1">
-              <p className="text-sm text-muted-foreground mb-1">{course.title}</p>
-              <h1 className="text-2xl font-bold mb-1 animate-fade-in">{lesson.title}</h1>
-              <p className="text-sm text-muted-foreground">⏱️ {lesson.estimated_time}</p>
+  const showHeaderProgress = !quizCompleted;
+  const headerProgressValue = showQuiz
+    ? totalQuizzes > 0
+      ? (answeredQuizzes / totalQuizzes) * 100
+      : 0
+    : progressPercent;
+
+  return (
+    <div className="min-h-screen bg-[#FAF7F1]">
+      {/* HEADER PREMIUM (Version A) */}
+      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-200">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/course/${courseId}`)} className="gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Retour
+          </Button>
+
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{course.icon_emoji}</span>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">{course.title}</p>
+              <h1 className="text-sm sm:text-base font-semibold text-gray-900">
+                {lesson.title} · ⏱ {lesson.estimated_time}
+              </h1>
             </div>
           </div>
 
-          {!quizCompleted && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>
-                  {showQuiz ? `Quiz: ${answeredQuizzes}/${totalQuizzes}` : `Page ${pageInfo.currentPage}/${pageInfo.totalPages}`}
-                </span>
-                <span>{Math.round(showQuiz ? (answeredQuizzes / totalQuizzes) * 100 : progressPercent)}%</span>
-              </div>
-              <Progress value={showQuiz ? (answeredQuizzes / totalQuizzes) * 100 : progressPercent} className="h-2" />
+          <div className="flex-1" />
+
+          {showHeaderProgress && (
+            <div className="w-40 hidden sm:block">
+              <Progress value={headerProgressValue} />
+              <p className="mt-1 text-[11px] text-right text-gray-500">
+                {showQuiz
+                  ? `Quiz : ${answeredQuizzes}/${totalQuizzes}`
+                  : `Page ${pageInfo.currentPage}/${pageInfo.totalPages || totalPages}`}
+              </p>
             </div>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Contenu */}
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* CONTENU */}
+      <main className="max-w-4xl mx-auto px-4 py-10 space-y-10">
+        {/* Pages de cours */}
         {!showQuiz && !quizCompleted && (
-          <LessonPagination 
+          <LessonPagination
             pages={pages}
             onComplete={() => setShowQuiz(true)}
             onPageChange={(current, total) => setPageInfo({ currentPage: current, totalPages: total })}
           />
         )}
 
+        {/* Quiz */}
         {showQuiz && !quizCompleted && (
           <div className="space-y-6 animate-fade-in">
-            <Card className="p-8 text-center bg-gradient-to-br from-primary/5 to-secondary/5">
+            <Card className="p-8 text-center bg-gradient-to-br from-[#FDF2E9] to-[#FDEBF3] border border-[#F3D3B8]">
               <h2 className="text-3xl font-bold mb-2">🧩 Mini Quiz</h2>
-              <p className="text-muted-foreground">Teste tes connaissances sur cette leçon</p>
-              
-              {/* 👉 MESSAGE D'AVERTISSEMENT SI DÉJÀ COMPLÉTÉ */}
+              <p className="text-gray-600">Teste tes connaissances sur cette leçon</p>
+
               {lessonAccess?.is_completed && (
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    ℹ️ Vous avez déjà complété ce quiz. Cette nouvelle tentative ne vous rapportera pas d'XP, mais renforcera vos connaissances.
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    ℹ️ Vous avez déjà complété ce quiz. Cette nouvelle tentative ne vous rapportera pas d&apos;XP, mais
+                    renforcera vos connaissances.
                   </p>
                 </div>
               )}
             </Card>
 
             {quizzes.map(([key, quiz], index) => (
-              <Card key={key} className="p-6">
+              <Card key={key} className="p-6 bg-white border border-gray-200">
                 <h3 className="text-xl font-semibold mb-4">
-                  Question {index + 1}: {quiz.question}
+                  Question {index + 1} : {quiz.question}
                 </h3>
                 <div className="grid gap-3">
                   {quiz.answers.map((answer) => {
@@ -341,16 +364,15 @@ const LessonDetails = () => {
                       <Button
                         key={answer}
                         variant={isSelected ? (isCorrect ? "default" : "destructive") : "outline"}
-                        className={`justify-start text-left h-auto py-4 px-6 ${
-                          showFeedback && isCorrect ? "bg-green-500 hover:bg-green-600" : ""
+                        className={`justify-start text-left h-auto py-4 px-6 rounded-xl ${
+                          showFeedback && isCorrect ? "bg-green-500 hover:bg-green-600 text-white" : ""
                         }`}
                         onClick={() => handleQuizAnswer(key, answer)}
                         disabled={isAnswered}
                       >
                         <span className="flex items-center gap-3 flex-1">
-                          {showFeedback && (
-                            isCorrect ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />
-                          )}
+                          {showFeedback &&
+                            (isCorrect ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />)}
                           {answer}
                         </span>
                       </Button>
@@ -360,11 +382,11 @@ const LessonDetails = () => {
               </Card>
             ))}
 
-            {answeredQuizzes === totalQuizzes && (
-              <Button 
+            {answeredQuizzes === totalQuizzes && totalQuizzes > 0 && (
+              <Button
                 onClick={handleCompleteQuiz}
                 size="lg"
-                className="w-full"
+                className="w-full rounded-xl bg-[#7A1F24] hover:bg-[#66191E]"
                 disabled={submitQuizMutation.isPending}
               >
                 {submitQuizMutation.isPending ? "Chargement..." : "Terminer le quiz 🎉"}
@@ -373,21 +395,20 @@ const LessonDetails = () => {
           </div>
         )}
 
+        {/* Écran de fin */}
         {quizCompleted && (
-          <Card className="p-12 text-center animate-fade-in bg-gradient-to-br from-primary/10 to-secondary/10">
+          <Card className="p-12 text-center animate-fade-in bg-gradient-to-br from-[#FDF2E9] to-[#FDEBF3] border border-[#F3D3B8] rounded-3xl">
             <div className="text-6xl mb-4">🎉</div>
             <h2 className="text-3xl font-bold mb-4">Bravo ! Tu as terminé la leçon</h2>
-            <p className="text-lg text-muted-foreground mb-8">
-              ✅ Tu maîtrises maintenant les concepts de cette leçon
-            </p>
+            <p className="text-lg text-gray-600 mb-8">✅ Tu maîtrises maintenant les concepts de cette leçon.</p>
 
             {nextLesson ? (
               <div className="space-y-4">
-                <p className="text-muted-foreground">👉 Continue avec la prochaine leçon pour en apprendre encore plus !</p>
-                <Button 
+                <p className="text-gray-600">👉 Continue avec la prochaine leçon pour en apprendre encore plus !</p>
+                <Button
                   onClick={() => navigate(`/course/${courseId}/lesson/${nextLesson.id}`)}
                   size="lg"
-                  className="gap-2"
+                  className="gap-2 rounded-xl bg-[#7A1F24] hover:bg-[#66191E]"
                 >
                   Leçon suivante
                   <ChevronRight className="w-5 h-5" />
@@ -397,18 +418,15 @@ const LessonDetails = () => {
               <div className="space-y-4">
                 <div className="text-4xl mb-2">🥂</div>
                 <p className="text-xl font-semibold mb-4">Félicitations ! Tu as terminé tout le cours !</p>
-                <p className="text-muted-foreground mb-6">Découvre tes badges dans la section Compétences 🌟</p>
-                <Button 
-                  onClick={() => navigate(`/course/${courseId}`)}
-                  size="lg"
-                >
+                <p className="text-gray-600 mb-6">Découvre tes badges dans la section Compétences 🌟</p>
+                <Button onClick={() => navigate(`/course/${courseId}`)} size="lg" className="rounded-xl">
                   Retour au cours
                 </Button>
               </div>
             )}
           </Card>
         )}
-      </div>
+      </main>
     </div>
   );
 };

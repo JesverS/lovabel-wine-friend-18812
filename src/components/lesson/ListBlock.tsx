@@ -1,12 +1,8 @@
-interface ListBlockProps {
-  items: string[];
-}
-
-export default function ListBlock({ items }: ListBlockProps) {
+export default function ListBlock({ items }) {
   return (
-    <ul className="list-disc pl-6 text-foreground/90 space-y-2.5">
+    <ul className="list-disc pl-6 space-y-1 text-gray-700">
       {items.map((item, i) => (
-        <li key={i} className="leading-relaxed">{item}</li>
+        <li key={i}>{item}</li>
       ))}
     </ul>
   );

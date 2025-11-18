@@ -26,12 +26,12 @@ export default function LessonPagination({ pages, onComplete, onPageChange }: Le
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = pages.length;
 
-  // Scroll to top when page changes
+  // Scroll to top on page change
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentPage]);
 
-  // Notify parent of page changes
+  // Notify parent component
   useEffect(() => {
     onPageChange?.(currentPage, totalPages);
   }, [currentPage, totalPages, onPageChange]);
@@ -40,60 +40,56 @@ export default function LessonPagination({ pages, onComplete, onPageChange }: Le
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     } else {
-      // Reached the end, trigger completion (quiz)
-      onComplete();
+      onComplete(); // go to quiz
     }
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
 
   return (
-    <div className="space-y-8">
-      {/* Render current page */}
+    <div className="space-y-10">
+      {/* CURRENT PAGE */}
       <div className="animate-fade-in">
         <LessonPage page={pages[currentPage - 1]} />
       </div>
 
-      {/* Navigation buttons */}
-      <div className="flex items-center justify-between bg-card border border-border rounded-xl p-4 shadow-sm">
+      {/* PREMIUM NAVIGATION BAR */}
+      <div className="flex items-center justify-between bg-white shadow-lg border border-gray-200 rounded-3xl px-6 py-5">
+        {/* PREVIOUS */}
         <Button
           variant="outline"
           onClick={handlePrevPage}
           disabled={currentPage === 1}
-          className="gap-2 px-6"
-          size="lg"
+          className="gap-2 px-6 py-5 rounded-xl text-gray-700 border-gray-300"
         >
           <ChevronLeft className="w-4 h-4" />
           Précédent
         </Button>
 
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-sm font-medium text-muted-foreground">
-            Page {currentPage} sur {totalPages}
+        {/* PAGE INDICATION */}
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-sm font-medium text-gray-500">
+            Page {currentPage} / {totalPages}
           </span>
-          <div className="flex gap-1">
+
+          <div className="flex gap-2">
             {Array.from({ length: totalPages }).map((_, i) => (
-              <div 
+              <div
                 key={i}
-                className={`h-1.5 rounded-full transition-all ${
-                  i + 1 === currentPage 
-                    ? 'w-8 bg-primary' 
-                    : 'w-1.5 bg-muted'
+                className={`transition-all rounded-full ${
+                  i + 1 === currentPage
+                    ? "w-6 h-2 bg-[#7A1F24]" // Bordeaux premium
+                    : "w-2 h-2 bg-gray-300"
                 }`}
               />
             ))}
           </div>
         </div>
 
-        <Button
-          onClick={handleNextPage}
-          className="gap-2 px-6"
-          size="lg"
-        >
+        {/* NEXT */}
+        <Button onClick={handleNextPage} className="gap-2 px-6 py-5 rounded-xl bg-[#7A1F24] hover:bg-[#66191E]">
           {currentPage < totalPages ? "Suivant" : "Passer au quiz"}
           <ChevronRight className="w-4 h-4" />
         </Button>

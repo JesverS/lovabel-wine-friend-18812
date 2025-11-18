@@ -1,7 +1,3 @@
-interface TextBlockProps {
-  value: string;
-}
-
-export default function TextBlock({ value }: TextBlockProps) {
-  return <p className="text-foreground/90 text-base leading-relaxed">{value}</p>;
+export default function TextBlock({ value }) {
+  return <p className="text-gray-700 leading-relaxed text-lg">{value}</p>;
 }
