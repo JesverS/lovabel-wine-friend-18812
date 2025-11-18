@@ -612,21 +612,20 @@ const EventDetails = () => {
                               </Button>
                             )}
                           </div>
-                          
-                          <div className="mt-3 pt-3 border-t">
-                            <Link to={`/domain/${domain.id}`}>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="w-full md:w-auto"
-                              >
-                                Voir le domaine
-                                <ExternalLink className="ml-2 h-3 w-3" />
-                              </Button>
-                            </Link>
-                          </div>
 
                           <CollapsibleContent className="mt-6 space-y-4">
+                            <div className="mb-4">
+                              <Link to={`/domain/${domain.id}`}>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="w-full md:w-auto"
+                                >
+                                  Voir la page du domaine
+                                  <ExternalLink className="ml-2 h-3 w-3" />
+                                </Button>
+                              </Link>
+                            </div>
                             {canEdit && (
                               <div className="flex justify-end">
                                 <AddWineToEventDialog
@@ -643,11 +642,11 @@ const EventDetails = () => {
                                 Aucun vin ajouté pour ce domaine
                               </p>
                             ) : (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                                 {wines.map((wine) => (
                                   <Card
                                     key={wine.id}
-                                    className="p-4 cursor-pointer hover:shadow-lg transition-shadow relative group"
+                                    className="p-2 sm:p-4 cursor-pointer hover:shadow-lg transition-shadow relative group"
                                     onClick={() => setSelectedWine(wine)}
                                   >
                                     {canEdit && (
@@ -667,18 +666,18 @@ const EventDetails = () => {
                                       <img
                                         src={wine.label_url}
                                         alt={wine.name}
-                                        className="w-full h-48 object-contain mb-3"
+                                        className="w-full h-32 sm:h-40 lg:h-48 object-contain mb-2 sm:mb-3"
                                       />
                                     )}
                                     <div className="space-y-1">
-                                      <div className="flex items-center gap-2">
-                                        <h4 className="font-semibold">{wine.name}</h4>
+                                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                        <h4 className="font-semibold text-sm sm:text-base line-clamp-2">{wine.name}</h4>
                                         {wine.year && (
-                                          <span className="text-sm text-muted-foreground">{wine.year}</span>
+                                          <span className="text-xs sm:text-sm text-muted-foreground">{wine.year}</span>
                                         )}
                                       </div>
                                       {(wine.wine_type?.type || wine.wine_classification_data?.nom) && (
-                                        <p className="text-sm text-muted-foreground">
+                                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
                                           {wine.wine_type?.type && (
                                             <span className="capitalize">{wine.wine_type.type}</span>
                                           )}
