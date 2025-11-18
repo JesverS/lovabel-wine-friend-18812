@@ -661,6 +661,7 @@ export type Database = {
       }
       lessons: {
         Row: {
+          baner_url: string | null
           course_id: number
           created_at: string
           difficulty: number | null
@@ -674,6 +675,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          baner_url?: string | null
           course_id: number
           created_at?: string
           difficulty?: number | null
@@ -687,6 +689,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          baner_url?: string | null
           course_id?: number
           created_at?: string
           difficulty?: number | null
