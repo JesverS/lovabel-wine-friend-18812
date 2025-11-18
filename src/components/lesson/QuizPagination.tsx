@@ -61,7 +61,7 @@ export default function QuizPagination({ quizzes, onComplete, isCompleted }: Qui
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in max-w-full overflow-x-hidden">
       {/* Progress Bar */}
       <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-md border border-gray-200">
         <div className="flex items-center justify-between mb-2">
@@ -74,13 +74,13 @@ export default function QuizPagination({ quizzes, onComplete, isCompleted }: Qui
       </div>
 
       {/* Question Card */}
-      <Card className="p-6 sm:p-8 bg-gradient-to-br from-rose-50 to-pink-50 border-2 border-rose-200 rounded-3xl shadow-lg">
+      <Card className="w-full max-w-full p-6 sm:p-8 bg-gradient-to-br from-rose-50 to-pink-50 border-2 border-rose-200 rounded-3xl shadow-lg">
         <div className="text-4xl sm:text-5xl mb-4 text-center">🍷</div>
-        <h3 className="text-xl sm:text-2xl font-bold text-gray-900 text-center">
+        <h3 className="text-xl sm:text-2xl font-bold text-gray-900 text-center break-words max-w-full">
           {quizData.question}
         </h3>
         {quizData.text && (
-          <p className="mt-3 text-sm sm:text-base text-gray-600 text-center">{quizData.text}</p>
+          <p className="mt-3 text-sm sm:text-base text-gray-600 text-center break-words max-w-full">{quizData.text}</p>
         )}
       </Card>
 
@@ -96,7 +96,7 @@ export default function QuizPagination({ quizzes, onComplete, isCompleted }: Qui
             <Button
               key={answer}
               variant="outline"
-              className={`justify-start text-left h-auto py-4 sm:py-5 px-4 sm:px-6 rounded-2xl transition-all duration-200 text-sm sm:text-base ${
+              className={`w-full max-w-full justify-start text-left h-auto py-4 sm:py-5 px-4 sm:px-6 rounded-2xl transition-all duration-200 text-sm sm:text-base ${
                 showAsCorrect
                   ? "bg-green-500 hover:bg-green-600 text-white border-green-600"
                   : showAsIncorrect
