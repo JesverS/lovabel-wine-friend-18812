@@ -287,7 +287,7 @@ const LessonDetails = () => {
   // RENDER UI PREMIUM
   // ─────────────────────────────────────
 
-  const showHeaderProgress = !quizCompleted;
+  const showHeaderProgress = !quizCompleted && !showQuiz;
   const headerProgressValue = showQuiz
     ? totalQuizzes > 0
       ? (answeredQuizzes / totalQuizzes) * 100
