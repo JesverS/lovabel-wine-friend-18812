@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { AvatarCropDialog } from "@/components/AvatarCropDialog";
 import { geocodeAddress } from "@/lib/utils";
 import { sanitizeSlugInput } from "@/lib/slugUtils";
 
@@ -24,14 +23,11 @@ export default function CompleteProfile() {
     city: "",
     address: "",
     phone_number: "",
-    logo_adress: "",
   });
   const [slug, setSlug] = useState("");
   const [slugError, setSlugError] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [checkingSlug, setCheckingSlug] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [showCropDialog, setShowCropDialog] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -256,14 +252,6 @@ export default function CompleteProfile() {
             </>
           )}
         </form>
-        {selectedImage && (
-          <AvatarCropDialog
-            open={showCropDialog}
-            onOpenChange={setShowCropDialog}
-            imageSrc={selectedImage}
-            onCropComplete={handleCropComplete}
-          />
-        )}
       </div>
     </div>
   );
