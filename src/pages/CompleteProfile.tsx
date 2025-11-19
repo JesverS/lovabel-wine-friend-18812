@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Camera } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { AvatarCropDialog } from "@/components/AvatarCropDialog";
 import { geocodeAddress } from "@/lib/utils";
 import { sanitizeSlugInput } from "@/lib/slugUtils";
@@ -32,7 +32,6 @@ export default function CompleteProfile() {
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -45,7 +44,6 @@ export default function CompleteProfile() {
           city: profile.city || "",
           address: profile.address || "",
           phone_number: profile.phone_number?.toString() || "",
-          logo_adress: profile.logo_adress || "",
         });
         if (profile.slug) {
           setSlug(profile.slug);
@@ -74,11 +72,11 @@ export default function CompleteProfile() {
       }
       setCheckingSlug(true);
       try {
-        const { data, error } = await supabase
+        const { data, error } = (await supabase
           .from("user_profiles_public")
           .select("id")
           .eq("slug", slugValue)
-          .maybeSingle() as { data: { id: string } | null; error: any };
+          .maybeSingle()) as { data: { id: string } | null; error: any };
         if (error) throw error;
         if (data && data.id !== user?.id) {
           setSlugError("Nom de profil déjà pris, veuillez choisir quelque chose d'autre.");
@@ -96,47 +94,6 @@ export default function CompleteProfile() {
     }, 500);
     return () => clearTimeout(timer);
   }, [slug, user?.id]);
-
-  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Erreur", description: "Le fichier doit être une image", variant: "destructive" });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Erreur", description: "L'image ne doit pas dépasser 5MB", variant: "destructive" });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setSelectedImage(reader.result as string);
-      setShowCropDialog(true);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleCropComplete = async (croppedImage: Blob) => {
-    if (!user) return;
-    setUploading(true);
-    try {
-      const fileName = `${user.id}/avatar_${Date.now()}.jpg`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, croppedImage, { upsert: true });
-      if (uploadError) throw uploadError;
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(fileName);
-      setFormData((prev) => ({ ...prev, logo_adress: publicUrl }));
-      toast({ title: "Image téléchargée", description: "Votre photo de profil a été téléchargée avec succès" });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    } finally {
-      setUploading(false);
-      setShowCropDialog(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,7 +124,6 @@ export default function CompleteProfile() {
           city: formData.city,
           address: formData.address || null,
           phone_number: formData.phone_number ? Number(formData.phone_number) : null,
-          logo_adress: formData.logo_adress || null,
           latitude: coordinates?.latitude || null,
           longitude: coordinates?.longitude || null,
         })
@@ -238,55 +194,6 @@ export default function CompleteProfile() {
                   <p className="text-sm text-muted-foreground mt-1">Vérification de la disponibilité...</p>
                 )}
                 {slugError && <p className="text-sm text-red-500 mt-1">{slugError}</p>}
-              </div>
-              <div>
-                <Label>Photo de profil</Label>
-                <div className="flex flex-col items-center gap-3">
-                  {/* Cercle cliquable */}
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="relative w-32 h-32 rounded-full cursor-pointer hover:opacity-90 transition-opacity"
-                  >
-                    {formData.logo_adress ? (
-                      <img 
-                        src={formData.logo_adress} 
-                        alt="Photo de profil" 
-                        className="w-full h-full rounded-full object-cover" 
-                      />
-                    ) : (
-                      <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
-                        <User className="w-16 h-16 text-muted-foreground" />
-                      </div>
-                    )}
-                    {/* Badge caméra */}
-                    <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 shadow-lg">
-                      <Camera className="w-4 h-4" />
-                    </div>
-                  </div>
-                  
-                  {/* Texte d'aide */}
-                  <p className="text-sm text-muted-foreground text-center">
-                    Cliquez pour {formData.logo_adress ? 'modifier' : 'ajouter'} votre photo
-                  </p>
-                  
-                  {/* Input caché */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarSelect}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-                  
-                  {/* Indicateur upload */}
-                  {uploading && (
-                    <p className="text-sm flex items-center gap-2 text-muted-foreground">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Upload en cours...
-                    </p>
-                  )}
-                </div>
               </div>
               <Button
                 type="button"
