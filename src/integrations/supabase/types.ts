@@ -228,7 +228,9 @@ export type Database = {
       domain: {
         Row: {
           address: string | null
+          appellations: string | null
           banner_url: string | null
+          communes: string | null
           created_at: string | null
           description: string | null
           email: string | null
@@ -237,12 +239,16 @@ export type Database = {
           name: string
           phone: string | null
           region: Database["public"]["Enums"]["domain_region"] | null
+          regions: string | null
+          subregions: string | null
           updated_at: string | null
           website_url: string | null
         }
         Insert: {
           address?: string | null
+          appellations?: string | null
           banner_url?: string | null
+          communes?: string | null
           created_at?: string | null
           description?: string | null
           email?: string | null
@@ -251,12 +257,16 @@ export type Database = {
           name: string
           phone?: string | null
           region?: Database["public"]["Enums"]["domain_region"] | null
+          regions?: string | null
+          subregions?: string | null
           updated_at?: string | null
           website_url?: string | null
         }
         Update: {
           address?: string | null
+          appellations?: string | null
           banner_url?: string | null
+          communes?: string | null
           created_at?: string | null
           description?: string | null
           email?: string | null
@@ -265,10 +275,118 @@ export type Database = {
           name?: string
           phone?: string | null
           region?: Database["public"]["Enums"]["domain_region"] | null
+          regions?: string | null
+          subregions?: string | null
           updated_at?: string | null
           website_url?: string | null
         }
         Relationships: []
+      }
+      domain_enrichment_status: {
+        Row: {
+          ai_analysis: Json | null
+          applied_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          confidence_score: number | null
+          created_at: string | null
+          domain_id: string
+          error_message: string | null
+          id: string
+          manual_edits: Json | null
+          original_data: Json | null
+          processed_at: string | null
+          search_results: Json | null
+          status: string
+          suggested_address: string | null
+          suggested_appellations: string | null
+          suggested_communes: string | null
+          suggested_description: string | null
+          suggested_email: string | null
+          suggested_name: string | null
+          suggested_phone: string | null
+          suggested_region: string | null
+          suggested_regions: string | null
+          suggested_subregions: string | null
+          suggested_website_url: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          domain_id: string
+          error_message?: string | null
+          id?: string
+          manual_edits?: Json | null
+          original_data?: Json | null
+          processed_at?: string | null
+          search_results?: Json | null
+          status?: string
+          suggested_address?: string | null
+          suggested_appellations?: string | null
+          suggested_communes?: string | null
+          suggested_description?: string | null
+          suggested_email?: string | null
+          suggested_name?: string | null
+          suggested_phone?: string | null
+          suggested_region?: string | null
+          suggested_regions?: string | null
+          suggested_subregions?: string | null
+          suggested_website_url?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          domain_id?: string
+          error_message?: string | null
+          id?: string
+          manual_edits?: Json | null
+          original_data?: Json | null
+          processed_at?: string | null
+          search_results?: Json | null
+          status?: string
+          suggested_address?: string | null
+          suggested_appellations?: string | null
+          suggested_communes?: string | null
+          suggested_description?: string | null
+          suggested_email?: string | null
+          suggested_name?: string | null
+          suggested_phone?: string | null
+          suggested_region?: string | null
+          suggested_regions?: string | null
+          suggested_subregions?: string | null
+          suggested_website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domain_enrichment_status_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "domain_enrichment_status_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "domain_enrichment_status_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "domain"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event: {
         Row: {
@@ -1199,6 +1317,7 @@ export type Database = {
           logo_adress: string | null
           longitude: number | null
           phone_number: number | null
+          slug: string | null
           updated_at: string | null
           xp: number
         }
@@ -1220,6 +1339,7 @@ export type Database = {
           logo_adress?: string | null
           longitude?: number | null
           phone_number?: number | null
+          slug?: string | null
           updated_at?: string | null
           xp?: number
         }
@@ -1241,6 +1361,7 @@ export type Database = {
           logo_adress?: string | null
           longitude?: number | null
           phone_number?: number | null
+          slug?: string | null
           updated_at?: string | null
           xp?: number
         }
