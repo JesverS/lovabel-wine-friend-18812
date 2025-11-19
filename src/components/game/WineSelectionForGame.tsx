@@ -66,27 +66,11 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
   const searchWines = async (query: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc("search_wines_game", { query }).limit(10);
+      const { data, error } = await supabase.rpc("search_wines", { query }).limit(10);
 
       if (error) throw error;
 
-      // Transformer les données pour correspondre au format attendu
-      const formattedData = data?.map((item: any) => ({
-        id: item.id,
-        name: item.wine_name,
-        year: item.wine_year,
-        label_url: "", // search_wines_game ne retourne pas l'URL du label
-        domain: {
-          id: "",
-          name: item.domain_name,
-          logo_url: "",
-          region: null,
-        },
-        wine_type: {
-          id: 0,
-          type: "",
-        },
-      }));
+      setWines(data || []);
 
       setWines(formattedData || []);
     } catch (error: any) {
