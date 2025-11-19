@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-import { AvatarCropDialog } from '@/components/AvatarCropDialog';
-import { geocodeAddress } from '@/lib/utils';
-import { sanitizeSlugInput } from '@/lib/slugUtils';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+import { AvatarCropDialog } from "@/components/AvatarCropDialog";
+import { geocodeAddress } from "@/lib/utils";
+import { sanitizeSlugInput } from "@/lib/slugUtils";
 
 export default function CompleteProfile() {
   const { user } = useAuth();
@@ -18,9 +18,16 @@ export default function CompleteProfile() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [formData, setFormData] = useState({ full_name: '', last_name: '', city: '', address: '', phone_number: '', logo_adress: '' });
-  const [slug, setSlug] = useState('');
-  const [slugError, setSlugError] = useState('');
+  const [formData, setFormData] = useState({
+    full_name: "",
+    last_name: "",
+    city: "",
+    address: "",
+    phone_number: "",
+    logo_adress: "",
+  });
+  const [slug, setSlug] = useState("");
+  const [slugError, setSlugError] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -29,10 +36,20 @@ export default function CompleteProfile() {
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) return;
-      const { data: profile } = await supabase.from('user_profiles').select('*').eq('id', user.id).maybeSingle();
+      const { data: profile } = await supabase.from("user_profiles").select("*").eq("id", user.id).maybeSingle();
       if (profile) {
-        setFormData({ full_name: profile.full_name || '', last_name: profile.last_name || '', city: profile.city || '', address: profile.address || '', phone_number: profile.phone_number?.toString() || '', logo_adress: profile.logo_adress || '' });
-        if (profile.slug) { setSlug(profile.slug); setSlugTouched(true); }
+        setFormData({
+          full_name: profile.full_name || "",
+          last_name: profile.last_name || "",
+          city: profile.city || "",
+          address: profile.address || "",
+          phone_number: profile.phone_number?.toString() || "",
+          logo_adress: profile.logo_adress || "",
+        });
+        if (profile.slug) {
+          setSlug(profile.slug);
+          setSlugTouched(true);
+        }
       }
     };
     loadProfile();
@@ -46,26 +63,55 @@ export default function CompleteProfile() {
 
   useEffect(() => {
     const checkSlugAvailability = async (slugValue: string) => {
-      if (!slugValue || slugValue.length === 0) { setSlugError("Le nom de profil ne peut pas être vide"); return; }
-      if (!/^[a-z0-9-]+$/.test(slugValue)) { setSlugError("Slug invalide, veuillez utiliser uniquement lettres, chiffres et tirets."); return; }
+      if (!slugValue || slugValue.length === 0) {
+        setSlugError("Le nom de profil ne peut pas être vide");
+        return;
+      }
+      if (!/^[a-z0-9-]+$/.test(slugValue)) {
+        setSlugError("Slug invalide, veuillez utiliser uniquement lettres, chiffres et tirets.");
+        return;
+      }
       setCheckingSlug(true);
       try {
-        const { data, error } = await supabase.from('user_profiles').select('id').eq('slug', slugValue).maybeSingle();
+        const { data, error } = await supabase
+          .from("user_profiles_public")
+          .select("id")
+          .eq("slug", slugValue)
+          .maybeSingle();
         if (error) throw error;
-        if (data && data.id !== user?.id) { setSlugError("Nom de profil déjà pris, veuillez choisir quelque chose d'autre."); } else { setSlugError(''); }
-      } catch (error) { setSlugError("Erreur lors de la vérification du nom de profil"); } finally { setCheckingSlug(false); }
+        if (data && data.id !== user?.id) {
+          setSlugError("Nom de profil déjà pris, veuillez choisir quelque chose d'autre.");
+        } else {
+          setSlugError("");
+        }
+      } catch (error) {
+        setSlugError("Erreur lors de la vérification du nom de profil");
+      } finally {
+        setCheckingSlug(false);
+      }
     };
-    const timer = setTimeout(() => { if (slug) checkSlugAvailability(slug); }, 500);
+    const timer = setTimeout(() => {
+      if (slug) checkSlugAvailability(slug);
+    }, 500);
     return () => clearTimeout(timer);
   }, [slug, user?.id]);
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { toast({ title: 'Erreur', description: 'Le fichier doit être une image', variant: 'destructive' }); return; }
-    if (file.size > 5 * 1024 * 1024) { toast({ title: 'Erreur', description: "L'image ne doit pas dépasser 5MB", variant: 'destructive' }); return; }
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Erreur", description: "Le fichier doit être une image", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Erreur", description: "L'image ne doit pas dépasser 5MB", variant: "destructive" });
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = () => { setSelectedImage(reader.result as string); setShowCropDialog(true); };
+    reader.onload = () => {
+      setSelectedImage(reader.result as string);
+      setShowCropDialog(true);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -74,78 +120,217 @@ export default function CompleteProfile() {
     setUploading(true);
     try {
       const fileName = `${user.id}/avatar_${Date.now()}.jpg`;
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, croppedImage, { upsert: true });
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, croppedImage, { upsert: true });
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      setFormData(prev => ({ ...prev, logo_adress: publicUrl }));
-      toast({ title: 'Image téléchargée', description: 'Votre photo de profil a été téléchargée avec succès' });
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      setFormData((prev) => ({ ...prev, logo_adress: publicUrl }));
+      toast({ title: "Image téléchargée", description: "Votre photo de profil a été téléchargée avec succès" });
     } catch (error: any) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-    } finally { setUploading(false); setShowCropDialog(false); }
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      setShowCropDialog(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.full_name || !formData.last_name || !formData.city) { toast({ title: 'Erreur', description: 'Veuillez remplir tous les champs obligatoires', variant: 'destructive' }); return; }
-    if (!slug || slug.length === 0) { toast({ title: 'Erreur', description: 'Le nom de profil est requis', variant: 'destructive' }); setCurrentPage(1); return; }
-    if (slugError) { toast({ title: 'Erreur', description: 'Le nom de profil est invalide ou déjà pris', variant: 'destructive' }); setCurrentPage(1); return; }
+    if (!formData.full_name || !formData.last_name || !formData.city) {
+      toast({ title: "Erreur", description: "Veuillez remplir tous les champs obligatoires", variant: "destructive" });
+      return;
+    }
+    if (!slug || slug.length === 0) {
+      toast({ title: "Erreur", description: "Le nom de profil est requis", variant: "destructive" });
+      setCurrentPage(1);
+      return;
+    }
+    if (slugError) {
+      toast({ title: "Erreur", description: "Le nom de profil est invalide ou déjà pris", variant: "destructive" });
+      setCurrentPage(1);
+      return;
+    }
     setLoading(true);
     try {
       let coordinates = null;
       if (formData.address) coordinates = await geocodeAddress(formData.address);
-      const { error } = await supabase.from('user_profiles').update({ full_name: formData.full_name, last_name: formData.last_name, slug, city: formData.city, address: formData.address || null, phone_number: formData.phone_number ? Number(formData.phone_number) : null, logo_adress: formData.logo_adress || null, latitude: coordinates?.latitude || null, longitude: coordinates?.longitude || null }).eq('id', user?.id);
+      const { error } = await supabase
+        .from("user_profiles")
+        .update({
+          full_name: formData.full_name,
+          last_name: formData.last_name,
+          slug,
+          city: formData.city,
+          address: formData.address || null,
+          phone_number: formData.phone_number ? Number(formData.phone_number) : null,
+          logo_adress: formData.logo_adress || null,
+          latitude: coordinates?.latitude || null,
+          longitude: coordinates?.longitude || null,
+        })
+        .eq("id", user?.id);
       if (error) throw error;
-      toast({ title: 'Profil complété avec succès!' });
-      navigate('/');
+      toast({ title: "Profil complété avec succès!" });
+      navigate("/");
     } catch (error: any) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-    } finally { setLoading(false); }
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg p-8">
-        <div className="mb-8"><h1 className="text-3xl font-bold text-center mb-2">Compléter votre profil</h1><p className="text-center text-muted-foreground">Page {currentPage} sur 2</p></div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-center mb-2">Compléter votre profil</h1>
+          <p className="text-center text-muted-foreground">Page {currentPage} sur 2</p>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           {currentPage === 1 ? (
             <>
               <h2 className="text-xl font-semibold">Informations personnelles</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div><Label htmlFor="full_name">Prénom <span className="text-red-500">*</span></Label><Input id="full_name" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Jean" required /></div>
-                <div><Label htmlFor="last_name">Nom <span className="text-red-500">*</span></Label><Input id="last_name" value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} placeholder="Dupont" required /></div>
+                <div>
+                  <Label htmlFor="full_name">
+                    Prénom <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="full_name"
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    placeholder="Jean"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="last_name">
+                    Nom <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    placeholder="Dupont"
+                    required
+                  />
+                </div>
               </div>
               <div>
-                <Label htmlFor="slug">Nom de profil <span className="text-red-500">*</span></Label>
-                <Input id="slug" value={slug} onChange={(e) => { setSlugTouched(true); setSlug(sanitizeSlugInput(e.target.value)); }} placeholder="mon-nom-de-profil" className={slugError ? "border-red-500 focus-visible:ring-red-500" : ""} required />
-                {checkingSlug && <p className="text-sm text-muted-foreground mt-1">Vérification de la disponibilité...</p>}
+                <Label htmlFor="slug">
+                  Nom de profil <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="slug"
+                  value={slug}
+                  onChange={(e) => {
+                    setSlugTouched(true);
+                    setSlug(sanitizeSlugInput(e.target.value));
+                  }}
+                  placeholder="mon-nom-de-profil"
+                  className={slugError ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  required
+                />
+                {checkingSlug && (
+                  <p className="text-sm text-muted-foreground mt-1">Vérification de la disponibilité...</p>
+                )}
                 {slugError && <p className="text-sm text-red-500 mt-1">{slugError}</p>}
               </div>
               <div>
                 <Label htmlFor="avatar">Photo de profil</Label>
                 <div className="flex items-center gap-4">
-                  {formData.logo_adress && <img src={formData.logo_adress} alt="Avatar" className="w-20 h-20 rounded-full object-cover" />}
+                  {formData.logo_adress && (
+                    <img src={formData.logo_adress} alt="Avatar" className="w-20 h-20 rounded-full object-cover" />
+                  )}
                   <div className="flex-1">
-                    <Input id="avatar" type="file" accept="image/*" onChange={handleAvatarSelect} disabled={uploading} className="cursor-pointer" />
-                    {uploading && <p className="text-sm text-muted-foreground mt-1 flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Upload en cours...</p>}
+                    <Input
+                      id="avatar"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarSelect}
+                      disabled={uploading}
+                      className="cursor-pointer"
+                    />
+                    {uploading && (
+                      <p className="text-sm text-muted-foreground mt-1 flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Upload en cours...
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-              <Button type="button" onClick={() => setCurrentPage(2)} disabled={!formData.full_name || !formData.last_name || !slug || !!slugError || checkingSlug} className="w-full">Suivant</Button>
+              <Button
+                type="button"
+                onClick={() => setCurrentPage(2)}
+                disabled={!formData.full_name || !formData.last_name || !slug || !!slugError || checkingSlug}
+                className="w-full"
+              >
+                Suivant
+              </Button>
             </>
           ) : (
             <>
               <h2 className="text-xl font-semibold">Contact et localisation</h2>
-              <div><Label htmlFor="city">Ville <span className="text-red-500">*</span></Label><Input id="city" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="Paris" required /></div>
-              <div><Label htmlFor="phone_number">Téléphone</Label><Input id="phone_number" type="tel" value={formData.phone_number} onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })} placeholder="0123456789" /></div>
-              <div><Label htmlFor="address">Adresse</Label><Input id="address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="123 Rue de la République" /></div>
+              <div>
+                <Label htmlFor="city">
+                  Ville <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="Paris"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone_number">Téléphone</Label>
+                <Input
+                  id="phone_number"
+                  type="tel"
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                  placeholder="0123456789"
+                />
+              </div>
+              <div>
+                <Label htmlFor="address">Adresse</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="123 Rue de la République"
+                />
+              </div>
               <div className="flex gap-4">
-                <Button type="button" onClick={() => setCurrentPage(1)} variant="outline" className="flex-1">Précédent</Button>
-                <Button type="submit" className="flex-1" disabled={loading || !formData.city}>{loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enregistrement...</> : 'Enregistrer'}</Button>
+                <Button type="button" onClick={() => setCurrentPage(1)} variant="outline" className="flex-1">
+                  Précédent
+                </Button>
+                <Button type="submit" className="flex-1" disabled={loading || !formData.city}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    "Enregistrer"
+                  )}
+                </Button>
               </div>
             </>
           )}
         </form>
-        {selectedImage && <AvatarCropDialog open={showCropDialog} onOpenChange={setShowCropDialog} imageSrc={selectedImage} onCropComplete={handleCropComplete} />}
+        {selectedImage && (
+          <AvatarCropDialog
+            open={showCropDialog}
+            onOpenChange={setShowCropDialog}
+            imageSrc={selectedImage}
+            onCropComplete={handleCropComplete}
+          />
+        )}
       </div>
     </div>
   );
