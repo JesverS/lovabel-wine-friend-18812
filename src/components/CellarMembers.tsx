@@ -47,6 +47,7 @@ export function CellarMembers({ cellarId, cellarName, userRole }: CellarMembersP
       .select(`
         *,
         user_profiles_public (
+          slug,
           full_name,
           logo_adress
         )
@@ -147,7 +148,7 @@ export function CellarMembers({ cellarId, cellarName, userRole }: CellarMembersP
                 </AvatarFallback>
               </Avatar>
             <div>
-              <Link to={`/user/${member.user_id}`}>
+              <Link to={`/user/${member.user_profiles_public?.slug}`}>
                 <p className="font-semibold hover:underline cursor-pointer text-primary">
                   {member.user_profiles_public?.full_name || 'Utilisateur'}
                 </p>

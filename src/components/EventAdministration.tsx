@@ -65,6 +65,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
         user_id,
         role,
         user_profiles_public (
+          slug,
           full_name,
           logo_adress
         )
@@ -202,7 +203,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <Link to={`/user/${member.user_id}`}>
+                  <Link to={`/user/${(member.user_profiles_public as any)?.slug || ''}`}>
                     <p className="font-medium hover:underline cursor-pointer text-primary">
                       {member.user_profiles_public?.full_name || 'Utilisateur'}
                       {member.user_id === user?.id && (

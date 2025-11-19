@@ -25,6 +25,7 @@ export default function DomainDetails() {
   const [userRole, setUserRole] = useState<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [userSlug, setUserSlug] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -33,6 +34,20 @@ export default function DomainDetails() {
       checkAdminStatus();
     }
   }, [id, user]);
+
+  useEffect(() => {
+    const fetchUserSlug = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from('user_profiles_public' as any)
+          .select('slug')
+          .eq('id', user.id)
+          .single();
+        setUserSlug((data as any)?.slug || null);
+      }
+    };
+    fetchUserSlug();
+  }, [user]);
 
   const fetchDomainDetails = async () => {
     const { data, error } = await supabase
@@ -156,7 +171,7 @@ export default function DomainDetails() {
       <Header />
       <main className="flex-1 min-h-screen container mx-auto px-4 py-8">
         <Button variant="ghost" asChild className="mb-6">
-          <Link to={user ? `/user/${user.id}` : '/search'}>
+          <Link to={userSlug ? `/user/${userSlug}` : '/search'}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Link>

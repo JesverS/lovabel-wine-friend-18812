@@ -126,7 +126,7 @@ export default function CompleteProfile() {
         .eq("id", user?.id);
       if (error) throw error;
       toast({ title: "Profil complété avec succès!" });
-      navigate("/");
+      navigate(`/user/${slug}`);
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } finally {

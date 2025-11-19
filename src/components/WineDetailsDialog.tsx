@@ -58,7 +58,8 @@ interface UserComment {
   user_id: string;
   comment: string;
   created_at: string;
-  user_profiles: {
+  user_profiles_public: {
+    slug: string | null;
     full_name: string | null;
     logo_adress: string | null;
   } | null;
@@ -166,6 +167,7 @@ export const WineDetailsDialog = ({
         comment,
         created_at,
         user_profiles_public (
+          slug,
           full_name,
           logo_adress
         )
@@ -961,13 +963,13 @@ export const WineDetailsDialog = ({
                               <div className="flex items-center gap-3">
                                 <button
                                   onClick={() => {
-                                    navigate(`/user/${comment.user_id}`);
+                                    navigate(`/user/${comment.user_profiles_public?.slug}`);
                                     onClose();
                                   }}
                                   className="cursor-pointer hover:opacity-80"
                                 >
                                   <Avatar>
-                                    <AvatarImage src={comment.user_profiles?.logo_adress || undefined} />
+                                    <AvatarImage src={comment.user_profiles_public?.logo_adress || undefined} />
                                     <AvatarFallback>
                                       <User className="h-4 w-4" />
                                     </AvatarFallback>
@@ -976,12 +978,12 @@ export const WineDetailsDialog = ({
                                 <div>
                                   <button
                                     onClick={() => {
-                                      navigate(`/user/${comment.user_id}`);
+                                      navigate(`/user/${comment.user_profiles_public?.slug}`);
                                       onClose();
                                     }}
                                     className="font-medium hover:underline text-primary cursor-pointer"
                                   >
-                                    {comment.user_profiles?.full_name || "Utilisateur"}
+                                    {comment.user_profiles_public?.full_name || "Utilisateur"}
                                   </button>
                                   <p className="text-xs text-muted-foreground">
                                     {format(new Date(comment.created_at), "d MMMM yyyy", { locale: fr })}

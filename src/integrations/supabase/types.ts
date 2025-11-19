@@ -237,6 +237,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          normalized_name: string | null
           phone: string | null
           region: Database["public"]["Enums"]["domain_region"] | null
           regions: string | null
@@ -255,6 +256,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          normalized_name?: string | null
           phone?: string | null
           region?: Database["public"]["Enums"]["domain_region"] | null
           regions?: string | null
@@ -273,6 +275,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          normalized_name?: string | null
           phone?: string | null
           region?: Database["public"]["Enums"]["domain_region"] | null
           regions?: string | null
@@ -1635,6 +1638,7 @@ export type Database = {
           label_url: string
           mode_culture: number | null
           name: string
+          normalized_name: string | null
           price: number | null
           type: number | null
           updated_at: string | null
@@ -1655,6 +1659,7 @@ export type Database = {
           label_url?: string
           mode_culture?: number | null
           name: string
+          normalized_name?: string | null
           price?: number | null
           type?: number | null
           updated_at?: string | null
@@ -1675,6 +1680,7 @@ export type Database = {
           label_url?: string
           mode_culture?: number | null
           name?: string
+          normalized_name?: string | null
           price?: number | null
           type?: number | null
           updated_at?: string | null
@@ -1719,18 +1725,21 @@ export type Database = {
           description: string | null
           id: number
           nom: string
+          normalized_nom: string | null
           region: string | null
         }
         Insert: {
           description?: string | null
           id?: number
           nom: string
+          normalized_nom?: string | null
           region?: string | null
         }
         Update: {
           description?: string | null
           id?: number
           nom?: string
+          normalized_nom?: string | null
           region?: string | null
         }
         Relationships: []
@@ -1738,14 +1747,17 @@ export type Database = {
       wine_type: {
         Row: {
           id: number
+          normalized_type: string | null
           type: Database["public"]["Enums"]["wine_type_enum"]
         }
         Insert: {
           id?: number
+          normalized_type?: string | null
           type: Database["public"]["Enums"]["wine_type_enum"]
         }
         Update: {
           id?: number
+          normalized_type?: string | null
           type?: Database["public"]["Enums"]["wine_type_enum"]
         }
         Relationships: []

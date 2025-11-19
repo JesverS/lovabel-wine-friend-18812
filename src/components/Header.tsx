@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Wine, User, Heart, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -16,6 +16,21 @@ export const Header = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userSlug, setUserSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserSlug = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from('user_profiles_public' as any)
+          .select('slug')
+          .eq('id', user.id)
+          .single();
+        setUserSlug((data as any)?.slug || null);
+      }
+    };
+    fetchUserSlug();
+  }, [user]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -52,7 +67,7 @@ export const Header = () => {
           {user ? (
             <>
               <Button variant="ghost" size="icon" asChild>
-                <Link to={`/user/${user.id}`}>
+                <Link to={userSlug ? `/user/${userSlug}` : '#'}>
                   <User className="h-5 w-5" />
                 </Link>
               </Button>
