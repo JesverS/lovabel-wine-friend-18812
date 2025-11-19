@@ -71,8 +71,6 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
       if (error) throw error;
 
       setWines(data || []);
-
-      setWines(formattedData || []);
     } catch (error: any) {
       toast.error("Erreur lors de la recherche");
     } finally {
