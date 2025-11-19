@@ -105,33 +105,30 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
             <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
+        <div className="border rounded-md">
+          {/* Zone scrollable */}
+          <ScrollArea className="max-h-60 overflow-y-auto">
+            {wines.length === 0 && !loading ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+                Aucune bouteille trouvée
+              </div>
+            ) : (
+              wines.map((wine) => <WineListItem key={wine.id} wine={wine} onSelect={onWineSelected} />)
+            )}
+          </ScrollArea>
 
-  {/* Zone scrollable */}
-  <ScrollArea className="max-h-60 overflow-y-auto">
-    {wines.length === 0 && !loading ? (
-      <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
-        Aucune bouteille trouvée
-      </div>
-    ) : (
-      wines.map((wine) => (
-        <WineListItem key={wine.id} wine={wine} onSelect={onWineSelected} />
-      ))
-    )}
-  </ScrollArea>
-
-  {/* Bouton TOUJOURS visible */}
-  <div className="border-t">
-    <Button
-      variant="ghost"
-      className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
-      onClick={() => setCreateDialogOpen(true)}
-    >
-      <Plus className="w-4 h-4 mr-2" />
-      Créer une nouvelle bouteille
-    </Button>
-  </div>
-</div>
-
+          {/* Bouton TOUJOURS visible */}
+          <div className="border-t">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Créer une nouvelle bouteille
+            </Button>
+          </div>
+        </div>
       </div>
 
       <CreateWineForGameDialog
