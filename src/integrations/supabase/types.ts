@@ -1799,6 +1799,7 @@ export type Database = {
           level: number | null
           logo_adress: string | null
           phone_number: number | null
+          slug: string | null
         }
         Insert: {
           address?: never
@@ -1811,6 +1812,7 @@ export type Database = {
           level?: number | null
           logo_adress?: string | null
           phone_number?: never
+          slug?: string | null
         }
         Update: {
           address?: never
@@ -1823,6 +1825,7 @@ export type Database = {
           level?: number | null
           logo_adress?: string | null
           phone_number?: never
+          slug?: string | null
         }
         Relationships: []
       }
