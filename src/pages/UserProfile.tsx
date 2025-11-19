@@ -22,7 +22,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function UserProfile() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [profile, setProfile] = useState<any>(null);
@@ -36,10 +36,10 @@ export default function UserProfile() {
   const [activeTab, setActiveTab] = useState('posts');
 
   useEffect(() => {
-    if (id) {
+    if (slug) {
       fetchProfileData();
     }
-  }, [id, user]);
+  }, [slug, user]);
 
   const fetchProfileData = async () => {
     setLoading(true);
@@ -47,25 +47,32 @@ export default function UserProfile() {
     // Fetch profile - always use public view
     const { data: profileData } = await supabase
       .from('user_profiles_public' as any)
-      .select('id, full_name, logo_adress, description, city, address, level, phone_number, email')
-      .eq('id', id)
+      .select('id, slug, full_name, logo_adress, description, city, address, level, phone_number, email')
+      .eq('slug', slug)
       .single();
     setProfile(profileData);
+
+    if (!profileData) {
+      setLoading(false);
+      return;
+    }
+
+    const userId = (profileData as any).id;
 
     // Fetch posts
     const { data: postsData } = await supabase
       .from('post')
       .select('*')
-      .eq('user_id', id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     setPosts(postsData || []);
 
     // Fetch cellars
-    const isOwnProfile = user?.id === id;
+    const isOwnProfile = user?.id === userId;
     const { data: userCellars } = await supabase
       .from('user_cellar' as any)
       .select('user_cellar_id, cellar(*)')
-      .eq('user_id', id);
+      .eq('user_id', userId);
 
     if (userCellars) {
       // Filter cellars: show all if own profile, only public if not
@@ -79,14 +86,14 @@ export default function UserProfile() {
     const { count } = await supabase
       .from('user_follow')
       .select('*', { count: 'exact', head: true })
-      .eq('following_id', id);
+      .eq('following_id', userId);
     setFollowersCount(count || 0);
 
     // Fetch events (created or participating)
     const { data: userEvents } = await supabase
       .from('user_event')
       .select('event_id')
-      .eq('user_id', id);
+      .eq('user_id', userId);
 
     if (userEvents) {
       const eventIds = userEvents.map((ue: any) => ue.event_id);
@@ -99,12 +106,12 @@ export default function UserProfile() {
     }
 
     // Check if following
-    if (user && user.id !== id) {
+    if (user && user.id !== userId) {
       const { data } = await supabase
         .from('user_follow')
         .select('*')
         .eq('follower_id', user.id)
-        .eq('following_id', id)
+        .eq('following_id', userId)
         .single();
       setIsFollowing(!!data);
     }
@@ -113,20 +120,20 @@ export default function UserProfile() {
   };
 
   const handleFollow = async () => {
-    if (!user || user.id === id) return;
+    if (!user || !profile?.id) return;
 
     if (isFollowing) {
       await supabase
         .from('user_follow')
         .delete()
         .eq('follower_id', user.id)
-        .eq('following_id', id);
+        .eq('following_id', profile.id);
       setIsFollowing(false);
       setFollowersCount((prev) => prev - 1);
     } else {
       await supabase
         .from('user_follow')
-        .insert({ follower_id: user.id, following_id: id });
+        .insert({ follower_id: user.id, following_id: profile.id });
       setIsFollowing(true);
       setFollowersCount((prev) => prev + 1);
     }
@@ -148,7 +155,7 @@ export default function UserProfile() {
     );
   }
 
-  const isOwnProfile = user?.id === id;
+  const isOwnProfile = user?.id === profile.id;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

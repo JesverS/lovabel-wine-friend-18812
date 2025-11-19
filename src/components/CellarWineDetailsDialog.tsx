@@ -100,6 +100,7 @@ interface UserComment {
   comment: string;
   created_at: string;
   user_profiles: {
+    slug: string | null;
     full_name: string | null;
     logo_adress: string | null;
   } | null;
@@ -262,7 +263,8 @@ export function CellarWineDetailsDialog({
         user_id,
         comment,
         created_at,
-        user_profiles_public (
+        user_profiles (
+          slug,
           full_name,
           logo_adress
         )
@@ -1139,7 +1141,7 @@ export function CellarWineDetailsDialog({
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-3">
                                 <button
-                                  onClick={() => navigate(`/user/${comment.user_id}`)}
+                                  onClick={() => navigate(`/user/${comment.user_profiles?.slug}`)}
                                   className="cursor-pointer hover:opacity-80 shrink-0"
                                 >
                                   <Avatar>
@@ -1151,7 +1153,7 @@ export function CellarWineDetailsDialog({
                                 </button>
                                 <div className="min-w-0 flex-1">
                                   <button
-                                    onClick={() => navigate(`/user/${comment.user_id}`)}
+                                    onClick={() => navigate(`/user/${comment.user_profiles?.slug}`)}
                                     className="font-medium hover:underline cursor-pointer truncate block max-w-full"
                                   >
                                     {comment.user_profiles?.full_name || 'Utilisateur'}

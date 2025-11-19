@@ -92,7 +92,7 @@ export const PostCard = ({ post }: PostCardProps) => {
     // Fetch author
     const { data: authorData } = await supabase
       .from('user_profiles_public' as any)
-      .select('id, full_name, logo_adress, description, city, level')
+      .select('id, slug, full_name, logo_adress, description, city, level')
       .eq('id', post.user_id)
       .maybeSingle();
     setAuthor(authorData);
@@ -111,7 +111,7 @@ export const PostCard = ({ post }: PostCardProps) => {
   const fetchComments = async () => {
     const { data } = await supabase
       .from('post_comment')
-      .select('*, user_profiles_public(id, full_name, logo_adress)')
+      .select('*, user_profiles_public(id, slug, full_name, logo_adress)')
       .eq('post_id', post.id)
       .order('created_at', { ascending: false }) as any;
     setComments(data || []);
@@ -244,7 +244,7 @@ export const PostCard = ({ post }: PostCardProps) => {
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <div>
-              <Link to={`/user/${post.user_id}`} className="font-semibold hover:underline">
+              <Link to={`/user/${author?.slug}`} className="font-semibold hover:underline">
                 {author?.full_name || 'Utilisateur'}
               </Link>
               <p className="text-sm text-muted-foreground">
@@ -397,7 +397,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <div className="flex items-center gap-2">
                           <Link
-                            to={`/user/${comment.user_id}`}
+                            to={`/user/${comment.user_profiles_public?.slug}`}
                             className="font-semibold text-sm hover:underline"
                           >
                             {comment.user_profiles_public?.full_name || 'Utilisateur'}
