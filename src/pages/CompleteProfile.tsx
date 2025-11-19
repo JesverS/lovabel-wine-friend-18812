@@ -93,7 +93,7 @@ export default function CompleteProfile() {
     try {
       let coordinates = null;
       if (formData.address) coordinates = await geocodeAddress(formData.address);
-      const { error } = await supabase.from('user_profiles').update({ full_name: formData.full_name, last_name: formData.last_name, slug, city: formData.city, address: formData.address || null, phone_number: formData.phone_number ? BigInt(formData.phone_number) : null, logo_adress: formData.logo_adress || null, latitude: coordinates?.latitude || null, longitude: coordinates?.longitude || null }).eq('id', user?.id);
+      const { error } = await supabase.from('user_profiles').update({ full_name: formData.full_name, last_name: formData.last_name, slug, city: formData.city, address: formData.address || null, phone_number: formData.phone_number ? Number(formData.phone_number) : null, logo_adress: formData.logo_adress || null, latitude: coordinates?.latitude || null, longitude: coordinates?.longitude || null }).eq('id', user?.id);
       if (error) throw error;
       toast({ title: 'Profil complété avec succès!' });
       navigate('/');
