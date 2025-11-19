@@ -106,26 +106,32 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
           )}
         </div>
 
-        {/* Liste scrollable */}
-        <ScrollArea className="max-h-[50vh] rounded-md border">
-          {wines.length === 0 && !loading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
-              Aucune bouteille trouvée
-            </div>
-          ) : (
-            wines.map((wine) => <WineListItem key={wine.id} wine={wine} onSelect={onWineSelected} />)
-          )}
+  {/* Zone scrollable */}
+  <ScrollArea className="max-h-60 overflow-y-auto">
+    {wines.length === 0 && !loading ? (
+      <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+        Aucune bouteille trouvée
+      </div>
+    ) : (
+      wines.map((wine) => (
+        <WineListItem key={wine.id} wine={wine} onSelect={onWineSelected} />
+      ))
+    )}
+  </ScrollArea>
 
-          {/* Bouton création toujours visible */}
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10 border-t"
-            onClick={() => setCreateDialogOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Créer une nouvelle bouteille
-          </Button>
-        </ScrollArea>
+  {/* Bouton TOUJOURS visible */}
+  <div className="border-t">
+    <Button
+      variant="ghost"
+      className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
+      onClick={() => setCreateDialogOpen(true)}
+    >
+      <Plus className="w-4 h-4 mr-2" />
+      Créer une nouvelle bouteille
+    </Button>
+  </div>
+</div>
+
       </div>
 
       <CreateWineForGameDialog
