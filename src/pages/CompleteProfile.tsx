@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, User, Camera } from "lucide-react";
 import { AvatarCropDialog } from "@/components/AvatarCropDialog";
 import { geocodeAddress } from "@/lib/utils";
 import { sanitizeSlugInput } from "@/lib/slugUtils";
@@ -32,6 +32,7 @@ export default function CompleteProfile() {
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -77,7 +78,7 @@ export default function CompleteProfile() {
           .from("user_profiles_public")
           .select("id")
           .eq("slug", slugValue)
-          .maybeSingle();
+          .maybeSingle() as { data: { id: string } | null; error: any };
         if (error) throw error;
         if (data && data.id !== user?.id) {
           setSlugError("Nom de profil déjà pris, veuillez choisir quelque chose d'autre.");
@@ -239,27 +240,52 @@ export default function CompleteProfile() {
                 {slugError && <p className="text-sm text-red-500 mt-1">{slugError}</p>}
               </div>
               <div>
-                <Label htmlFor="avatar">Photo de profil</Label>
-                <div className="flex items-center gap-4">
-                  {formData.logo_adress && (
-                    <img src={formData.logo_adress} alt="Avatar" className="w-20 h-20 rounded-full object-cover" />
-                  )}
-                  <div className="flex-1">
-                    <Input
-                      id="avatar"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarSelect}
-                      disabled={uploading}
-                      className="cursor-pointer"
-                    />
-                    {uploading && (
-                      <p className="text-sm text-muted-foreground mt-1 flex items-center">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Upload en cours...
-                      </p>
+                <Label>Photo de profil</Label>
+                <div className="flex flex-col items-center gap-3">
+                  {/* Cercle cliquable */}
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative w-32 h-32 rounded-full cursor-pointer hover:opacity-90 transition-opacity"
+                  >
+                    {formData.logo_adress ? (
+                      <img 
+                        src={formData.logo_adress} 
+                        alt="Photo de profil" 
+                        className="w-full h-full rounded-full object-cover" 
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                        <User className="w-16 h-16 text-muted-foreground" />
+                      </div>
                     )}
+                    {/* Badge caméra */}
+                    <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 shadow-lg">
+                      <Camera className="w-4 h-4" />
+                    </div>
                   </div>
+                  
+                  {/* Texte d'aide */}
+                  <p className="text-sm text-muted-foreground text-center">
+                    Cliquez pour {formData.logo_adress ? 'modifier' : 'ajouter'} votre photo
+                  </p>
+                  
+                  {/* Input caché */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarSelect}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                  
+                  {/* Indicateur upload */}
+                  {uploading && (
+                    <p className="text-sm flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Upload en cours...
+                    </p>
+                  )}
                 </div>
               </div>
               <Button
