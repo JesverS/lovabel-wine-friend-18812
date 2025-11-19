@@ -24,7 +24,7 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
   useEffect(() => {
     if (!hasInteracted) return;
     loadInitialWines();
-  }, []);
+  }, [hasInteracted]);
 
   // Recherche avec debounce
   useEffect(() => {
@@ -33,7 +33,7 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
         searchWines(searchQuery);
       }, 300);
       return () => clearTimeout(timer);
-    } else if (searchQuery.length === 0) {
+    } else if (searchQuery.length === 0 && hasInteracted) {
       loadInitialWines();
     }
   }, [searchQuery]);
