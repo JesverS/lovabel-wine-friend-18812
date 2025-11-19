@@ -41,15 +41,15 @@ export default function GameMultiplayer() {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-game-questions', {
-        body: { 
-          wineId: selectedWine.id, 
-          nbPlayers: players.length 
-        }
+      const { data, error } = await supabase.functions.invoke("fetch-game-questions", {
+        body: {
+          wineId: selectedWine.id,
+          nbPlayers: players.length,
+        },
       });
 
       if (error) {
-        console.error('Error fetching questions:', error);
+        console.error("Error fetching questions:", error);
         toast({
           title: "Erreur",
           description: "Impossible de charger les questions du jeu",
@@ -66,7 +66,7 @@ export default function GameMultiplayer() {
         },
       });
     } catch (error) {
-      console.error('Error starting game:', error);
+      console.error("Error starting game:", error);
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors du lancement du jeu",
@@ -80,7 +80,7 @@ export default function GameMultiplayer() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background flex flex-col">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8 pt-32 flex-grow min-h-screen">
         {/* Hero Section */}
         <div className="text-center mb-12 animate-fade-up">
@@ -88,7 +88,7 @@ export default function GameMultiplayer() {
             <Wine className="h-4 w-4 text-secondary" />
             <span className="text-sm text-secondary font-medium">Jeu d'ambiance convivial</span>
           </div>
-          
+
           <h1 className="font-serif text-4xl md:text-6xl font-bold mb-4">
             Soirée <span className="text-gradient-gold">Vin</span>
           </h1>
@@ -105,9 +105,7 @@ export default function GameMultiplayer() {
                 <Users className="h-5 w-5 text-primary" />
                 Joueurs ({players.length}/8)
               </CardTitle>
-              <CardDescription>
-                Ajoutez entre 1 et 8 joueurs pour commencer la partie
-              </CardDescription>
+              <CardDescription>Ajoutez entre 1 et 8 joueurs pour commencer la partie</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add Player Input */}
@@ -139,10 +137,7 @@ export default function GameMultiplayer() {
                   </div>
                 ) : (
                   players.map((player, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
-                    >
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="font-mono">
                           {index + 1}
@@ -171,9 +166,7 @@ export default function GameMultiplayer() {
                 <Wine className="h-5 w-5 text-secondary" />
                 Choisir le vin
               </CardTitle>
-              <CardDescription>
-                Sélectionnez ou créez la bouteille pour le jeu
-              </CardDescription>
+              <CardDescription>Sélectionnez ou créez la bouteille pour le jeu</CardDescription>
             </CardHeader>
             <CardContent>
               {!selectedWine ? (
@@ -221,9 +214,7 @@ export default function GameMultiplayer() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">Ajoutez les joueurs</h4>
-                  <p className="text-sm text-muted-foreground">
-                    De 1 à 8 personnes sur un seul téléphone
-                  </p>
+                  <p className="text-sm text-muted-foreground">De 1 à 8 personnes sur un seul téléphone</p>
                 </div>
               </div>
               <div className="flex gap-3">
@@ -232,9 +223,7 @@ export default function GameMultiplayer() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">Choisissez votre vin</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Sélectionnez la bouteille que vous dégustez
-                  </p>
+                  <p className="text-sm text-muted-foreground">Sélectionnez la bouteille que vous dégustez</p>
                 </div>
               </div>
               <div className="flex gap-3">
@@ -243,9 +232,7 @@ export default function GameMultiplayer() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">Répondez aux questions</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Culture générale et ressentis personnels
-                  </p>
+                  <p className="text-sm text-muted-foreground">Culture générale et ressentis personnels</p>
                 </div>
               </div>
             </div>

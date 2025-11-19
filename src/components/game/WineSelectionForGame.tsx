@@ -18,9 +18,11 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   // Charger les 5 premières bouteilles au montage
   useEffect(() => {
+    if (!hasInteracted) return;
     loadInitialWines();
   }, []);
 
@@ -46,7 +48,7 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
           id, name, year, label_url,
           domain:domain_id(id, name, logo_url, region),
           wine_type:type(id, type)
-        `
+        `,
         )
         .eq("is_playable", true)
         .order("created_at", { ascending: false })
@@ -111,6 +113,7 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            onFocus={() => setHasInteracted(true)}
             placeholder="Rechercher une bouteille..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
