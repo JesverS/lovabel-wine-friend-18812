@@ -67,7 +67,7 @@ export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] mx-4 sm:mx-0 gap-4">
+      <DialogContent className="sm:max-w-[500px] gap-4">
         <DialogHeader>
           <DialogTitle className="text-xl">Créer un nouveau domaine</DialogTitle>
           <DialogDescription>Ajoutez les informations du domaine viticole</DialogDescription>
