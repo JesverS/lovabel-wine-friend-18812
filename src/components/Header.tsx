@@ -66,10 +66,18 @@ export const Header = () => {
           </Button>
           {user ? (
             <>
-              <Button variant="ghost" size="icon" asChild>
-                <Link to={userSlug ? `/user/${userSlug}` : '#'}>
-                  <User className="h-5 w-5" />
-                </Link>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => {
+                  if (userSlug) {
+                    navigate(`/user/${userSlug}`);
+                  } else {
+                    navigate('/complete-profile');
+                  }
+                }}
+              >
+                <User className="h-5 w-5" />
               </Button>
               <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />

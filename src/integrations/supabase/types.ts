@@ -235,6 +235,7 @@ export type Database = {
           description: string | null
           email: string | null
           id: string
+          is_enriched: boolean | null
           logo_url: string | null
           name: string
           normalized_name: string | null
@@ -254,6 +255,7 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          is_enriched?: boolean | null
           logo_url?: string | null
           name: string
           normalized_name?: string | null
@@ -273,6 +275,7 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          is_enriched?: boolean | null
           logo_url?: string | null
           name?: string
           normalized_name?: string | null
@@ -293,25 +296,24 @@ export type Database = {
           approved_by: string | null
           confidence_score: number | null
           created_at: string | null
-          domain_id: string
+          domain_id: string | null
           error_message: string | null
           id: string
+          import_location: string | null
+          import_name: string | null
+          import_region: string | null
+          logo_url: Json | null
           manual_edits: Json | null
           original_data: Json | null
           processed_at: string | null
           search_results: Json | null
+          source_type: string | null
           status: string
-          suggested_address: string | null
           suggested_appellations: string | null
           suggested_communes: string | null
           suggested_description: string | null
-          suggested_email: string | null
           suggested_name: string | null
-          suggested_phone: string | null
           suggested_region: string | null
-          suggested_regions: string | null
-          suggested_subregions: string | null
-          suggested_website_url: string | null
         }
         Insert: {
           ai_analysis?: Json | null
@@ -320,25 +322,24 @@ export type Database = {
           approved_by?: string | null
           confidence_score?: number | null
           created_at?: string | null
-          domain_id: string
+          domain_id?: string | null
           error_message?: string | null
           id?: string
+          import_location?: string | null
+          import_name?: string | null
+          import_region?: string | null
+          logo_url?: Json | null
           manual_edits?: Json | null
           original_data?: Json | null
           processed_at?: string | null
           search_results?: Json | null
+          source_type?: string | null
           status?: string
-          suggested_address?: string | null
           suggested_appellations?: string | null
           suggested_communes?: string | null
           suggested_description?: string | null
-          suggested_email?: string | null
           suggested_name?: string | null
-          suggested_phone?: string | null
           suggested_region?: string | null
-          suggested_regions?: string | null
-          suggested_subregions?: string | null
-          suggested_website_url?: string | null
         }
         Update: {
           ai_analysis?: Json | null
@@ -347,25 +348,24 @@ export type Database = {
           approved_by?: string | null
           confidence_score?: number | null
           created_at?: string | null
-          domain_id?: string
+          domain_id?: string | null
           error_message?: string | null
           id?: string
+          import_location?: string | null
+          import_name?: string | null
+          import_region?: string | null
+          logo_url?: Json | null
           manual_edits?: Json | null
           original_data?: Json | null
           processed_at?: string | null
           search_results?: Json | null
+          source_type?: string | null
           status?: string
-          suggested_address?: string | null
           suggested_appellations?: string | null
           suggested_communes?: string | null
           suggested_description?: string | null
-          suggested_email?: string | null
           suggested_name?: string | null
-          suggested_phone?: string | null
           suggested_region?: string | null
-          suggested_regions?: string | null
-          suggested_subregions?: string | null
-          suggested_website_url?: string | null
         }
         Relationships: [
           {
