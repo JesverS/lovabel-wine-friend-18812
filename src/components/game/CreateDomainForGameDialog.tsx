@@ -1,180 +1,196 @@
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Loader2 } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { WineListItem } from "./WineListItem";
-import { CreateWineForGameDialog } from "./CreateWineForGameDialog";
 
-interface WineSelectionForGameProps {
-  onWineSelected: (wine: any) => void;
+interface CreateDomainForGameDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDomainCreated: (domain: any) => void;
 }
 
-export function WineSelectionForGame({ onWineSelected }: WineSelectionForGameProps) {
-  const [wines, setWines] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
+export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated }: CreateDomainForGameDialogProps) {
+  const [name, setName] = useState("");
+  const [region, setRegion] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Charger les 5 premières bouteilles au montage
-  useEffect(() => {
-    if (!hasInteracted) return;
-    loadInitialWines();
-  }, [hasInteracted]);
-
-  // Recherche avec debounce
-  useEffect(() => {
-    if (searchQuery.length >= 2) {
-      const timer = setTimeout(() => {
-        searchWines(searchQuery);
-      }, 300);
-      return () => clearTimeout(timer);
-    } else if (searchQuery.length === 0 && hasInteracted) {
-      loadInitialWines();
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }, [searchQuery]);
+  };
 
-  const loadInitialWines = async () => {
-    setLoading(true);
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      toast.error("Le nom du domaine est requis");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
+      let logoUrl = null;
+
+      // Upload du logo si présent
+      if (logoFile) {
+        const fileExt = logoFile.name.split(".").pop();
+        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `domain-logos/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage.from("wine-images").upload(filePath, logoFile);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("wine-images").getPublicUrl(filePath);
+
+        logoUrl = publicUrl;
+      }
+
+      // Créer le domaine
       const { data, error } = await supabase
-        .from("wine")
-        .select(
-          `
-          id, name, year, label_url,
-          domain:domain_id(id, name, logo_url, region),
-          wine_type:type(id, type)
-        `,
-        )
-        .eq("is_playable", true)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-      setWines(data || []);
-    } catch (error: any) {
-      toast.error("Erreur lors du chargement des vins");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const searchWines = async (query: string) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc("search_wines", { query }).limit(10);
+        .from("domain")
+        .insert({
+          name: name.trim(),
+          region: region.trim() || null,
+          logo_url: logoUrl,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setWines(data || []);
-    } catch (error: any) {
-      toast.error("Erreur lors de la recherche");
-    } finally {
-      setLoading(false);
-    }
-  };
+      toast.success("Domaine créé avec succès");
+      onDomainCreated(data);
 
-  const handleWineCreated = (wine: any) => {
-    // Ajouter le nouveau vin en tête de liste
-    setWines((prev) => [wine, ...prev]);
-    // Pré-sélectionner automatiquement
-    onWineSelected(wine);
-    setCreateDialogOpen(false);
+      // Reset form
+      setName("");
+      setRegion("");
+      setLogoFile(null);
+      setLogoPreview("");
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error("Error creating domain:", error);
+      toast.error("Erreur lors de la création du domaine");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <>
-      {/* Container avec hauteur fixe et espacement mobile */}
-      <div className="flex flex-col h-[420px] px-2 md:px-0">
-        <Label className="mb-3">Sélectionnez une bouteille</Label>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Créer un nouveau domaine</DialogTitle>
+          <DialogDescription>Ajoutez les informations du domaine viticole</DialogDescription>
+        </DialogHeader>
 
-        {/* Input de recherche - fixe en haut */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            onFocus={() => setHasInteracted(true)}
-            placeholder="Rechercher une bouteille..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-          {loading && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-          )}
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {/* Nom du domaine */}
+          <div className="space-y-2">
+            <Label htmlFor="domain-name">
+              Nom du domaine <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="domain-name"
+              placeholder="Ex: Château Margaux"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
 
-        {/* Container avec bordure pour liste + bouton */}
-        <div className="flex-1 flex flex-col border rounded-lg overflow-hidden bg-background">
-          {/* Zone scrollable - prend l'espace restant */}
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-2">
-              {wines.length === 0 && !loading ? (
-                <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-                  Aucune bouteille trouvée
+          {/* Région */}
+          <div className="space-y-2">
+            <Label htmlFor="domain-region">Région</Label>
+            <Input
+              id="domain-region"
+              placeholder="Ex: Bordeaux, Bourgogne..."
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+            />
+          </div>
+
+          {/* Logo */}
+          <div className="space-y-2">
+            <Label>Logo du domaine</Label>
+            {!logoPreview ? (
+              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                <label htmlFor="logo-upload" className="cursor-pointer">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground mb-1">Cliquez pour télécharger un logo</p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG jusqu'à 5MB</p>
+                  <input id="logo-upload" type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                </label>
+              </div>
+            ) : (
+              <div className="relative border rounded-lg p-4 flex items-center gap-3">
+                <img src={logoPreview} alt="Preview" className="w-16 h-16 rounded object-cover" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{logoFile?.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {logoFile && `${(logoFile.size / 1024).toFixed(1)} KB`}
+                  </p>
                 </div>
-              ) : (
-                wines.map((wine) => (
-                  <div
-                    key={wine.id}
-                    onClick={() => onWineSelected(wine)}
-                    className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                  >
-                    {/* Logo du domaine */}
-                    <div className="flex-shrink-0">
-                      <img
-                        src={wine.domain?.logo_url || wine.label_url || "/placeholder.svg"}
-                        alt={wine.domain?.name || wine.name}
-                        className="w-12 h-12 rounded-md object-cover border"
-                      />
-                    </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={removeLogo}
+                  className="absolute top-2 right-2"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
 
-                    {/* Informations */}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{wine.name}</div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        {wine.domain?.name && (
-                          <>
-                            <span className="truncate">{wine.domain.name}</span>
-                            {wine.domain?.region && (
-                              <>
-                                <span>•</span>
-                                <span className="truncate">{wine.domain.region}</span>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      {wine.year && <div className="text-xs text-muted-foreground mt-0.5">Millésime {wine.year}</div>}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-
-          {/* Bouton créer - TOUJOURS visible en bas */}
-          <div className="border-t bg-background">
+          {/* Boutons */}
+          <div className="flex gap-3 pt-4">
             <Button
-              variant="ghost"
-              className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10 rounded-none"
-              onClick={() => setCreateDialogOpen(true)}
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+              disabled={isSubmitting}
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Créer une nouvelle bouteille
+              Annuler
+            </Button>
+            <Button type="submit" className="flex-1 bg-gradient-wine hover:opacity-90" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Création...
+                </>
+              ) : (
+                "Créer le domaine"
+              )}
             </Button>
           </div>
-        </div>
-      </div>
-
-      <CreateWineForGameDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onWineCreated={handleWineCreated}
-      />
-    </>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
