@@ -36,6 +36,7 @@ import {
 
 interface Event {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   start_date: string;
@@ -78,7 +79,7 @@ interface DomainWithWines {
 }
 
 const EventDetails = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
@@ -98,7 +99,7 @@ const EventDetails = () => {
 
   useEffect(() => {
     const fetchEventDetails = async () => {
-      if (!id) return;
+      if (!slug) return;
 
       setLoading(true);
 
@@ -106,7 +107,7 @@ const EventDetails = () => {
       const { data: eventData, error: eventError } = await supabase
         .from("event")
         .select("*")
-        .eq("id", id)
+        .eq("slug", slug)
         .single();
 
       if (eventError || !eventData) {
@@ -121,7 +122,7 @@ const EventDetails = () => {
         const { data: userEventData } = await supabase
           .from("user_event")
           .select("role")
-          .eq("event_id", id)
+          .eq("event_id", eventData.id)
           .eq("user_id", user.id)
           .single();
 
@@ -140,7 +141,7 @@ const EventDetails = () => {
       const { data: eventDomainsData } = await supabase
         .from("event_domain")
         .select("domain_id")
-        .eq("event_id", id);
+        .eq("event_id", eventData.id);
 
       if (!eventDomainsData) {
         setLoading(false);
@@ -192,7 +193,7 @@ const EventDetails = () => {
                 wine_classification_data:wine_classification(nom)
               )
             `)
-            .eq("event_id", id)
+            .eq("event_id", eventData.id)
             .eq("domain_id", domain.id);
 
           const wines = winesData?.map((w: any) => w.wine).filter(Boolean) || [];
@@ -209,16 +210,16 @@ const EventDetails = () => {
     };
 
     fetchEventDetails();
-  }, [id, user]);
+  }, [slug, user]);
 
   const refetchData = async () => {
-    if (!id) return;
+    if (!slug) return;
 
     // Refetch event data
     const { data: eventData } = await supabase
       .from("event")
       .select("*")
-      .eq("id", id)
+      .eq("slug", slug)
       .single();
 
     if (eventData) {
@@ -229,7 +230,7 @@ const EventDetails = () => {
     const { data: eventDomainsData } = await supabase
       .from("event_domain")
       .select("domain_id")
-      .eq("event_id", id);
+      .eq("event_id", eventData.id);
 
     if (!eventDomainsData) return;
 
@@ -274,7 +275,7 @@ const EventDetails = () => {
               wine_classification_data:wine_classification(nom)
             )
           `)
-          .eq("event_id", id)
+          .eq("event_id", eventData.id)
           .eq("domain_id", domain.id);
 
         const wines = winesData?.map((w: any) => w.wine).filter(Boolean) || [];
@@ -297,14 +298,14 @@ const EventDetails = () => {
   };
 
   const handleDeleteDomain = async () => {
-    if (!deletingItem || deletingItem.type !== 'domain' || !id) return;
+    if (!deletingItem || deletingItem.type !== 'domain' || !event) return;
 
     try {
       // Delete all wines of this domain from the event
       const { error: winesError } = await supabase
         .from('event_domain_wine')
         .delete()
-        .eq('event_id', id)
+        .eq('event_id', event.id)
         .eq('domain_id', deletingItem.id);
 
       if (winesError) throw winesError;
@@ -313,7 +314,7 @@ const EventDetails = () => {
       const { error: domainError } = await supabase
         .from('event_domain')
         .delete()
-        .eq('event_id', id)
+        .eq('event_id', event.id)
         .eq('domain_id', deletingItem.id);
 
       if (domainError) throw domainError;
@@ -337,13 +338,13 @@ const EventDetails = () => {
   };
 
   const handleDeleteWine = async () => {
-    if (!deletingItem || deletingItem.type !== 'wine' || !id || !deletingItem.domainId) return;
+    if (!deletingItem || deletingItem.type !== 'wine' || !event || !deletingItem.domainId) return;
 
     try {
       const { error } = await supabase
         .from('event_domain_wine')
         .delete()
-        .eq('event_id', id)
+        .eq('event_id', event.id)
         .eq('domain_id', deletingItem.domainId)
         .eq('wine_id', deletingItem.id);
 
@@ -373,12 +374,14 @@ const EventDetails = () => {
   };
 
   const handleDeleteEvent = async () => {
+    if (!event) return;
+    
     try {
       // 1. Récupérer l'événement pour obtenir le banner_url
       const { data: eventData, error: fetchError } = await supabase
         .from('event')
         .select('banner_url')
-        .eq('id', id)
+        .eq('id', event.id)
         .single();
 
       if (fetchError) throw fetchError;
@@ -408,7 +411,7 @@ const EventDetails = () => {
       const { error } = await supabase
         .from('event')
         .delete()
-        .eq('id', id);
+        .eq('id', event.id);
 
       if (error) throw error;
 
@@ -430,13 +433,13 @@ const EventDetails = () => {
   };
 
   const handleLeaveEvent = async () => {
-    if (!user || !id) return;
+    if (!user || !event) return;
     
     try {
       const { error } = await supabase
         .from('user_event')
         .delete()
-        .eq('event_id', id)
+        .eq('event_id', event.id)
         .eq('user_id', user.id);
       
       if (error) throw error;
@@ -504,7 +507,7 @@ const EventDetails = () => {
               {canEdit && (
                 <div className="w-full md:w-auto">
                   <EditEventDialog 
-                    eventId={id!} 
+                    eventId={event.id} 
                     onEventUpdated={refetchData}
                   />
                 </div>
@@ -559,7 +562,7 @@ const EventDetails = () => {
                     </h2>
                     {canEdit && (
                       <AddDomainToEventDialog 
-                        eventId={id!} 
+                        eventId={event.id} 
                         onDomainAdded={refetchData}
                       />
                     )}
@@ -629,7 +632,7 @@ const EventDetails = () => {
                             {canEdit && (
                               <div className="flex justify-end">
                                 <AddWineToEventDialog
-                                  eventId={id!}
+                                  eventId={event.id}
                                   domainId={domain.id}
                                   domainName={domain.name}
                                   onWineAdded={refetchData}
@@ -707,7 +710,7 @@ const EventDetails = () => {
                 {canManageMembers && userRole && (
                   <div className="mb-6">
                     <InviteMemberToEventDialog
-                      eventId={id!}
+                      eventId={event.id}
                       eventName={event.name}
                       inviterName={user?.email || 'Organisateur'}
                       userRole={userRole as 'organizer' | 'co_organizer'}
@@ -718,7 +721,7 @@ const EventDetails = () => {
                   </div>
                 )}
                 <EventAdministration 
-                  eventId={id!} 
+                  eventId={event.id} 
                   userRole={userRole || null} 
                 />
 
@@ -765,7 +768,7 @@ const EventDetails = () => {
       {selectedWine && event && (
         <WineDetailsDialog
           wine={selectedWine}
-          eventId={id!}
+          eventId={event.id}
           onClose={() => setSelectedWine(null)}
         />
       )}

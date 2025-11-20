@@ -35,7 +35,7 @@ serve(async (req) => {
     // Récupérer l'invitation
     const { data: invitation, error: invError } = await supabase
       .from('event_invitation')
-      .select('*')
+      .select('*, event:event_id(slug)')
       .eq('token', invitationToken)
       .eq('status', 'pending')
       .single();
@@ -101,7 +101,11 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, event_id: invitation.event_id }),
+      JSON.stringify({ 
+        success: true, 
+        event_id: invitation.event_id,
+        event_slug: invitation.event.slug
+      }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
 

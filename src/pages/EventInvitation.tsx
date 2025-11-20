@@ -47,7 +47,7 @@ export default function EventInvitation() {
     try {
       const { data: inv, error } = await supabase
         .from('event_invitation')
-        .select('*, event(*)')
+        .select('*, event(id, slug, name, start_date, end_date, city, banner_url)')
         .eq('token', token)
         .eq('status', 'pending')
         .single();
@@ -89,7 +89,7 @@ export default function EventInvitation() {
       if (error) throw error;
 
       toast.success('Vous avez rejoint l\'événement !');
-      navigate(`/event/${data.event_id}`);
+      navigate(`/event/${data.event_slug}`);
     } catch (error: any) {
       console.error('Error accepting invitation:', error);
       toast.error(error.message);

@@ -8,3 +8,14 @@ export function sanitizeSlugInput(text: string): string {
     .replace(/^-+|-+$/g, "")         // trim "-"
     .slice(0, 60);                   // limite 60 caractères
 }
+
+/**
+ * Génère un slug unique pour un événement
+ * Format : slugify(event_name) + "-" + randomShortId
+ */
+export function generateEventSlug(eventName: string): string {
+  const baseSlug = sanitizeSlugInput(eventName);
+  // Générer un ID court de 8 caractères
+  const randomId = crypto.randomUUID().slice(0, 8);
+  return `${baseSlug}-${randomId}`;
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +19,7 @@ import { CalendarPlus, Upload } from 'lucide-react';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { CellarAutocomplete } from './CellarAutocomplete';
+import { generateEventSlug } from '@/lib/slugUtils';
 
 interface CreateEventDialogProps {
   onEventCreated?: () => void;
@@ -27,6 +29,7 @@ interface CreateEventDialogProps {
 export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEventDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -92,11 +95,15 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     setLoading(true);
 
     try {
+      // Générer le slug
+      const generatedSlug = generateEventSlug(formData.name);
+
       // Créer l'événement
       const { data: eventData, error: eventError } = await supabase
         .from('event')
         .insert({
           name: formData.name,
+          slug: generatedSlug,
           description: formData.description,
           start_date: formData.start_date,
           end_date: formData.end_date || null,
@@ -180,6 +187,9 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
       if (onEventCreated) {
         onEventCreated();
       }
+      
+      // Rediriger vers l'événement créé
+      navigate(`/event/${generatedSlug}`);
     } catch (error: any) {
       toast({
         title: 'Erreur',

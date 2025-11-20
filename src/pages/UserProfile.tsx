@@ -454,7 +454,7 @@ export default function UserProfile() {
             ) : (
               <div className="grid grid-cols-1 gap-6">
                 {events.map((event) => (
-                  <Link key={event.id} to={`/event/${event.id}`}>
+                  <Link key={event.id} to={`/event/${event.slug}`}>
                     <Card className="hover:shadow-lg transition-shadow overflow-hidden">
                       <CardContent className="p-4 md:p-6">
                         <div className="flex flex-col md:flex-row gap-4">

@@ -409,6 +409,7 @@ export type Database = {
           name: string
           organizer_id: string | null
           registration_link: string | null
+          slug: string
           start_date: string
           updated_at: string | null
         }
@@ -429,6 +430,7 @@ export type Database = {
           name: string
           organizer_id?: string | null
           registration_link?: string | null
+          slug: string
           start_date: string
           updated_at?: string | null
         }
@@ -449,6 +451,7 @@ export type Database = {
           name?: string
           organizer_id?: string | null
           registration_link?: string | null
+          slug?: string
           start_date?: string
           updated_at?: string | null
         }

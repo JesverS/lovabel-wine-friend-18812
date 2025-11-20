@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 interface Event {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   start_date: string;
@@ -42,7 +43,7 @@ const Events = () => {
     setLoading(true);
     let query = supabase
       .from("event")
-      .select("*")
+      .select("id, slug, name, description, start_date, end_date, city, address, banner_url")
       .eq("is_public", true)
       .order("start_date", { ascending: true });
 
@@ -176,7 +177,7 @@ const Events = () => {
             ) : (
               <div className="grid gap-6">
                 {events.map((event) => (
-                  <Link key={event.id} to={`/event/${event.id}`}>
+                  <Link key={event.id} to={`/event/${event.slug}`}>
                     <Card className="p-4 md:p-6 hover:shadow-lg transition-shadow cursor-pointer overflow-hidden">
                       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                         {event.banner_url && (
