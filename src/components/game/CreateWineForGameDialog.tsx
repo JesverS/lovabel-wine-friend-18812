@@ -318,13 +318,14 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
                   {/* Photo (OBLIGATOIRE) */}
                   <div className="space-y-2">
                     <Label htmlFor="wine-photo" className="text-sm font-medium">
-                      Photo de la bouteille <span className="text-destructive">*</span>
+                      <span className="hidden sm:inline">Photo de la bouteille</span>
+                      <span className="sm:hidden">Prendre une photo</span>
+                      <span className="text-destructive"> *</span>
                     </Label>
                     <Input
                       id="wine-photo"
                       type="file"
                       accept="image/*"
-                      capture="environment"
                       onChange={handleLabelSelect}
                       required
                       className="h-11"
