@@ -3,7 +3,10 @@ import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Home, RotateCcw } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Trophy, Home, RotateCcw, ArrowLeft, Users } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { FeedbackDialog } from "@/components/game/FeedbackDialog";
 import confetti from "canvas-confetti";
 
 interface GameQuestion {
@@ -30,9 +33,35 @@ interface Player {
   score: number;
 }
 
+// Fonction utilitaire pour obtenir l'article correct selon la région
+const getRegionIntroduction = (region: string): string => {
+  const regionMap: { [key: string]: string } = {
+    'Alsace': "d'Alsace",
+    'Bordeaux': "de Bordeaux",
+    'Bordelais': "du Bordelais",
+    'Bourgogne': "de Bourgogne",
+    'Champagne': "de Champagne",
+    'Rhône': "du Rhône",
+    'Vallée du Rhône': "de la Vallée du Rhône",
+    'Loire': "de la Loire",
+    'Vallée de la Loire': "de la Vallée de la Loire",
+    'Languedoc': "du Languedoc",
+    'Languedoc-Roussillon': "du Languedoc-Roussillon",
+    'Provence': "de Provence",
+    'Jura': "du Jura",
+    'Savoie': "de Savoie",
+    'Sud-Ouest': "du Sud-Ouest",
+    'Beaujolais': "du Beaujolais",
+    'Corse': "de Corse",
+  };
+  
+  return regionMap[region] || `de ${region}`;
+};
+
 export default function GamePlay() {
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { players: playerNames, wine, questions } = location.state || {} as {
     players: string[];
     wine: Wine;
@@ -47,6 +76,7 @@ export default function GamePlay() {
   const [gameStatus, setGameStatus] = useState<"playing" | "finished">("playing");
   const [showResult, setShowResult] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   // Rediriger si pas de données
   useEffect(() => {
@@ -92,6 +122,11 @@ export default function GamePlay() {
   }
 
   const currentQuestion = questions[currentQuestionIndex];
+
+  // Créer la question avec introduction régionale si applicable
+  const questionWithRegion = wine.region && currentQuestion.question
+    ? `Cette bouteille venant ${getRegionIntroduction(wine.region)}, ${currentQuestion.question.charAt(0).toLowerCase()}${currentQuestion.question.slice(1)}`
+    : currentQuestion.question;
 
   // Mélanger les réponses pour les questions de type 3
   const shuffledAnswers = useMemo(() => {
@@ -161,6 +196,12 @@ export default function GamePlay() {
     }
   };
 
+  const handleQuitGame = () => {
+    navigate("/game", {
+      state: { players: playerNames }
+    });
+  };
+
   const getAnswerClass = (answer: string) => {
     if (!showResult) return "";
     
@@ -177,58 +218,116 @@ export default function GamePlay() {
     return "";
   };
 
+  // Composant pour afficher les scores - Desktop
+  const DesktopScoreBoard = () => (
+    <Card className="mb-6 p-6 bg-gradient-to-br from-card to-card/80 border-2 shadow-lg">
+      <div className="flex justify-between items-center mb-6">
+        <Badge variant="outline" className="text-base px-4 py-2 font-semibold">
+          Question {currentQuestionIndex + 1}/{questions.length}
+        </Badge>
+        <div className="text-sm text-muted-foreground font-medium">
+          🍷 {wine.name} {wine.year ? `${wine.year}` : ''} • {wine.domain}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {players.map((player, idx) => (
+          <div key={idx} className="text-center p-3 rounded-lg bg-muted/50 border">
+            <div className="font-semibold text-sm mb-1">{player.name}</div>
+            <div className="text-3xl font-bold bg-gradient-wine bg-clip-text text-transparent">{player.score}</div>
+            <div className="text-xs text-muted-foreground">pts</div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+
+  // Composant pour afficher les scores - Mobile (Sheet)
+  const MobileScoreButton = () => (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="fixed top-4 right-4 z-50 shadow-lg bg-card"
+        >
+          <Users className="h-4 w-4 mr-2" />
+          <Trophy className="h-4 w-4 mr-1" />
+          {players.length}
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="top" className="max-h-[80vh]">
+        <SheetHeader>
+          <SheetTitle>Scores • Question {currentQuestionIndex + 1}/{questions.length}</SheetTitle>
+        </SheetHeader>
+        <div className="mt-6 space-y-3">
+          <div className="text-sm text-muted-foreground text-center mb-4">
+            🍷 {wine.name} {wine.year ? `${wine.year}` : ''}
+          </div>
+          {players.map((player, idx) => (
+            <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border">
+              <span className="font-semibold">{player.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold bg-gradient-wine bg-clip-text text-transparent">
+                  {player.score}
+                </span>
+                <span className="text-xs text-muted-foreground">pts</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+
   if (gameStatus === "playing") {
     return (
       <div className="min-h-screen bg-gradient-to-b from-wine-light to-wine-DEFAULT p-4">
-        <div className="container mx-auto py-8">
-          {/* En-tête avec scores */}
-          <Card className="mb-6 p-4">
-            <div className="flex justify-between items-center mb-4">
-              <Badge variant="outline" className="text-lg">
-                Question {currentQuestionIndex + 1}/{questions.length}
-              </Badge>
-              <div className="text-sm text-muted-foreground">
-                {wine.name} {wine.year ? `${wine.year}` : ''} - {wine.domain}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {players.map((player, idx) => (
-                <div key={idx} className="text-center">
-                  <div className="font-semibold">{player.name}</div>
-                  <div className="text-2xl font-bold text-wine-dark">{player.score}</div>
-                </div>
-              ))}
-            </div>
-          </Card>
+        {/* Bouton Quitter */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleQuitGame}
+          className="fixed top-4 left-4 z-50 flex items-center gap-2 shadow-lg bg-card/80 backdrop-blur"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {!isMobile && "Quitter"}
+        </Button>
+
+        {/* Affichage conditionnel des scores */}
+        {isMobile ? <MobileScoreButton /> : null}
+
+        <div className="container mx-auto py-8 pt-20">
+          {/* Tableau des scores - Desktop uniquement */}
+          {!isMobile && <DesktopScoreBoard />}
 
           {/* Question - Type 1: Vote du peuple */}
           {currentQuestion.answer_type === 1 && (
-            <Card className="p-6 mb-6">
-              <div className="space-y-6">
+            <Card className="p-4 md:p-6 mb-6">
+              <div className="space-y-4 md:space-y-6">
                 <div className="text-center">
-                  <Badge className="mb-4 text-lg">
+                  <Badge className="mb-4 text-sm md:text-lg">
                     Question pour {players[currentQuestion.assigned_player!].name}
                   </Badge>
-                  <h2 className="text-2xl font-bold mb-6">{currentQuestion.question}</h2>
+                  <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">{questionWithRegion}</h2>
                 </div>
                 
                 {!showResult && (
                   <>
-                    <div className="text-center mb-6">
-                      <p className="text-muted-foreground text-lg">🗳️ À vous de voter</p>
+                    <div className="text-center mb-4 md:mb-6">
+                      <p className="text-muted-foreground text-base md:text-lg">🗳️ À vous de voter</p>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-2xl mx-auto">
                       <Button 
                         onClick={() => handleVote(true)} 
-                        className="h-20 text-lg"
+                        className="h-16 md:h-20 text-sm md:text-lg"
                         size="lg"
                       >
                         ✅ Bien répondu
                       </Button>
                       <Button 
                         onClick={() => handleVote(false)} 
-                        className="h-20 text-lg"
+                        className="h-16 md:h-20 text-sm md:text-lg"
                         size="lg"
                         variant="destructive"
                       >
@@ -240,7 +339,7 @@ export default function GamePlay() {
                 
                 {showResult && (
                   <div className="text-center">
-                    <p className="text-lg mb-4">
+                    <p className="text-base md:text-lg mb-4">
                       {selectedAnswer === 1 
                         ? `✅ ${players[currentQuestion.assigned_player!].name} gagne 1 point !` 
                         : `❌ ${players[currentQuestion.assigned_player!].name} ne gagne pas de point.`}
@@ -253,22 +352,22 @@ export default function GamePlay() {
 
           {/* Question - Type 3: Réponses multiples */}
           {currentQuestion.answer_type === 3 && (
-            <Card className="p-6 mb-6">
-              <div className="space-y-6">
+            <Card className="p-4 md:p-6 mb-6">
+              <div className="space-y-4 md:space-y-6">
                 <div className="text-center">
-                  <Badge className="mb-4 text-lg">
+                  <Badge className="mb-4 text-sm md:text-lg">
                     Question pour {players[currentQuestion.assigned_player!].name}
                   </Badge>
-                  <h2 className="text-2xl font-bold mb-6">{currentQuestion.question}</h2>
+                  <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">{questionWithRegion}</h2>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-2xl mx-auto">
                   {shuffledAnswers.map((answer, index) => (
                     <Button
                       key={index}
                       onClick={() => handleAnswerClick(answer)}
                       disabled={selectedAnswer !== null}
-                      className={`h-20 text-lg ${getAnswerClass(answer)}`}
+                      className={`h-16 md:h-20 text-sm md:text-lg ${getAnswerClass(answer)}`}
                       variant="outline"
                     >
                       {answer}
@@ -281,28 +380,28 @@ export default function GamePlay() {
 
           {/* Question - Type 4: Question collective */}
           {currentQuestion.answer_type === 4 && (
-            <Card className="p-6 mb-6">
-              <div className="space-y-6">
+            <Card className="p-4 md:p-6 mb-6">
+              <div className="space-y-4 md:space-y-6">
                 <div className="text-center">
-                  <Badge className="mb-4 text-lg">Question pour tout le monde</Badge>
-                  <h2 className="text-2xl font-bold mb-4">
+                  <Badge className="mb-4 text-sm md:text-lg">Question pour tout le monde</Badge>
+                  <h2 className="text-lg md:text-2xl font-bold mb-4">
                     Chacun son tour, faites l'action suivante :
                   </h2>
-                  <p className="text-xl mb-6">{currentQuestion.question}</p>
+                  <p className="text-base md:text-xl mb-4 md:mb-6">{questionWithRegion}</p>
                 </div>
                 
                 {!showResult && (
                   <>
-                    <div className="text-center mb-6">
-                      <p className="text-muted-foreground text-lg">🗳️ Qui a le mieux répondu ?</p>
+                    <div className="text-center mb-4 md:mb-6">
+                      <p className="text-muted-foreground text-base md:text-lg">🗳️ Qui a le mieux répondu ?</p>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-2xl mx-auto">
                       {players.map((player, index) => (
                         <Button
                           key={index}
                           onClick={() => handlePlayerVote(index)}
-                          className="h-20 text-lg"
+                          className="h-16 md:h-20 text-sm md:text-lg"
                           variant="outline"
                         >
                           {player.name}
@@ -314,7 +413,7 @@ export default function GamePlay() {
                 
                 {showResult && typeof selectedAnswer === 'number' && (
                   <div className="text-center">
-                    <p className="text-lg">
+                    <p className="text-base md:text-lg">
                       🏆 {players[selectedAnswer].name} gagne 1 point !
                     </p>
                   </div>
@@ -326,7 +425,7 @@ export default function GamePlay() {
           {/* Bouton suivant */}
           {showResult && (
             <div className="text-center">
-              <Button size="lg" onClick={handleNextQuestion}>
+              <Button size="lg" onClick={handleNextQuestion} className="w-full md:w-auto">
                 {currentQuestionIndex < questions.length - 1
                   ? "Question suivante"
                   : "Voir les résultats"}
@@ -345,20 +444,20 @@ export default function GamePlay() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-wine-light to-wine-DEFAULT p-4">
       <div className="container mx-auto py-8">
-        <Card className="max-w-2xl mx-auto p-8">
+        <Card className="max-w-2xl mx-auto p-6 md:p-8">
           <div className="text-center space-y-6">
-            <Trophy className="w-24 h-24 mx-auto text-yellow-500" />
-            <h1 className="text-4xl font-bold">Fin de la partie !</h1>
+            <Trophy className="w-16 h-16 md:w-24 md:h-24 mx-auto text-yellow-500" />
+            <h1 className="text-3xl md:text-4xl font-bold">Fin de la partie !</h1>
             
             <div className="space-y-4">
-              <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 p-6 rounded-lg">
-                <h2 className="text-2xl font-bold mb-2">🏆 Vainqueur</h2>
-                <p className="text-3xl font-bold text-wine-dark">{winner.name}</p>
-                <p className="text-xl text-muted-foreground">{winner.score} points</p>
+              <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 p-4 md:p-6 rounded-lg">
+                <h2 className="text-xl md:text-2xl font-bold mb-2">🏆 Vainqueur</h2>
+                <p className="text-2xl md:text-3xl font-bold text-wine-dark">{winner.name}</p>
+                <p className="text-lg md:text-xl text-muted-foreground">{winner.score} points</p>
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold">Classement final</h3>
+                <h3 className="text-lg md:text-xl font-semibold">Classement final</h3>
                 {sortedPlayers.map((player, index) => (
                   <div
                     key={index}
@@ -373,12 +472,21 @@ export default function GamePlay() {
               </div>
             </div>
 
-            <div className="flex gap-4 justify-center pt-4">
-              <Button onClick={() => navigate("/game")} variant="outline">
+            {/* Bouton Feedback */}
+            <Button 
+              onClick={() => setFeedbackOpen(true)} 
+              variant="secondary"
+              className="w-full md:w-auto"
+            >
+              💡 Proposer une question ou donner un avis
+            </Button>
+
+            <div className="flex flex-col md:flex-row gap-4 justify-center pt-4">
+              <Button onClick={() => navigate("/game")} variant="outline" className="w-full md:w-auto">
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Nouvelle partie
               </Button>
-              <Button onClick={() => navigate("/")}>
+              <Button onClick={() => navigate("/")} className="w-full md:w-auto">
                 <Home className="mr-2 h-4 w-4" />
                 Accueil
               </Button>
@@ -386,6 +494,14 @@ export default function GamePlay() {
           </div>
         </Card>
       </div>
+
+      {/* Dialog de feedback */}
+      <FeedbackDialog
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        wineId={wine.id}
+        wineName={wine.name}
+      />
     </div>
   );
 }

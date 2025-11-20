@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,17 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Users, Wine, Plus, X, Play, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { WineSelectionForGame } from "@/components/game/WineSelectionForGame";
 
 export default function GameMultiplayer() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [players, setPlayers] = useState<string[]>([]);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [selectedWine, setSelectedWine] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Pré-remplir les joueurs si on revient de GamePlay
+  useEffect(() => {
+    if (location.state?.players) {
+      setPlayers(location.state.players);
+    }
+  }, [location.state]);
 
   const addPlayer = () => {
     if (newPlayerName.trim() && players.length < 8) {

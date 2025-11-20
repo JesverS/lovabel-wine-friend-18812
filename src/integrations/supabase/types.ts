@@ -1264,6 +1264,52 @@ export type Database = {
           },
         ]
       }
+      user_game_proposition: {
+        Row: {
+          created_at: string | null
+          id: number
+          question: string
+          user_id: string
+          wine_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          question: string
+          user_id: string
+          wine_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          question?: string
+          user_id?: string
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_game_proposition_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_game_proposition_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_game_proposition_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wine"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_lesson_unlock: {
         Row: {
           lesson_id: number
