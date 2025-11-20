@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,11 +29,7 @@ const REGIONS = [
   "Sud-Ouest",
 ];
 
-export function CreateDomainForGameDialog({
-  open,
-  onOpenChange,
-  onDomainCreated,
-}: CreateDomainForGameDialogProps) {
+export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated }: CreateDomainForGameDialogProps) {
   const [name, setName] = useState("");
   const [region, setRegion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,10 +51,13 @@ export function CreateDomainForGameDialog({
 
       if (error) throw error;
 
-      toast.success("Domaine créé !");
+      toast.success("Domaine créé avec succès !");
       onDomainCreated(domain);
+
+      // Reset form
       setName("");
       setRegion("");
+      onOpenChange(false);
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la création du domaine");
     } finally {
@@ -68,30 +67,36 @@ export function CreateDomainForGameDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px] mx-4 sm:mx-0 gap-4">
         <DialogHeader>
-          <DialogTitle>Créer un nouveau domaine</DialogTitle>
+          <DialogTitle className="text-xl">Créer un nouveau domaine</DialogTitle>
+          <DialogDescription>Ajoutez les informations du domaine viticole</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleCreateDomain} className="space-y-4">
-          {/* Nom */}
+        <form onSubmit={handleCreateDomain} className="space-y-5 mt-2">
+          {/* Nom du domaine */}
           <div className="space-y-2">
-            <Label htmlFor="domain-name">Nom du domaine *</Label>
+            <Label htmlFor="domain-name" className="text-sm font-medium">
+              Nom du domaine <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="domain-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Château Margaux"
+              className="h-11"
               required
             />
           </div>
 
           {/* Région */}
           <div className="space-y-2">
-            <Label htmlFor="domain-region">Région *</Label>
+            <Label htmlFor="domain-region" className="text-sm font-medium">
+              Région viticole <span className="text-destructive">*</span>
+            </Label>
             <Select value={region} onValueChange={setRegion} required>
-              <SelectTrigger id="domain-region">
-                <SelectValue placeholder="Sélectionner une région" />
+              <SelectTrigger id="domain-region" className="h-11">
+                <SelectValue placeholder="Sélectionnez une région" />
               </SelectTrigger>
               <SelectContent>
                 {REGIONS.map((r) => (
@@ -103,16 +108,32 @@ export function CreateDomainForGameDialog({
             </Select>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading || !name.trim() || !region}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Création...
-              </>
-            ) : (
-              "Créer le domaine"
-            )}
-          </Button>
+          {/* Boutons d'action */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+              disabled={loading}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 bg-gradient-wine hover:opacity-90"
+              disabled={loading || !name.trim() || !region}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Création...
+                </>
+              ) : (
+                "Créer le domaine"
+              )}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
