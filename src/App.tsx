@@ -46,7 +46,7 @@ const App = () => (
             <Route path="/cellars" element={<Cellars />} />
             <Route path="/cellar/:id" element={<CellarDetails />} />
             <Route path="/events" element={<Events />} />
-            <Route path="/event/:id" element={<EventDetails />} />
+            <Route path="/event/:slug" element={<EventDetails />} />
             <Route path="/domain/:id" element={<DomainDetails />} />
             <Route path="/super-admin" element={<SuperAdminPanel />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />
