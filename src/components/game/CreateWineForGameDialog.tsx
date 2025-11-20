@@ -166,7 +166,10 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px] w-[calc(100vw-2rem)] h-[600px] max-h-[85vh] flex flex-col p-0 mx-auto">
+        <DialogContent
+          className="sm:max-w-[500px] w-[calc(100vw-2rem)] h-[600px] max-h-[85vh] flex flex-col p-0 mx-auto overflow-hidden"
+          style={{ marginLeft: "1rem", marginRight: "1rem" }}
+        >
           {step === 1 ? (
             <>
               {/* Header fixe */}
@@ -355,7 +358,7 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
               </ScrollArea>
 
               {/* Footer fixe avec boutons */}
-              <div className="px-6 py-4 border-t bg-background">
+              <div className="px-6 py-4 border-t bg-background rounded-b-lg">
                 <div className="flex gap-3">
                   <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1">
                     <ArrowLeft className="w-4 h-4 mr-2" />
