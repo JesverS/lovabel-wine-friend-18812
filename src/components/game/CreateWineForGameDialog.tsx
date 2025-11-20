@@ -166,10 +166,7 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          className="sm:max-w-[500px] w-[calc(100vw-2rem)] h-[600px] max-h-[85vh] flex flex-col p-0 mx-auto"
-          style={{ marginLeft: "1rem", marginRight: "1rem" }}
-        >
+        <DialogContent className="sm:max-w-[500px] w-[calc(100vw-2rem)] h-[600px] max-h-[85vh] flex flex-col p-0 mx-auto">
           {step === 1 ? (
             <>
               {/* Header fixe */}

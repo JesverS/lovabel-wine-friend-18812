@@ -183,10 +183,3 @@
     text-wrap: balance;
   }
 }
-
-@media (max-width: 640px) {
-  [data-radix-dialog-content] {
-    width: calc(100vw - 2rem) !important;
-    margin: 1rem auto !important;
-  }
-}
