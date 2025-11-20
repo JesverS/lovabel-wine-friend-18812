@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Plus, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, ArrowLeft, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateDomainForGameDialog } from "./CreateDomainForGameDialog";
@@ -17,11 +17,7 @@ interface CreateWineForGameDialogProps {
   onWineCreated: (wine: any) => void;
 }
 
-export function CreateWineForGameDialog({
-  open,
-  onOpenChange,
-  onWineCreated,
-}: CreateWineForGameDialogProps) {
+export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: CreateWineForGameDialogProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedDomain, setSelectedDomain] = useState<any>(null);
   const [domainSearch, setDomainSearch] = useState("");
@@ -131,7 +127,7 @@ export function CreateWineForGameDialog({
           id, name, year, label_url,
           domain:domain_id(id, name, logo_url, region),
           wine_type:type(id, type)
-        `
+        `,
         )
         .single();
 
@@ -170,150 +166,207 @@ export function CreateWineForGameDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[500px] mx-4 sm:mx-0 h-[600px] max-h-[85vh] flex flex-col p-0">
           {step === 1 ? (
             <>
-              <DialogHeader>
-                <DialogTitle>Étape 1 : Sélectionner le domaine</DialogTitle>
+              {/* Header fixe */}
+              <DialogHeader className="px-6 pt-6 pb-4 border-b">
+                <DialogTitle className="text-xl">Étape 1 : Sélectionner le domaine</DialogTitle>
+                <DialogDescription>Recherchez ou créez un nouveau domaine</DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4">
-                {/* Recherche domaine */}
-                <div className="space-y-2">
-                  <Label>Rechercher un domaine</Label>
-                  <Input
-                    placeholder="Tapez au moins 2 caractères..."
-                    value={domainSearch}
-                    onChange={(e) => handleDomainSearchChange(e.target.value)}
-                  />
+              {/* Contenu avec hauteur fixe et scroll */}
+              <div className="flex-1 flex flex-col overflow-hidden px-6">
+                {/* Recherche domaine - fixe */}
+                <div className="py-4 space-y-2">
+                  <Label className="text-sm font-medium">Rechercher un domaine</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Tapez au moins 2 caractères..."
+                      value={domainSearch}
+                      onChange={(e) => handleDomainSearchChange(e.target.value)}
+                      className="pl-9 h-11"
+                    />
+                    {searchingDomains && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
 
-                {/* Résultats */}
-                {domains.length > 0 && (
-                  <ScrollArea className="max-h-[200px] rounded-md border">
-                    {domains.map((domain) => (
-                      <div
-                        key={domain.id}
-                        onClick={() => handleSelectDomain(domain)}
-                        className="flex items-center gap-2 p-3 hover:bg-accent cursor-pointer border-b last:border-0"
-                      >
-                        <img
-                          src={domain.logo_url || "/placeholder.svg"}
-                          className="w-8 h-8 rounded object-cover"
-                          alt={domain.name}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{domain.name}</div>
-                          {domain.region && <div className="text-xs text-muted-foreground">{domain.region}</div>}
+                {/* Container avec bordure pour liste + bouton */}
+                <div className="flex-1 flex flex-col border rounded-lg overflow-hidden mb-6">
+                  {/* Résultats scrollable */}
+                  <ScrollArea className="flex-1">
+                    <div className="p-2 space-y-2">
+                      {domains.length === 0 && !searchingDomains ? (
+                        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
+                          {domainSearch.length >= 2 ? "Aucun domaine trouvé" : "Commencez à taper pour rechercher"}
                         </div>
-                      </div>
-                    ))}
+                      ) : (
+                        domains.map((domain) => (
+                          <div
+                            key={domain.id}
+                            onClick={() => handleSelectDomain(domain)}
+                            className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                          >
+                            {/* Logo du domaine */}
+                            <div className="flex-shrink-0">
+                              <img
+                                src={domain.logo_url || "/placeholder.svg"}
+                                alt={domain.name}
+                                className="w-12 h-12 rounded-md object-cover border"
+                              />
+                            </div>
+
+                            {/* Informations */}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-sm truncate">{domain.name}</div>
+                              {domain.region && (
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <span className="truncate">{domain.region}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </ScrollArea>
-                )}
 
-                {searchingDomains && (
-                  <div className="flex items-center justify-center py-4 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Recherche...
+                  {/* Bouton créer - TOUJOURS visible en bas */}
+                  <div className="border-t bg-background">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10 rounded-none h-12"
+                      onClick={() => setCreateDomainOpen(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Créer un nouveau domaine
+                    </Button>
                   </div>
-                )}
-
-                {/* Bouton création */}
-                <Button variant="outline" className="w-full" onClick={() => setCreateDomainOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Créer un nouveau domaine
-                </Button>
+                </div>
               </div>
             </>
           ) : (
             <>
-              <DialogHeader>
-                <DialogTitle>Étape 2 : Nouvelle bouteille</DialogTitle>
+              {/* Header fixe - Étape 2 */}
+              <DialogHeader className="px-6 pt-6 pb-4 border-b">
+                <DialogTitle className="text-xl">Étape 2 : Nouvelle bouteille</DialogTitle>
                 <DialogDescription>Domaine : {selectedDomain?.name}</DialogDescription>
               </DialogHeader>
 
-              <form onSubmit={handleCreateWine} className="space-y-4">
-                {/* Nom */}
-                <div className="space-y-2">
-                  <Label htmlFor="wine-name">Nom de la bouteille *</Label>
-                  <Input
-                    id="wine-name"
-                    value={wineData.name}
-                    onChange={(e) => setWineData({ ...wineData, name: e.target.value })}
-                    required
-                    placeholder="Ex: Cuvée Prestige"
-                  />
-                </div>
+              {/* Formulaire scrollable */}
+              <ScrollArea className="flex-1 px-6">
+                <form onSubmit={handleCreateWine} className="space-y-4 py-4">
+                  {/* Nom */}
+                  <div className="space-y-2">
+                    <Label htmlFor="wine-name" className="text-sm font-medium">
+                      Nom de la bouteille <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="wine-name"
+                      value={wineData.name}
+                      onChange={(e) => setWineData({ ...wineData, name: e.target.value })}
+                      required
+                      placeholder="Ex: Cuvée Prestige"
+                      className="h-11"
+                    />
+                  </div>
 
-                {/* Année */}
-                <div className="space-y-2">
-                  <Label htmlFor="wine-year">Année *</Label>
-                  <Input
-                    id="wine-year"
-                    type="number"
-                    min={1900}
-                    max={new Date().getFullYear()}
-                    value={wineData.year}
-                    onChange={(e) => setWineData({ ...wineData, year: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
+                  {/* Année */}
+                  <div className="space-y-2">
+                    <Label htmlFor="wine-year" className="text-sm font-medium">
+                      Année <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="wine-year"
+                      type="number"
+                      min={1900}
+                      max={new Date().getFullYear()}
+                      value={wineData.year}
+                      onChange={(e) => setWineData({ ...wineData, year: parseInt(e.target.value) })}
+                      required
+                      className="h-11"
+                    />
+                  </div>
 
-                {/* Type de vin */}
-                <div className="space-y-2">
-                  <Label htmlFor="wine-type">Type de vin *</Label>
-                  <Select
-                    value={wineData.wineTypeId.toString()}
-                    onValueChange={(v) => setWineData({ ...wineData, wineTypeId: parseInt(v) })}
-                  >
-                    <SelectTrigger id="wine-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Rouge</SelectItem>
-                      <SelectItem value="2">Blanc</SelectItem>
-                      <SelectItem value="5">Rosé</SelectItem>
-                      <SelectItem value="3">Champagne</SelectItem>
-                      <SelectItem value="4">Crémant</SelectItem>
-                      <SelectItem value="6">Prosecco</SelectItem>
-                      <SelectItem value="7">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  {/* Type de vin */}
+                  <div className="space-y-2">
+                    <Label htmlFor="wine-type" className="text-sm font-medium">
+                      Type de vin <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={wineData.wineTypeId.toString()}
+                      onValueChange={(v) => setWineData({ ...wineData, wineTypeId: parseInt(v) })}
+                    >
+                      <SelectTrigger id="wine-type" className="h-11">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Rouge</SelectItem>
+                        <SelectItem value="2">Blanc</SelectItem>
+                        <SelectItem value="5">Rosé</SelectItem>
+                        <SelectItem value="3">Champagne</SelectItem>
+                        <SelectItem value="4">Crémant</SelectItem>
+                        <SelectItem value="6">Prosecco</SelectItem>
+                        <SelectItem value="7">Autre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {/* Photo (OBLIGATOIRE) */}
-                <div className="space-y-2">
-                  <Label htmlFor="wine-photo">Photo de la bouteille *</Label>
-                  <Input
-                    id="wine-photo"
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleLabelSelect}
-                    required
-                  />
-                  {wineData.labelPreview && (
-                    <img src={wineData.labelPreview} className="mt-2 w-32 h-32 object-cover rounded" alt="Preview" />
-                  )}
-                </div>
+                  {/* Photo (OBLIGATOIRE) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="wine-photo" className="text-sm font-medium">
+                      Photo de la bouteille <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="wine-photo"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleLabelSelect}
+                      required
+                      className="h-11"
+                    />
+                    {wineData.labelPreview && (
+                      <img
+                        src={wineData.labelPreview}
+                        className="mt-2 w-32 h-32 object-cover rounded border"
+                        alt="Preview"
+                      />
+                    )}
+                  </div>
 
-                {/* Cépages (optionnel) */}
-                <div className="space-y-2">
-                  <Label htmlFor="wine-cepages">Cépages (optionnel)</Label>
-                  <Textarea
-                    id="wine-cepages"
-                    placeholder="Ex: Cabernet Sauvignon 60%, Merlot 40%"
-                    value={wineData.cepages}
-                    onChange={(e) => setWineData({ ...wineData, cepages: e.target.value })}
-                  />
-                </div>
+                  {/* Cépages (optionnel) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="wine-cepages" className="text-sm font-medium">
+                      Cépages (optionnel)
+                    </Label>
+                    <Textarea
+                      id="wine-cepages"
+                      placeholder="Ex: Cabernet Sauvignon 60%, Merlot 40%"
+                      value={wineData.cepages}
+                      onChange={(e) => setWineData({ ...wineData, cepages: e.target.value })}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                </form>
+              </ScrollArea>
 
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={() => setStep(1)}>
+              {/* Footer fixe avec boutons */}
+              <div className="px-6 py-4 border-t bg-background">
+                <div className="flex gap-3">
+                  <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1">
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Retour
                   </Button>
-                  <Button type="submit" disabled={uploading} className="flex-1">
+                  <Button
+                    type="submit"
+                    disabled={uploading}
+                    onClick={handleCreateWine}
+                    className="flex-1 bg-gradient-wine hover:opacity-90"
+                  >
                     {uploading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -324,7 +377,7 @@ export function CreateWineForGameDialog({
                     )}
                   </Button>
                 </div>
-              </form>
+              </div>
             </>
           )}
         </DialogContent>
