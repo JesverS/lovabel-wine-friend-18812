@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Lightbulb, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+import { gameFeedbackSchema } from "@/lib/validation-schemas";
 
 interface FeedbackDialogProps {
   open: boolean;
@@ -26,19 +28,19 @@ export function FeedbackDialog({ open, onOpenChange, wineId, wineName }: Feedbac
       return;
     }
 
-    if (feedback.trim().length < 10) {
-      toast.error("Votre message doit contenir au moins 10 caractères");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
+      // Validation stricte avec zod
+      const validated = gameFeedbackSchema.parse({ 
+        question: feedback 
+      });
+      
       const { error } = await supabase
         .from("user_game_proposition")
         .insert({
           user_id: user.id,
           wine_id: wineId,
-          question: feedback.trim(),
+          question: validated.question,
         });
 
       if (error) throw error;
@@ -47,7 +49,10 @@ export function FeedbackDialog({ open, onOpenChange, wineId, wineName }: Feedbac
       setFeedback("");
       onOpenChange(false);
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
       toast.error("Erreur lors de l'envoi de votre message");
     } finally {
       setIsSubmitting(false);
@@ -79,7 +84,7 @@ export function FeedbackDialog({ open, onOpenChange, wineId, wineName }: Feedbac
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              {feedback.length} caractères (minimum 10)
+              {feedback.length} / 500 caractères (minimum 10)
             </p>
           </div>
         </div>
