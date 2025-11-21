@@ -21,8 +21,16 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // SÉCURITÉ RENFORCÉE :
+  // Si le rôle n'est pas 1 (Propriétaire), 2 (Admin) ou 3 (Employé),
+  // on arrête tout de suite. Le composant ne rend rien.
+  if (!userRole || userRole < 1 || userRole > 3) {
+    return null;
+  }
+
   useEffect(() => {
-    if (userRole >= 1 && userRole <= 2) {
+    // Double sécurité : on ne lance le fetch que si le rôle est valide
+    if (userRole >= 1 && userRole <= 3) {
       fetchData();
     }
   }, [domainId, userRole]);
@@ -31,14 +39,13 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
     setLoading(true);
 
     try {
-      // Récupérer les membres via l'Edge Function
+      // 1. Récupérer les membres (Accessible à tous les rôles valides : 1, 2, 3)
       const { data: membersData, error: membersError } = await supabase.functions.invoke("get-domain-members", {
         body: { domain_id: domainId },
       });
 
       if (membersError) throw membersError;
 
-      // Transformer les données pour correspondre au format attendu
       const formattedMembers =
         membersData?.members?.map((member: any) => ({
           user_id: member.user_id,
@@ -54,29 +61,34 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
 
       setMembers(formattedMembers);
 
-      // Récupérer les demandes en attente selon le rôle
-      let query = supabase
-        .from("user_domain_application")
-        .select(
-          `
-        *,
-        user_profiles_public (
-          full_name,
-          logo_adress
-        )
-      `,
-        )
-        .eq("domain_id", domainId) as any;
+      // 2. Récupérer les demandes (Accessible uniquement aux rôles 1 et 2)
+      if (userRole < 3) {
+        let query = supabase
+          .from("user_domain_application")
+          .select(
+            `
+          *,
+          user_profiles_public (
+            full_name,
+            logo_adress
+          )
+        `,
+          )
+          .eq("domain_id", domainId) as any;
 
-      // Filtrage selon le rôle de l'utilisateur connecté
-      if (userRole === 2) {
-        // Administrateur : ne voit que les demandes de membres (rang 3)
-        query = query.eq("role", 3);
+        // Logique de filtrage
+        if (userRole === 2) {
+          // Admin (2) ne voit que les demandes d'Employé (3)
+          query = query.eq("role", 3);
+        }
+        // Propriétaire (1) voit tout
+
+        const { data: apps } = await query;
+        setApplications(apps || []);
+      } else {
+        // Rôle 3 : On s'assure que la liste est vide
+        setApplications([]);
       }
-      // Propriétaire (userRole === 1) : voit toutes les demandes (pas de filtre supplémentaire)
-
-      const { data: apps } = await query;
-      setApplications(apps || []);
     } catch (error: any) {
       console.error("Erreur lors du chargement des données:", error);
       toast.error("Erreur lors du chargement des données");
@@ -95,7 +107,6 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
       });
 
       if (error) throw error;
-
       toast.success("Demande approuvée");
       fetchData();
     } catch (error: any) {
@@ -113,7 +124,6 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
       });
 
       if (error) throw error;
-
       toast.success("Demande rejetée");
       fetchData();
     } catch (error: any) {
@@ -131,7 +141,6 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
       });
 
       if (error) throw error;
-
       toast.success("Membre retiré");
       fetchData();
     } catch (error: any) {
@@ -184,17 +193,15 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
     }
   };
 
-  if (userRole > 2) {
-    return null;
-  }
-
   if (loading) {
     return <div className="text-center py-8">Chargement...</div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Liste des membres - placée en premier */}
+      {/* Affichage de la liste des membres.
+         Visible pour les rôles 1, 2 ET 3 (grâce au guard clause au début, on est sûr d'être l'un des trois)
+      */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -241,6 +248,8 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
                     </div>
                   </div>
                 </div>
+
+                {/* Le bouton "Retirer" n'est visible QUE pour le Propriétaire (1) */}
                 {userRole === 1 && member.user_id !== user?.id && member.role !== 1 && (
                   <Button
                     size="sm"
@@ -260,64 +269,68 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
         </CardContent>
       </Card>
 
-      {/* Demandes en attente - placées après les membres */}
-      {applications.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Demandes d'accès en attente
-              <Badge variant="destructive" className="ml-2">
-                {applications.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {applications.map((app) => (
-              <div
-                key={app.user_id}
-                className="flex items-center justify-between p-4 border rounded-lg bg-orange-50/50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800"
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={app.user_profiles_public?.logo_adress || undefined} />
-                    <AvatarFallback>
-                      <UserCircle className="w-6 h-6" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold">{app.user_profiles_public?.full_name || "Utilisateur"}</p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      Demande pour :
-                      <Badge variant={getRoleBadgeVariant(app.role)} className="flex items-center gap-1">
-                        {getRoleIcon(app.role)}
-                        {getRoleLabel(app.role)}
-                      </Badge>
-                    </p>
+      {/* Affichage des demandes.
+         Strictement réservé aux rôles < 3 (donc 1 et 2).
+         Le rôle 3 ne verra rien de ce bloc.
+      */}
+      {userRole < 3 && (
+        <>
+          {applications.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Demandes d'accès en attente
+                  <Badge variant="destructive" className="ml-2">
+                    {applications.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {applications.map((app) => (
+                  <div
+                    key={app.user_id}
+                    className="flex items-center justify-between p-4 border rounded-lg bg-orange-50/50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage src={app.user_profiles_public?.logo_adress || undefined} />
+                        <AvatarFallback>
+                          <UserCircle className="w-6 h-6" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold">{app.user_profiles_public?.full_name || "Utilisateur"}</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          Demande pour :
+                          <Badge variant={getRoleBadgeVariant(app.role)} className="flex items-center gap-1">
+                            {getRoleIcon(app.role)}
+                            {getRoleLabel(app.role)}
+                          </Badge>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprove(app)}>
+                        <Check className="w-4 h-4 mr-1" />
+                        Approuver
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleReject(app)}>
+                        <X className="w-4 h-4 mr-1" />
+                        Rejeter
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprove(app)}>
-                    <Check className="w-4 h-4 mr-1" />
-                    Approuver
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleReject(app)}>
-                    <X className="w-4 h-4 mr-1" />
-                    Rejeter
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Message si aucune demande en attente */}
-      {applications.length === 0 && (
-        <Card className="border-dashed">
-          <CardContent className="py-8">
-            <p className="text-center text-muted-foreground">Aucune demande d'accès en attente</p>
-          </CardContent>
-        </Card>
+                ))}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="py-8">
+                <p className="text-center text-muted-foreground">Aucune demande d'accès en attente</p>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
