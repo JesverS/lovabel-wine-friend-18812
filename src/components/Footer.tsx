@@ -13,7 +13,8 @@ export const Footer = () => {
               <span className="font-serif text-2xl font-bold">Lovabel</span>
             </Link>
             <p className="text-sm text-primary-foreground/70">
-              La plateforme qui réinvente la découverte du vin grâce à l'intelligence artificielle et la passion de la communauté.
+              La plateforme qui réinvente la découverte du vin avec des cours personnalisés, des jeux chalereux et la
+              passion de la communauté.
             </p>
             <div className="flex gap-3">
               <a href="#" className="hover:text-secondary transition-colors">
@@ -32,10 +33,26 @@ export const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4">Découvrir</h3>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><Link to="/search" className="hover:text-secondary transition-colors">Recherche IA</Link></li>
-              <li><Link to="/wines" className="hover:text-secondary transition-colors">Catalogue vins</Link></li>
-              <li><Link to="/cavistes" className="hover:text-secondary transition-colors">Cavistes partenaires</Link></li>
-              <li><Link to="/domains" className="hover:text-secondary transition-colors">Domaines</Link></li>
+              <li>
+                <Link to="/search" className="hover:text-secondary transition-colors">
+                  Cours
+                </Link>
+              </li>
+              <li>
+                <Link to="/game" className="hover:text-secondary transition-colors">
+                  Games
+                </Link>
+              </li>
+              <li>
+                <Link to="/cellar" className="hover:text-secondary transition-colors">
+                  Cavistes partenaires
+                </Link>
+              </li>
+              <li>
+                <Link to="/event" className="hover:text-secondary transition-colors">
+                  Evenements
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -43,10 +60,26 @@ export const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4">Communauté</h3>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><Link to="/feed" className="hover:text-secondary transition-colors">Fil d'actualité</Link></li>
-              <li><Link to="/events" className="hover:text-secondary transition-colors">Évènements</Link></li>
-              <li><Link to="/guides" className="hover:text-secondary transition-colors">Guides & conseils</Link></li>
-              <li><Link to="/members" className="hover:text-secondary transition-colors">Membres</Link></li>
+              <li>
+                <Link to="/feed" className="hover:text-secondary transition-colors">
+                  Fil d'actualité
+                </Link>
+              </li>
+              <li>
+                <Link to="/events" className="hover:text-secondary transition-colors">
+                  Évènements
+                </Link>
+              </li>
+              <li>
+                <Link to="/guides" className="hover:text-secondary transition-colors">
+                  Guides & conseils
+                </Link>
+              </li>
+              <li>
+                <Link to="/members" className="hover:text-secondary transition-colors">
+                  Membres
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -54,16 +87,35 @@ export const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4">À propos</h3>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><Link to="/about" className="hover:text-secondary transition-colors">Notre histoire</Link></li>
-              <li><Link to="/contact" className="hover:text-secondary transition-colors">Contact</Link></li>
-              <li><Link to="/legal" className="hover:text-secondary transition-colors">Mentions légales</Link></li>
-              <li><Link to="/privacy" className="hover:text-secondary transition-colors">Confidentialité</Link></li>
+              <li>
+                <Link to="/about" className="hover:text-secondary transition-colors">
+                  Notre histoire
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-secondary transition-colors">
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link to="/legal" className="hover:text-secondary transition-colors">
+                  Mentions légales
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="hover:text-secondary transition-colors">
+                  Confidentialité
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-primary-foreground/20 pt-8 text-center text-sm text-primary-foreground/60">
-          <p>© 2025 Lovabel. Tous droits réservés. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>
+          <p>
+            © 2025 Lovabel. Tous droits réservés. L'abus d'alcool est dangereux pour la santé, à consommer avec
+            modération.
+          </p>
         </div>
       </div>
     </footer>
