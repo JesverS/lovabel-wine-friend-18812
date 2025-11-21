@@ -17,7 +17,6 @@ import CellarDetails from "./pages/CellarDetails";
 import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
 import DomainDetails from "./pages/DomainDetails";
-import SuperAdminPanel from "./pages/SuperAdminPanel";
 import CompleteProfile from "./pages/CompleteProfile";
 import Learning from "./pages/Learning";
 import CourseDetails from "./pages/CourseDetails";
@@ -52,7 +51,6 @@ const App = () => (
             <Route path="/events" element={<Events />} />
             <Route path="/event/:slug" element={<EventDetails />} />
             <Route path="/domain/:id" element={<DomainDetails />} />
-            <Route path="/super-admin" element={<SuperAdminPanel />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />
             <Route path="/learning" element={<Learning />} />
             <Route path="/course/:id" element={<CourseDetails />} />
