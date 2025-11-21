@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,19 +15,24 @@ export default function ResetPassword() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Vérifier qu'on a bien un token dans l'URL
-    const tokenHash = searchParams.get("token_hash");
-    const type = searchParams.get("type");
+    // Vérifier que l'utilisateur est bien connecté
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    if (!tokenHash || type !== "recovery") {
-      toast({
-        title: "Lien invalide",
-        description: "Veuillez utiliser le lien reçu par email",
-        variant: "destructive",
-      });
-      navigate("/auth");
-    }
-  }, [searchParams, navigate, toast]);
+      if (!session) {
+        toast({
+          title: "Session expirée",
+          description: "Veuillez redemander un lien de réinitialisation.",
+          variant: "destructive",
+        });
+        navigate("/auth");
+      }
+    };
+
+    checkSession();
+  }, [navigate, toast]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +45,6 @@ export default function ResetPassword() {
           description: "Les mots de passe ne correspondent pas",
           variant: "destructive",
         });
-        setLoading(false);
         return;
       }
 
@@ -51,19 +54,17 @@ export default function ResetPassword() {
           description: "Le mot de passe doit contenir au moins 6 caractères",
           variant: "destructive",
         });
-        setLoading(false);
         return;
       }
 
-      // L'utilisateur est déjà authentifié via le lien email
-      // On peut directement mettre à jour le mot de passe
-      const { error: passwordError } = await supabase.auth.updateUser({
+      // L'utilisateur est déjà authentifié, on met juste à jour le mot de passe
+      const { error } = await supabase.auth.updateUser({
         password: password,
       });
 
-      if (passwordError) {
-        console.error("Erreur changement mot de passe:", passwordError);
-        throw passwordError;
+      if (error) {
+        console.error("Erreur changement mot de passe:", error);
+        throw error;
       }
 
       toast({
@@ -71,10 +72,7 @@ export default function ResetPassword() {
         description: "Votre mot de passe a été mis à jour avec succès.",
       });
 
-      // Attendre un peu avant de rediriger
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Vérifier le profil
+      // Vérifier le profil et rediriger
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -87,22 +85,14 @@ export default function ResetPassword() {
         } else {
           navigate("/");
         }
-      } else {
-        // Si pas d'utilisateur connecté, rediriger vers login
-        navigate("/auth");
       }
     } catch (error: any) {
       console.error("Erreur reset password:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Le lien a expiré ou est invalide. Veuillez redemander un nouveau lien.",
+        description: error.message || "Une erreur est survenue. Veuillez réessayer.",
         variant: "destructive",
       });
-
-      // Rediriger vers la page d'auth après 2 secondes
-      setTimeout(() => {
-        navigate("/auth");
-      }, 2000);
     } finally {
       setLoading(false);
     }
