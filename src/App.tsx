@@ -8,6 +8,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import Index from "./pages/Index";
 import Search from "./pages/Search";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import UserProfile from "./pages/UserProfile";
 import WineDetails from "./pages/WineDetails";
 import Cellars from "./pages/Cellars";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/search" element={<Search />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/user/:slug" element={<UserProfile />} />
             <Route path="/wine/:id" element={<WineDetails />} />
             <Route path="/cellars" element={<Cellars />} />
