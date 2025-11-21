@@ -98,18 +98,22 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
     if (!deletingItem || deletingItem.type !== 'member') return;
 
     try {
-      const { error } = await supabase
-        .from('user_event')
-        .delete()
-        .eq('event_id', eventId)
-        .eq('user_id', deletingItem.id);
-
+      const { data, error } = await supabase.functions.invoke(
+        'remove-event-member',
+        { 
+          body: { 
+            member_user_id: deletingItem.id, 
+            event_id: eventId 
+          } 
+        }
+      );
+      
       if (error) throw error;
 
       toast.success('Membre supprimé de l\'événement');
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || 'Impossible de supprimer le membre');
+      toast.error('Impossible de supprimer le membre');
     } finally {
       setDeleteDialogOpen(false);
       setDeletingItem(null);
@@ -120,17 +124,21 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
     if (!deletingItem || deletingItem.type !== 'invitation') return;
 
     try {
-      const { error } = await supabase
-        .from('event_invitation')
-        .delete()
-        .eq('id', deletingItem.id);
-
+      const { data, error } = await supabase.functions.invoke(
+        'cancel-event-invitation',
+        { 
+          body: { 
+            invitation_id: deletingItem.id 
+          } 
+        }
+      );
+      
       if (error) throw error;
 
       toast.success('Invitation annulée');
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || 'Impossible d\'annuler l\'invitation');
+      toast.error('Impossible d\'annuler l\'invitation');
     } finally {
       setDeleteDialogOpen(false);
       setDeletingItem(null);

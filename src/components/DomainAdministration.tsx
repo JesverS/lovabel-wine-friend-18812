@@ -68,64 +68,64 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
 
   const handleApprove = async (application: any) => {
     try {
-      // Ajouter à user_domain
-      const { error: insertError } = await supabase
-        .from('user_domain')
-        .insert({
-          user_id: application.user_id,
-          domain_id: domainId,
-          role: application.role
-        });
-
-      if (insertError) throw insertError;
-
-      // Supprimer la demande
-      const { error: deleteError } = await supabase
-        .from('user_domain_application')
-        .delete()
-        .eq('user_id', application.user_id)
-        .eq('domain_id', domainId);
-
-      if (deleteError) throw deleteError;
-
+      const { data, error } = await supabase.functions.invoke(
+        'approve-domain-application',
+        { 
+          body: { 
+            application_user_id: application.user_id, 
+            domain_id: domainId 
+          } 
+        }
+      );
+      
+      if (error) throw error;
+      
       toast.success('Demande approuvée');
       fetchData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error('Erreur lors de l\'approbation');
     }
   };
 
   const handleReject = async (application: any) => {
     try {
-      const { error } = await supabase
-        .from('user_domain_application')
-        .delete()
-        .eq('user_id', application.user_id)
-        .eq('domain_id', domainId);
-
+      const { data, error } = await supabase.functions.invoke(
+        'reject-domain-application',
+        { 
+          body: { 
+            application_user_id: application.user_id, 
+            domain_id: domainId 
+          } 
+        }
+      );
+      
       if (error) throw error;
-
+      
       toast.success('Demande rejetée');
       fetchData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error('Erreur lors du rejet');
     }
   };
 
   const handleRemoveMember = async (userId: string) => {
     try {
-      const { error } = await supabase
-        .from('user_domain')
-        .delete()
-        .eq('user_id', userId)
-        .eq('domain_id', domainId);
-
+      const { data, error } = await supabase.functions.invoke(
+        'remove-domain-member',
+        { 
+          body: { 
+            member_user_id: userId, 
+            domain_id: domainId 
+          } 
+        }
+      );
+      
       if (error) throw error;
-
+      
       toast.success('Membre retiré');
       fetchData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error('Erreur lors du retrait');
     }
   };
 
