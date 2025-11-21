@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,31 +11,46 @@ export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const hasCheckedSession = useRef(false);
 
   useEffect(() => {
-    // Vérifier que l'utilisateur est bien connecté
+    // Vérifier une seule fois que l'utilisateur est bien connecté
     const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      if (hasCheckedSession.current) return;
+      hasCheckedSession.current = true;
 
-      if (!session) {
-        toast({
-          title: "Session expirée",
-          description: "Veuillez redemander un lien de réinitialisation.",
-          variant: "destructive",
-        });
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+          toast({
+            title: "Session expirée",
+            description: "Veuillez redemander un lien de réinitialisation.",
+            variant: "destructive",
+          });
+          navigate("/auth");
+        } else {
+          setSessionChecked(true);
+        }
+      } catch (error) {
+        console.error("Erreur vérification session:", error);
         navigate("/auth");
       }
     };
 
     checkSession();
-  }, [navigate, toast]);
+  }, []); // Pas de dépendances pour ne s'exécuter qu'une fois
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (loading) return; // Empêcher les doubles soumissions
+
     setLoading(true);
 
     try {
@@ -57,6 +72,8 @@ export default function ResetPassword() {
         return;
       }
 
+      console.log("Mise à jour du mot de passe...");
+
       // L'utilisateur est déjà authentifié, on met juste à jour le mot de passe
       const { error } = await supabase.auth.updateUser({
         password: password,
@@ -67,10 +84,15 @@ export default function ResetPassword() {
         throw error;
       }
 
+      console.log("Mot de passe changé avec succès");
+
       toast({
         title: "Mot de passe changé! ✓",
         description: "Votre mot de passe a été mis à jour avec succès.",
       });
+
+      // Attendre 1 seconde avant de vérifier le profil
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Vérifier le profil et rediriger
       const {
@@ -98,6 +120,17 @@ export default function ResetPassword() {
     }
   };
 
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Vérification...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
@@ -121,6 +154,7 @@ export default function ResetPassword() {
                 placeholder="••••••••"
                 minLength={6}
                 autoFocus
+                disabled={loading}
               />
               <p className="text-xs text-muted-foreground mt-1">Minimum 6 caractères</p>
             </div>
@@ -135,6 +169,7 @@ export default function ResetPassword() {
                 required
                 placeholder="••••••••"
                 minLength={6}
+                disabled={loading}
               />
             </div>
 
@@ -146,6 +181,7 @@ export default function ResetPassword() {
               type="button"
               onClick={() => navigate("/auth")}
               className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary hover:underline w-full"
+              disabled={loading}
             >
               <ArrowLeft className="w-4 h-4" />
               Retour à la connexion
