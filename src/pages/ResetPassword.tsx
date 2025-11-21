@@ -88,26 +88,17 @@ export default function ResetPassword() {
 
       toast({
         title: "Mot de passe changé! ✓",
-        description: "Votre mot de passe a été mis à jour avec succès.",
+        description: "Veuillez vous reconnecter avec votre nouveau mot de passe.",
       });
 
-      // Attendre 1 seconde avant de vérifier le profil
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Attendre 1 seconde pour que l'utilisateur voit le message
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Vérifier le profil et rediriger
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      // Déconnecter l'utilisateur
+      await supabase.auth.signOut();
 
-      if (user) {
-        const { data: profile } = await supabase.from("user_profiles").select("*").eq("id", user.id).maybeSingle();
-
-        if (!profile || !profile.full_name || !profile.last_name || !profile.city) {
-          navigate("/complete-profile");
-        } else {
-          navigate("/");
-        }
-      }
+      // Rediriger vers la page de connexion
+      navigate("/auth", { replace: true });
     } catch (error: any) {
       console.error("Erreur reset password:", error);
       toast({
