@@ -1,20 +1,20 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { WineCard } from '@/components/WineCard';
-import { Store, MapPin, Globe, Phone, Mail, ArrowLeft } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DomainAdministration } from '@/components/DomainAdministration';
-import { EditDomainDialog } from '@/components/EditDomainDialog';
-import { AddWineToDomainDialog } from '@/components/AddWineToDomainDialog';
+import { useEffect, useState, useMemo } from "react";
+import { useParams, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { WineCard } from "@/components/WineCard";
+import { Store, MapPin, Globe, Phone, Mail, ArrowLeft } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DomainAdministration } from "@/components/DomainAdministration";
+import { EditDomainDialog } from "@/components/EditDomainDialog";
+import { AddWineToDomainDialog } from "@/components/AddWineToDomainDialog";
 
 export default function DomainDetails() {
   const { id } = useParams();
@@ -23,8 +23,8 @@ export default function DomainDetails() {
   const [wines, setWines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<number | null>(null);
-  const [selectedYear, setSelectedYear] = useState<string>('all');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [userSlug, setUserSlug] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,9 +39,9 @@ export default function DomainDetails() {
     const fetchUserSlug = async () => {
       if (user) {
         const { data } = await supabase
-          .from('user_profiles_public' as any)
-          .select('slug')
-          .eq('id', user.id)
+          .from("user_profiles_public" as any)
+          .select("slug")
+          .eq("id", user.id)
           .single();
         setUserSlug((data as any)?.slug || null);
       }
@@ -50,14 +50,10 @@ export default function DomainDetails() {
   }, [user]);
 
   const fetchDomainDetails = async () => {
-    const { data, error } = await supabase
-      .from('domain')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await supabase.from("domain").select("*").eq("id", id).single();
 
     if (error) {
-      console.error('Error fetching domain:', error);
+      console.error("Error fetching domain:", error);
     } else {
       setDomain(data);
     }
@@ -65,13 +61,13 @@ export default function DomainDetails() {
 
   const fetchDomainWines = async () => {
     const { data, error } = await supabase
-      .from('wine')
-      .select('*')
-      .eq('domain_id', id)
-      .order('year', { ascending: false });
+      .from("wine")
+      .select("*")
+      .eq("domain_id", id)
+      .order("year", { ascending: false });
 
     if (error) {
-      console.error('Error fetching wines:', error);
+      console.error("Error fetching wines:", error);
     } else {
       setWines(data || []);
     }
@@ -82,19 +78,20 @@ export default function DomainDetails() {
     if (!user || !id) return;
 
     const { data } = await supabase
-      .from('user_domain')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('domain_id', id)
+      .from("user_domain")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("domain_id", id)
       .single();
 
+    // Si data existe, l'utilisateur est dans la table, on set le rôle.
     setUserRole(data?.role ?? null);
   };
 
   // Get unique years from wines
   const availableYears = useMemo(() => {
     const years = wines
-      .map(wine => wine.year)
+      .map((wine) => wine.year)
       .filter((year): year is number => year != null)
       .sort((a, b) => b - a);
     return Array.from(new Set(years));
@@ -103,22 +100,22 @@ export default function DomainDetails() {
   // Filter and sort wines
   const filteredAndSortedWines = useMemo(() => {
     let filtered = wines;
-    
-    if (selectedYear !== 'all') {
-      filtered = wines.filter(wine => wine.year?.toString() === selectedYear);
+
+    if (selectedYear !== "all") {
+      filtered = wines.filter((wine) => wine.year?.toString() === selectedYear);
     }
-    
+
     return filtered.sort((a, b) => {
       const yearA = a.year || 0;
       const yearB = b.year || 0;
-      return sortOrder === 'asc' ? yearA - yearB : yearB - yearA;
+      return sortOrder === "asc" ? yearA - yearB : yearB - yearA;
     });
   }, [wines, selectedYear, sortOrder]);
 
   // Get wine types by year for indicators
   const wineTypesByYear = useMemo(() => {
     const typesByYear: Record<number, Set<string>> = {};
-    wines.forEach(wine => {
+    wines.forEach((wine) => {
       if (wine.year && wine.characteristics?.type) {
         if (!typesByYear[wine.year]) {
           typesByYear[wine.year] = new Set();
@@ -171,7 +168,7 @@ export default function DomainDetails() {
       <Header />
       <main className="flex-1 min-h-screen container mx-auto px-4 py-8">
         <Button variant="ghost" asChild className="mb-6">
-          <Link to={userSlug ? `/user/${userSlug}` : '/search'}>
+          <Link to={userSlug ? `/user/${userSlug}` : "/search"}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Link>
@@ -183,11 +180,7 @@ export default function DomainDetails() {
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="h-32 w-auto max-w-[180px] flex items-center justify-center flex-shrink-0">
                 {domain.logo_url ? (
-                  <img 
-                    src={domain.logo_url} 
-                    alt={domain.name}
-                    className="h-full w-auto object-contain"
-                  />
+                  <img src={domain.logo_url} alt={domain.name} className="h-full w-auto object-contain" />
                 ) : (
                   <div className="h-32 w-32 bg-muted rounded flex items-center justify-center">
                     <Store className="w-16 h-16" />
@@ -198,14 +191,11 @@ export default function DomainDetails() {
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-4">
                   <h1 className="text-4xl font-bold">{domain.name}</h1>
-                  {userRole !== null) && (
-                    <EditDomainDialog domain={domain} onDomainUpdated={fetchDomainDetails} />
-                  )}
+                  {/* CHANGEMENT ICI : Vérification simplifiée userRole !== null */}
+                  {userRole !== null && <EditDomainDialog domain={domain} onDomainUpdated={fetchDomainDetails} />}
                 </div>
-                
-                {domain.description && (
-                  <p className="text-muted-foreground mb-6">{domain.description}</p>
-                )}
+
+                {domain.description && <p className="text-muted-foreground mb-6">{domain.description}</p>}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {domain.address && (
@@ -253,7 +243,8 @@ export default function DomainDetails() {
         </Card>
 
         {/* Content with Tabs */}
-        {userRole !== null) ? (
+        {/* CHANGEMENT ICI : Vérification simplifiée userRole !== null au lieu de vérifier 1 ou 2 */}
+        {userRole !== null ? (
           <Tabs defaultValue="wines" className="space-y-6">
             <TabsList>
               <TabsTrigger value="wines">Vins</TabsTrigger>
@@ -265,15 +256,10 @@ export default function DomainDetails() {
                 <CardHeader>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <CardTitle>Vins du domaine ({filteredAndSortedWines.length})</CardTitle>
-                    
+
                     <div className="flex flex-col sm:flex-row gap-3 items-end">
-                      {userRole !== null && (
-                        <AddWineToDomainDialog 
-                          domainId={id!} 
-                          onWineCreated={fetchDomainWines} 
-                        />
-                      )}
-                      
+                      {userRole !== null && <AddWineToDomainDialog domainId={id!} onWineCreated={fetchDomainWines} />}
+
                       <Select value={selectedYear} onValueChange={setSelectedYear}>
                         <SelectTrigger className="w-full sm:w-[180px]">
                           <SelectValue placeholder="Année" />
@@ -285,7 +271,7 @@ export default function DomainDetails() {
                               {year}
                               {wineTypesByYear[year] && (
                                 <span className="ml-2 text-xs text-muted-foreground">
-                                  ({Array.from(wineTypesByYear[year]).join(', ')})
+                                  ({Array.from(wineTypesByYear[year]).join(", ")})
                                 </span>
                               )}
                             </SelectItem>
@@ -293,7 +279,7 @@ export default function DomainDetails() {
                         </SelectContent>
                       </Select>
 
-                      <Select value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
+                      <Select value={sortOrder} onValueChange={(value: "asc" | "desc") => setSortOrder(value)}>
                         <SelectTrigger className="w-full sm:w-[180px]">
                           <SelectValue placeholder="Trier par" />
                         </SelectTrigger>
@@ -309,9 +295,9 @@ export default function DomainDetails() {
                   {filteredAndSortedWines.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-muted-foreground">
-                        {wines.length === 0 
-                          ? 'Aucun vin disponible pour ce domaine' 
-                          : 'Aucun vin trouvé pour cette année'}
+                        {wines.length === 0
+                          ? "Aucun vin disponible pour ce domaine"
+                          : "Aucun vin trouvé pour cette année"}
                       </p>
                     </div>
                   ) : (
@@ -322,7 +308,7 @@ export default function DomainDetails() {
                             name={wine.name}
                             domain={domain.name}
                             year={wine.year || 0}
-                            region={domain.address || ''}
+                            region={domain.address || ""}
                             price={Number(wine.price) || 0}
                             rating={4.5}
                             imageUrl={wine.label_url}
@@ -342,19 +328,15 @@ export default function DomainDetails() {
             </TabsContent>
           </Tabs>
         ) : (
+          /* Mode lecture seule (Public) */
           <Card>
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <CardTitle>Vins du domaine ({filteredAndSortedWines.length})</CardTitle>
-                
+
                 <div className="flex flex-col sm:flex-row gap-3 items-end">
-                  {userRole !== null && (
-                    <AddWineToDomainDialog 
-                      domainId={id!} 
-                      onWineCreated={fetchDomainWines} 
-                    />
-                  )}
-                  
+                  {/* Note: Le bouton AddWine n'apparaîtra pas ici car userRole est null dans ce bloc else */}
+
                   <Select value={selectedYear} onValueChange={setSelectedYear}>
                     <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Année" />
@@ -366,7 +348,7 @@ export default function DomainDetails() {
                           {year}
                           {wineTypesByYear[year] && (
                             <span className="ml-2 text-xs text-muted-foreground">
-                              ({Array.from(wineTypesByYear[year]).join(', ')})
+                              ({Array.from(wineTypesByYear[year]).join(", ")})
                             </span>
                           )}
                         </SelectItem>
@@ -374,7 +356,7 @@ export default function DomainDetails() {
                     </SelectContent>
                   </Select>
 
-                  <Select value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
+                  <Select value={sortOrder} onValueChange={(value: "asc" | "desc") => setSortOrder(value)}>
                     <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Trier par" />
                     </SelectTrigger>
@@ -390,9 +372,7 @@ export default function DomainDetails() {
               {filteredAndSortedWines.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">
-                    {wines.length === 0 
-                      ? 'Aucun vin disponible pour ce domaine' 
-                      : 'Aucun vin trouvé pour cette année'}
+                    {wines.length === 0 ? "Aucun vin disponible pour ce domaine" : "Aucun vin trouvé pour cette année"}
                   </p>
                 </div>
               ) : (
@@ -403,7 +383,7 @@ export default function DomainDetails() {
                         name={wine.name}
                         domain={domain.name}
                         year={wine.year || 0}
-                        region={domain.address || ''}
+                        region={domain.address || ""}
                         price={Number(wine.price) || 0}
                         rating={4.5}
                         imageUrl={wine.label_url}
