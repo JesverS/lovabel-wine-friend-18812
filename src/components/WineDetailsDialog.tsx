@@ -20,6 +20,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { z } from "zod";
+import { wineNoticeSchema, wineCommentSchema } from "@/lib/validation-schemas";
 
 interface Wine {
   id: string;
@@ -287,25 +289,40 @@ export const WineDetailsDialog = ({
       }
     } else {
       // Fallback: simple upsert without event link
-      const { error } = await supabase.from("user_wine_notice").upsert({
-        user_id: user.id,
-        wine_id: wine.id,
-        liked: newLiked as any,
-        details: roundedDetails as any,
-      } as any, {
-        onConflict: 'user_id,wine_id'
-      });
+      try {
+        const validated = wineNoticeSchema.parse({
+          liked: newLiked,
+          details: roundedDetails,
+        });
 
-      if (error) {
+        const { error } = await supabase.from("user_wine_notice").upsert({
+          user_id: user.id,
+          wine_id: wine.id,
+          liked: validated.liked,
+          details: validated.details,
+        }, {
+          onConflict: 'user_id,wine_id'
+        });
+
+        if (error) throw error;
+
+        setLiked(newLiked);
+        toast({
+          title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast({
+            title: 'Données invalides',
+            description: error.errors[0].message,
+            variant: 'destructive',
+          });
+          return;
+        }
         toast({
           title: "Erreur",
           description: "Impossible d'enregistrer votre avis",
           variant: "destructive",
-        });
-      } else {
-        setLiked(newLiked);
-        toast({
-          title: newLiked === 1 ? "J'aime ajouté" : newLiked === -1 ? "Je n'aime pas ajouté" : "Avis retiré",
         });
       }
     }
@@ -359,24 +376,39 @@ export const WineDetailsDialog = ({
       }
     } else {
       // Fallback: simple upsert without event link
-      const { error } = await supabase.from("user_wine_notice").upsert({
-        user_id: user.id,
-        wine_id: wine.id,
-        details: roundedDetails as any,
-        liked: liked as any,
-      } as any, {
-        onConflict: 'user_id,wine_id'
-      });
+      try {
+        const validated = wineNoticeSchema.parse({
+          liked: liked,
+          details: roundedDetails,
+        });
 
-      if (error) {
+        const { error } = await supabase.from("user_wine_notice").upsert({
+          user_id: user.id,
+          wine_id: wine.id,
+          details: validated.details,
+          liked: validated.liked,
+        }, {
+          onConflict: 'user_id,wine_id'
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Dégustation enregistrée",
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast({
+            title: 'Données invalides',
+            description: error.errors[0].message,
+            variant: 'destructive',
+          });
+          return;
+        }
         toast({
           title: "Erreur",
           description: "Impossible d'enregistrer votre dégustation",
           variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Dégustation enregistrée",
         });
       }
     }
@@ -405,33 +437,42 @@ export const WineDetailsDialog = ({
 
     setIsPostingComment(true);
 
-    const { error } = await supabase.from("user_wine_comment" as any).upsert({
-      user_id: user.id,
-      wine_id: wine.id,
-      comment: newComment,
-    }, {
-      onConflict: 'user_id,wine_id'
-    });
+    try {
+      const validated = wineCommentSchema.parse({ 
+        comment: newComment 
+      });
 
-    if (error) {
+      const { error } = await supabase.from("user_wine_comment").upsert({
+        user_id: user.id,
+        wine_id: wine.id,
+        comment: validated.comment,
+      }, {
+        onConflict: 'user_id,wine_id'
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Commentaire ajouté avec succès",
+      });
+      setNewComment("");
+      fetchComments(0);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: error.errors[0].message,
+          variant: 'destructive',
+        });
+        return;
+      }
       toast({
         title: "Erreur",
         description: "Impossible d'enregistrer votre commentaire",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Commentaire enregistré",
-      });
-      setNewComment("");
-      
-      // Refresh comments
-      setCommentsPage(0);
-      setHasMoreComments(true);
-      await fetchComments(0);
+    } finally {
+      setIsPostingComment(false);
     }
-
-    setIsPostingComment(false);
   };
 
   const handleToggleFavorite = async () => {

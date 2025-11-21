@@ -25,6 +25,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { z } from 'zod';
+import { wineCommentSchema } from '@/lib/validation-schemas';
 import {
   Sheet,
   SheetContent,
@@ -469,29 +471,42 @@ export function CellarWineDetailsDialog({
 
     setIsPostingComment(true);
 
-    const { error } = await supabase.from('user_wine_comment' as any).upsert({
-      user_id: user.id,
-      wine_id: wineData.wine_id,
-      comment: newComment,
-    }, {
-      onConflict: 'user_id,wine_id'
-    });
+    try {
+      const validated = wineCommentSchema.parse({ 
+        comment: newComment 
+      });
 
-    if (error) {
+      const { error } = await supabase.from('user_wine_comment').upsert({
+        user_id: user.id,
+        wine_id: wineData.wine_id,
+        comment: validated.comment,
+      }, {
+        onConflict: 'user_id,wine_id'
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Commentaire ajouté avec succès',
+      });
+      setNewComment("");
+      fetchComments(0);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: error.errors[0].message,
+          variant: 'destructive',
+        });
+        return;
+      }
       toast({
         title: 'Erreur',
         description: "Impossible d'enregistrer votre commentaire",
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'Commentaire enregistré',
-      });
-      setNewComment('');
-      await fetchComments(0);
+    } finally {
+      setIsPostingComment(false);
     }
-
-    setIsPostingComment(false);
   };
 
   const handleEditComment = (userId: string, currentComment: string) => {
