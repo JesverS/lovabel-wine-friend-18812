@@ -55,30 +55,24 @@ export default function ResetPassword() {
         return;
       }
 
-      const tokenHash = searchParams.get("token_hash");
-
-      // Vérifier le token OTP
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash!,
-        type: "recovery",
-      });
-
-      if (verifyError) {
-        console.error("Erreur vérification OTP:", verifyError);
-        throw verifyError;
-      }
-
-      // Maintenant mettre à jour le mot de passe
+      // L'utilisateur est déjà authentifié via le lien email
+      // On peut directement mettre à jour le mot de passe
       const { error: passwordError } = await supabase.auth.updateUser({
         password: password,
       });
 
-      if (passwordError) throw passwordError;
+      if (passwordError) {
+        console.error("Erreur changement mot de passe:", passwordError);
+        throw passwordError;
+      }
 
       toast({
         title: "Mot de passe changé! ✓",
         description: "Votre mot de passe a été mis à jour avec succès.",
       });
+
+      // Attendre un peu avant de rediriger
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Vérifier le profil
       const {
