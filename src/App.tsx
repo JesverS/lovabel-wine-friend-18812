@@ -41,8 +41,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/search" element={<Search />} />
-            <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/user/:slug" element={<UserProfile />} />
             <Route path="/wine/:id" element={<WineDetails />} />
             <Route path="/cellars" element={<Cellars />} />
