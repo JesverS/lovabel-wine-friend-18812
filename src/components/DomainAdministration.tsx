@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Check, X, UserCircle, Crown, Shield, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface DomainAdministrationProps {
   domainId: string;
@@ -15,6 +16,7 @@ interface DomainAdministrationProps {
 
 export function DomainAdministration({ domainId, userRole }: DomainAdministrationProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [applications, setApplications] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,46 +30,57 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
   const fetchData = async () => {
     setLoading(true);
 
-    // Récupérer les membres actuels
-    const { data: membs } = (await supabase
-      .from("user_domain")
-      .select(
-        `
+    try {
+      // Récupérer les membres via l'Edge Function
+      const { data: membersData, error: membersError } = await supabase.functions.invoke("get-domain-members", {
+        body: { domain_id: domainId },
+      });
+
+      if (membersError) throw membersError;
+
+      // Transformer les données pour correspondre au format attendu
+      const formattedMembers =
+        membersData?.members?.map((member: any) => ({
+          user_id: member.user_id,
+          role: member.role,
+          created_at: member.created_at,
+          domain_id: member.domain_id,
+          user_profiles_public: {
+            full_name: member.profile.full_name,
+            logo_adress: member.profile.logo_adress,
+            slug: member.profile.slug,
+          },
+        })) || [];
+
+      setMembers(formattedMembers);
+
+      // Récupérer les demandes en attente selon le rôle
+      let query = supabase
+        .from("user_domain_application")
+        .select(
+          `
         *,
         user_profiles_public (
           full_name,
           logo_adress
         )
       `,
-      )
-      .eq("domain_id", domainId)
-      .order("role", { ascending: true })) as any; // Tri par rôle (1=Propriétaire, 2=Admin, 3=Employé)
-
-    setMembers(membs || []);
-
-    // Récupérer les demandes en attente selon le rôle
-    let query = supabase
-      .from("user_domain_application")
-      .select(
-        `
-        *,
-        user_profiles_public (
-          full_name,
-          logo_adress
         )
-      `,
-      )
-      .eq("domain_id", domainId) as any;
+        .eq("domain_id", domainId) as any;
 
-    // Filtrage selon le rôle de l'utilisateur connecté
-    if (userRole === 2) {
-      // Administrateur : ne voit que les demandes de membres (rang 3)
-      query = query.eq("role", 3);
+      // Filtrage selon le rôle de l'utilisateur connecté
+      if (userRole === 2) {
+        // Administrateur : ne voit que les demandes de membres (rang 3)
+        query = query.eq("role", 3);
+      }
+      // Propriétaire (userRole === 1) : voit toutes les demandes (pas de filtre supplémentaire)
+
+      const { data: apps } = await query;
+      setApplications(apps || []);
+    } catch (error: any) {
+      console.error("Erreur lors du chargement des données:", error);
+      toast.error("Erreur lors du chargement des données");
     }
-    // Propriétaire (userRole === 1) : voit toutes les demandes (pas de filtre supplémentaire)
-
-    const { data: apps } = await query;
-    setApplications(apps || []);
 
     setLoading(false);
   };
@@ -123,6 +136,12 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
       fetchData();
     } catch (error: any) {
       toast.error("Erreur lors du retrait");
+    }
+  };
+
+  const handleMemberClick = (slug: string | null) => {
+    if (slug) {
+      navigate(`/user/${slug}`);
     }
   };
 
@@ -195,7 +214,10 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
                 key={member.user_id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="flex items-center gap-3">
+                <div
+                  className="flex items-center gap-3 flex-1 cursor-pointer"
+                  onClick={() => handleMemberClick(member.user_profiles_public?.slug)}
+                >
                   <Avatar>
                     <AvatarImage src={member.user_profiles_public?.logo_adress || undefined} />
                     <AvatarFallback>
@@ -203,7 +225,7 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold flex items-center gap-2">
+                    <p className="font-semibold flex items-center gap-2 hover:underline">
                       {member.user_profiles_public?.full_name || "Utilisateur"}
                       {member.user_id === user?.id && (
                         <Badge variant="outline" className="text-xs">
@@ -223,8 +245,11 @@ export function DomainAdministration({ domainId, userRole }: DomainAdministratio
                   <Button
                     size="sm"
                     variant="outline"
-                    className="hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => handleRemoveMember(member.user_id)}
+                    className="hover:bg-destructive hover:text-destructive-foreground ml-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveMember(member.user_id);
+                    }}
                   >
                     Retirer
                   </Button>
