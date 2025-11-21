@@ -198,7 +198,7 @@ export default function DomainDetails() {
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-4">
                   <h1 className="text-4xl font-bold">{domain.name}</h1>
-                  {userRole !== null && (userRole === 1 || userRole === 2) && (
+                  {userRole !== null) && (
                     <EditDomainDialog domain={domain} onDomainUpdated={fetchDomainDetails} />
                   )}
                 </div>
@@ -253,7 +253,7 @@ export default function DomainDetails() {
         </Card>
 
         {/* Content with Tabs */}
-        {userRole !== null && (userRole === 1 || userRole === 2) ? (
+        {userRole !== null) ? (
           <Tabs defaultValue="wines" className="space-y-6">
             <TabsList>
               <TabsTrigger value="wines">Vins</TabsTrigger>
