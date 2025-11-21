@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Auth() {
+  const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
@@ -18,12 +19,27 @@ export default function Auth() {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    // Vérifier si on est en mode reset password via les paramètres URL
+    const type = searchParams.get("type");
+    const accessToken = searchParams.get("access_token");
+
+    if (type === "recovery" && accessToken) {
+      console.log("Mode reset password détecté via URL params");
+      setIsResetPassword(true);
+      setIsForgotPassword(false);
+      setIsLogin(false);
+    }
+
+    // Écouter les changements d'état d'authentification
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth event:", event);
+
       if (event === "PASSWORD_RECOVERY") {
+        console.log("PASSWORD_RECOVERY event détecté");
         setIsResetPassword(true);
         setIsForgotPassword(false);
         setIsLogin(false);
-      } else if (event === "SIGNED_IN" && session?.user) {
+      } else if (event === "SIGNED_IN" && session?.user && !isResetPassword) {
         const { data: profile } = await supabase
           .from("user_profiles")
           .select("*")
@@ -39,7 +55,11 @@ export default function Auth() {
         }
       }
     });
-  }, [navigate, toast]);
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate, toast, searchParams, isResetPassword]);
 
   const handleGoogleAuth = async () => {
     setLoading(true);
@@ -69,21 +89,43 @@ export default function Auth() {
           setLoading(false);
           return;
         }
+
+        if (password.length < 6) {
+          toast({
+            title: "Erreur",
+            description: "Le mot de passe doit contenir au moins 6 caractères",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.updateUser({ password });
+
         if (error) throw error;
-        toast({ title: "Mot de passe changé!", description: "Votre mot de passe a été mis à jour avec succès." });
+
+        toast({
+          title: "Mot de passe changé! ✓",
+          description: "Votre mot de passe a été mis à jour avec succès. Vous pouvez maintenant vous connecter.",
+        });
+
+        // Réinitialiser le formulaire et revenir à la connexion
         setIsResetPassword(false);
         setIsLogin(true);
         setPassword("");
         setConfirmPassword("");
-        navigate("/");
+
+        // Rediriger vers la page d'accueil après un court délai
+        setTimeout(() => {
+          navigate("/");
+        }, 1500);
       } else if (isForgotPassword) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth`,
         });
         if (error) throw error;
         toast({
-          title: "Email envoyé!",
+          title: "Email envoyé! 📧",
           description: "Vérifiez votre boîte mail pour réinitialiser votre mot de passe.",
         });
         setIsForgotPassword(false);
@@ -110,14 +152,14 @@ export default function Auth() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth`
-          }
+            emailRedirectTo: `${window.location.origin}/auth`,
+          },
         });
         if (error) throw error;
-        
-        toast({ 
-          title: "Vérifiez votre email", 
-          description: "Un email de confirmation vous a été envoyé. Cliquez sur le lien pour activer votre compte."
+
+        toast({
+          title: "Vérifiez votre email",
+          description: "Un email de confirmation vous a été envoyé. Cliquez sur le lien pour activer votre compte.",
         });
         setIsLogin(true);
         setPassword("");
@@ -214,7 +256,9 @@ export default function Auth() {
                   onChange={(e) => setPassword(e.target.value)}
                   required={!isForgotPassword}
                   placeholder="••••••••"
+                  minLength={6}
                 />
+                {isResetPassword && <p className="text-xs text-muted-foreground mt-1">Minimum 6 caractères</p>}
               </div>
             )}
             {isResetPassword && (
@@ -227,6 +271,7 @@ export default function Auth() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   placeholder="••••••••"
+                  minLength={6}
                 />
               </div>
             )}
