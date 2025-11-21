@@ -106,12 +106,21 @@ export default function Auth() {
           }
         }
       } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth`
+          }
+        });
         if (error) throw error;
-        if (data.user) {
-          toast({ title: "Compte créé!", description: "Veuillez compléter votre profil" });
-          navigate("/complete-profile");
-        }
+        
+        toast({ 
+          title: "Vérifiez votre email", 
+          description: "Un email de confirmation vous a été envoyé. Cliquez sur le lien pour activer votre compte."
+        });
+        setIsLogin(true);
+        setPassword("");
       }
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
