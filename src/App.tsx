@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Search from "./pages/Search";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AuthConfirm from "./pages/AuthConfirm";
 import UserProfile from "./pages/UserProfile";
 import WineDetails from "./pages/WineDetails";
 import Cellars from "./pages/Cellars";
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/search" element={<Search />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/auth/confirm" element={<AuthConfirm />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/user/:slug" element={<UserProfile />} />
             <Route path="/wine/:id" element={<WineDetails />} />
