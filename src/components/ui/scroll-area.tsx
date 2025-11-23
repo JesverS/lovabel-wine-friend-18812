@@ -848,81 +848,89 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
             </div>
 
             {/* Sliders améliorés pour mobile */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Acidité */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm font-medium">Acidité</Label>
-                  <span className="text-sm font-semibold text-primary">{tastingDetails.acidity.toFixed(1)}/10</span>
+                  <span className="text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded">
+                    {tastingDetails.acidity.toFixed(1)}/10
+                  </span>
                 </div>
-                <div className="px-2 py-3 -mx-2 rounded-lg touch-manipulation">
+                <div className="relative py-4 -mx-4 px-4 bg-muted/20 rounded-lg">
                   <Slider
                     value={[tastingDetails.acidity]}
                     onValueChange={([value]) => setTastingDetails({ ...tastingDetails, acidity: value })}
                     min={0}
                     max={10}
                     step={0.5}
-                    className="w-full [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[role=slider]]:touch-none"
+                    className="w-full [&>span:first-child]:h-3 [&>span:first-child]:bg-primary/20 [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary [&_[role=slider]]:shadow-lg"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">0 = Très faible • 10 = Très marquée</p>
+                <p className="text-xs text-muted-foreground text-center">0 = Très faible • 10 = Très marquée</p>
               </div>
 
               {/* Tanins */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm font-medium">Tanins</Label>
-                  <span className="text-sm font-semibold text-primary">{tastingDetails.tannins.toFixed(1)}/10</span>
+                  <span className="text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded">
+                    {tastingDetails.tannins.toFixed(1)}/10
+                  </span>
                 </div>
-                <div className="px-2 py-3 -mx-2 rounded-lg touch-manipulation">
+                <div className="relative py-4 -mx-4 px-4 bg-muted/20 rounded-lg">
                   <Slider
                     value={[tastingDetails.tannins]}
                     onValueChange={([value]) => setTastingDetails({ ...tastingDetails, tannins: value })}
                     min={0}
                     max={10}
                     step={0.5}
-                    className="w-full [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[role=slider]]:touch-none"
+                    className="w-full [&>span:first-child]:h-3 [&>span:first-child]:bg-primary/20 [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary [&_[role=slider]]:shadow-lg"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">0 = Très doux • 10 = Très tannique</p>
+                <p className="text-xs text-muted-foreground text-center">0 = Très doux • 10 = Très tannique</p>
               </div>
 
               {/* Corps */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm font-medium">Corps</Label>
-                  <span className="text-sm font-semibold text-primary">{tastingDetails.body.toFixed(1)}/10</span>
+                  <span className="text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded">
+                    {tastingDetails.body.toFixed(1)}/10
+                  </span>
                 </div>
-                <div className="px-2 py-3 -mx-2 rounded-lg touch-manipulation">
+                <div className="relative py-4 -mx-4 px-4 bg-muted/20 rounded-lg">
                   <Slider
                     value={[tastingDetails.body]}
                     onValueChange={([value]) => setTastingDetails({ ...tastingDetails, body: value })}
                     min={0}
                     max={10}
                     step={0.5}
-                    className="w-full [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[role=slider]]:touch-none"
+                    className="w-full [&>span:first-child]:h-3 [&>span:first-child]:bg-primary/20 [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary [&_[role=slider]]:shadow-lg"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">0 = Très léger • 10 = Très corpulent</p>
+                <p className="text-xs text-muted-foreground text-center">0 = Très léger • 10 = Très corpulent</p>
               </div>
 
               {/* Douceur */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm font-medium">Douceur</Label>
-                  <span className="text-sm font-semibold text-primary">{tastingDetails.sweetness.toFixed(1)}/10</span>
+                  <span className="text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded">
+                    {tastingDetails.sweetness.toFixed(1)}/10
+                  </span>
                 </div>
-                <div className="px-2 py-3 -mx-2 rounded-lg touch-manipulation">
+                <div className="relative py-4 -mx-4 px-4 bg-muted/20 rounded-lg">
                   <Slider
                     value={[tastingDetails.sweetness]}
                     onValueChange={([value]) => setTastingDetails({ ...tastingDetails, sweetness: value })}
                     min={0}
                     max={10}
                     step={0.5}
-                    className="w-full [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[role=slider]]:touch-none"
+                    className="w-full [&>span:first-child]:h-3 [&>span:first-child]:bg-primary/20 [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary [&_[role=slider]]:shadow-lg"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">0 = Très sec • 10 = Très sucré</p>
+                <p className="text-xs text-muted-foreground text-center">0 = Très sec • 10 = Très sucré</p>
               </div>
             </div>
 
