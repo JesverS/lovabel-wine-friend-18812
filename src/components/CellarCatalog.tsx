@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -72,17 +72,28 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
   const [isLoadingMoreWines, setIsLoadingMoreWines] = useState(false);
   const [wineTypes, setWineTypes] = useState<Record<number, string>>({});
   const observerTarget = useRef<HTMLDivElement>(null);
+  
+  // Refs pour l'IntersectionObserver (éviter les re-créations)
+  const hasMoreWinesRef = useRef(hasMoreWines);
+  const isLoadingMoreWinesRef = useRef(isLoadingMoreWines);
+  const loadingRef = useRef(loading);
+  const isLoadingRef = useRef(false);
+  
+  // Mettre à jour les refs quand les valeurs changent
+  useEffect(() => {
+    hasMoreWinesRef.current = hasMoreWines;
+  }, [hasMoreWines]);
 
   useEffect(() => {
-    if (cellarId) {
-      fetchWines(0, false);
-      fetchDomains();
-      fetchWineTypes();
-    }
-  }, [cellarId]);
+    isLoadingMoreWinesRef.current = isLoadingMoreWines;
+  }, [isLoadingMoreWines]);
 
-  // Charger les types de vin une seule fois
-  const fetchWineTypes = async () => {
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  // Charger les types de vin UNE SEULE FOIS au montage
+  const fetchWineTypes = useCallback(async () => {
     const { data } = await supabase
       .from('wine_type' as any)
       .select('id, type');
@@ -94,36 +105,13 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
       }, {} as Record<number, string>);
       setWineTypes(typesMap);
     }
-  };
+  }, []);
 
-  // IntersectionObserver pour scroll infini
   useEffect(() => {
-    if (!observerTarget.current) return;
+    fetchWineTypes();
+  }, [fetchWineTypes]);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMoreWines && !isLoadingMoreWines && !loading) {
-          loadMoreWines();
-        }
-      },
-      { threshold: 0.1, rootMargin: '100px' }
-    );
-
-    observer.observe(observerTarget.current);
-
-    return () => observer.disconnect();
-  }, [hasMoreWines, isLoadingMoreWines, winesOffset, loading]);
-
-  // Reset et recharge quand les filtres changent
-  useEffect(() => {
-    if (cellarId) {
-      setWinesOffset(0);
-      setHasMoreWines(true);
-      fetchWines(0, false);
-    }
-  }, [filters, selectedDomain, viewMode]);
-
-  const fetchDomains = async (offset: number = 0) => {
+  const fetchDomains = useCallback(async (offset: number = 0) => {
     if (domainsLoading) return;
     
     setDomainsLoading(true);
@@ -161,7 +149,7 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
     } finally {
       setDomainsLoading(false);
     }
-  };
+  }, [cellarId]);
 
   const loadMoreDomains = () => {
     if (!domainsLoading && hasMoreDomains) {
@@ -169,7 +157,7 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
     }
   };
 
-  const fetchWines = async (offset: number = 0, append: boolean = false) => {
+  const fetchWines = useCallback(async (offset: number = 0, append: boolean = false) => {
     try {
       if (!append) {
         setLoading(true);
@@ -237,12 +225,58 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
       setLoading(false);
       setIsLoadingMoreWines(false);
     }
-  };
+  }, [cellarId, wineTypes]);
 
-  const loadMoreWines = async () => {
-    if (isLoadingMoreWines || !hasMoreWines || loading) return;
-    await fetchWines(winesOffset, true);
-  };
+  const loadMoreWines = useCallback(async () => {
+    // Guard : empêcher les appels multiples
+    if (isLoadingRef.current || isLoadingMoreWines || !hasMoreWines || loading) return;
+    
+    isLoadingRef.current = true;
+    try {
+      await fetchWines(winesOffset, true);
+    } finally {
+      isLoadingRef.current = false;
+    }
+  }, [isLoadingMoreWines, hasMoreWines, loading, winesOffset, fetchWines]);
+
+  // Charger les vins et domaines au montage
+  useEffect(() => {
+    if (cellarId) {
+      fetchWines(0, false);
+      fetchDomains();
+    }
+  }, [cellarId, fetchWines, fetchDomains]);
+
+  // Reset et recharge quand les filtres changent
+  useEffect(() => {
+    if (cellarId) {
+      setWinesOffset(0);
+      setHasMoreWines(true);
+      fetchWines(0, false);
+    }
+  }, [filters, selectedDomain, viewMode, cellarId, fetchWines]);
+
+  // IntersectionObserver pour scroll infini (stable grâce aux refs)
+  useEffect(() => {
+    if (!observerTarget.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Utiliser les refs pour avoir les valeurs actuelles sans re-créer l'observer
+        if (entries[0].isIntersecting && 
+            hasMoreWinesRef.current && 
+            !isLoadingMoreWinesRef.current && 
+            !loadingRef.current) {
+          loadMoreWines();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    observer.observe(observerTarget.current);
+
+    return () => observer.disconnect();
+  }, [loadMoreWines]);
 
   const filteredWines = wines.filter((wine) => {
     // Domain filter when viewing by domain
