@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,11 +43,18 @@ export function WineSearchFilter({
   const [modeCultures, setModeCultures] = useState<any[]>([]);
   const [classifications, setClassifications] = useState<any[]>([]);
 
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
     fetchFilterOptions();
   }, []);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     onFilterChange({
       searchQuery,
       wineTypeId,
@@ -56,7 +63,7 @@ export function WineSearchFilter({
       sortBy,
       sortOrder,
     });
-  }, [searchQuery, wineTypeId, modeCultureId, classificationId, sortBy, sortOrder]);
+  }, [searchQuery, wineTypeId, modeCultureId, classificationId, sortBy, sortOrder, onFilterChange]);
 
   const fetchFilterOptions = async () => {
     try {
