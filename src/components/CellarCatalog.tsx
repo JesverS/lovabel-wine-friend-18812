@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,6 +44,7 @@ interface CellarCatalogProps {
 }
 
 const DEFAULT_IMAGE = 'https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png';
+const WINES_PER_PAGE = 20;
 
 export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
   const [wines, setWines] = useState<WineData[]>([]);
@@ -64,13 +65,63 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
   });
   const [columnsPerRow, setColumnsPerRow] = useState<3 | 4 | 5>(4);
   const [selectedWine, setSelectedWine] = useState<WineData | null>(null);
+  
+  // Scroll infini pour les vins
+  const [winesOffset, setWinesOffset] = useState(0);
+  const [hasMoreWines, setHasMoreWines] = useState(true);
+  const [isLoadingMoreWines, setIsLoadingMoreWines] = useState(false);
+  const [wineTypes, setWineTypes] = useState<Record<number, string>>({});
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (cellarId) {
-      fetchWines();
+      fetchWines(0, false);
       fetchDomains();
+      fetchWineTypes();
     }
   }, [cellarId]);
+
+  // Charger les types de vin une seule fois
+  const fetchWineTypes = async () => {
+    const { data } = await supabase
+      .from('wine_type' as any)
+      .select('id, type');
+    
+    if (data && Array.isArray(data)) {
+      const typesMap = data.reduce((acc: Record<number, string>, type: any) => {
+        acc[type.id] = type.type;
+        return acc;
+      }, {} as Record<number, string>);
+      setWineTypes(typesMap);
+    }
+  };
+
+  // IntersectionObserver pour scroll infini
+  useEffect(() => {
+    if (!observerTarget.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreWines && !isLoadingMoreWines && !loading) {
+          loadMoreWines();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    observer.observe(observerTarget.current);
+
+    return () => observer.disconnect();
+  }, [hasMoreWines, isLoadingMoreWines, winesOffset, loading]);
+
+  // Reset et recharge quand les filtres changent
+  useEffect(() => {
+    if (cellarId) {
+      setWinesOffset(0);
+      setHasMoreWines(true);
+      fetchWines(0, false);
+    }
+  }, [filters, selectedDomain, viewMode]);
 
   const fetchDomains = async (offset: number = 0) => {
     if (domainsLoading) return;
@@ -118,9 +169,18 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
     }
   };
 
-  const fetchWines = async () => {
+  const fetchWines = async (offset: number = 0, append: boolean = false) => {
     try {
-      const { data, error } = await supabase
+      if (!append) {
+        setLoading(true);
+      } else {
+        setIsLoadingMoreWines(true);
+      }
+
+      const from = offset;
+      const to = offset + WINES_PER_PAGE - 1;
+
+      const { data, error, count } = await supabase
         .from('cellar_wine')
         .select(`
           *,
@@ -141,40 +201,47 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
               name
             )
           )
-        `)
+        `, { count: 'exact' })
         .eq('cellar_id', cellarId)
-        .order('added_at', { ascending: false });
+        .order('added_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
 
-      // Fetch wine types separately
-      const enrichedData = await Promise.all(
-        (data || []).map(async (item: any) => {
-          if (item.wine?.type) {
-            const { data: typeData } = await supabase
-              .from('wine_type' as any)
-              .select('type')
-              .eq('id', item.wine.type)
-              .maybeSingle();
-            
-            return {
-              ...item,
-              wine: {
-                ...item.wine,
-                wine_type: typeData
-              }
-            };
-          }
-          return item;
-        })
-      );
+      // Enrichir avec wine_type en utilisant le cache
+      const enrichedData = (data || []).map((item: any) => ({
+        ...item,
+        wine: {
+          ...item.wine,
+          wine_type: item.wine?.type && wineTypes[item.wine.type] 
+            ? { type: wineTypes[item.wine.type] }
+            : null
+        }
+      }));
 
-      setWines(enrichedData);
+      // Ajouter ou remplacer
+      if (append) {
+        setWines(prev => [...prev, ...enrichedData]);
+      } else {
+        setWines(enrichedData);
+      }
+
+      // Mettre à jour les états de pagination
+      setWinesOffset(offset + enrichedData.length);
+      setHasMoreWines(enrichedData.length === WINES_PER_PAGE && 
+                      (count ? offset + enrichedData.length < count : true));
+
     } catch (error) {
       console.error('Error fetching wines:', error);
     } finally {
       setLoading(false);
+      setIsLoadingMoreWines(false);
     }
+  };
+
+  const loadMoreWines = async () => {
+    if (isLoadingMoreWines || !hasMoreWines || loading) return;
+    await fetchWines(winesOffset, true);
   };
 
   const filteredWines = wines.filter((wine) => {
@@ -377,84 +444,107 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
           </CardContent>
         </Card>
       ) : (viewMode === 'all' || selectedDomain) && (
-        <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
-          columnsPerRow === 3 
-            ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' 
-            : columnsPerRow === 4 
-            ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' 
-            : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
-        }`}>
-          {filteredWines.map((wine) => (
-            <Card 
-              key={wine.wine_id} 
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => setSelectedWine(wine)}
-            >
-              <div className="aspect-[3/4] sm:aspect-[2/3] relative overflow-hidden bg-muted">
-                <img
-                  src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
-                  alt={wine.wine?.name}
-                  className="w-full h-full object-cover"
-                />
-                {userRole && (
-                  <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-background/80 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-xs sm:text-sm">
-                    <span className="hidden sm:inline">Stock: </span>{wine.quantity || 0}
-                  </div>
-                )}
-              </div>
-              <CardContent className="p-2 sm:p-3 md:p-4">
-                <div className="space-y-1 sm:space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-sm sm:text-base md:text-lg line-clamp-2">{wine.wine?.name}</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                        {wine.wine?.domain?.name}
-                      </p>
-                      {wine.wine?.wine_type && (
-                        <span className="text-xs text-muted-foreground">
-                          {wine.wine.wine_type.type.charAt(0).toUpperCase() + wine.wine.wine_type.type.slice(1)}
+        <>
+          <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
+            columnsPerRow === 3 
+              ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' 
+              : columnsPerRow === 4 
+              ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' 
+              : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
+          }`}>
+            {filteredWines.map((wine) => (
+              <Card 
+                key={wine.wine_id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => setSelectedWine(wine)}
+              >
+                <div className="aspect-[3/4] sm:aspect-[2/3] relative overflow-hidden bg-muted">
+                  <img
+                    src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
+                    alt={wine.wine?.name}
+                    className="w-full h-full object-cover"
+                  />
+                  {userRole && (
+                    <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-background/80 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-xs sm:text-sm">
+                      <span className="hidden sm:inline">Stock: </span>{wine.quantity || 0}
+                    </div>
+                  )}
+                </div>
+                <CardContent className="p-2 sm:p-3 md:p-4">
+                  <div className="space-y-1 sm:space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-sm sm:text-base md:text-lg line-clamp-2">{wine.wine?.name}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                          {wine.wine?.domain?.name}
+                        </p>
+                        {wine.wine?.wine_type && (
+                          <span className="text-xs text-muted-foreground">
+                            {wine.wine.wine_type.type.charAt(0).toUpperCase() + wine.wine.wine_type.type.slice(1)}
+                          </span>
+                        )}
+                      </div>
+                      {wine.wine?.year && (
+                        <span className="text-xs sm:text-sm font-medium">
+                          {wine.wine.year}
                         </span>
                       )}
                     </div>
-                    {wine.wine?.year && (
-                      <span className="text-xs sm:text-sm font-medium">
-                        {wine.wine.year}
-                      </span>
+
+                    {(wine.description || wine.wine?.description) && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {wine.description || wine.wine?.description}
+                      </p>
                     )}
+
+                    {wine.wine?.volume_ml && (
+                      <p className="text-xs text-muted-foreground">
+                        {wine.wine.volume_ml}ml
+                      </p>
+                    )}
+
+                    <p className="text-base sm:text-lg font-bold text-primary">
+                      {wine.price ? `${wine.price.toFixed(2)}€` : 'Prix en attente'}
+                    </p>
                   </div>
 
-                  {(wine.description || wine.wine?.description) && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {wine.description || wine.wine?.description}
-                    </p>
-                  )}
+                  <div className="flex flex-col gap-1.5 sm:gap-2 mt-2 sm:mt-4">
+                    {wine.wine?.website_order_url && (
+                      <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8" asChild>
+                        <a href={wine.wine.website_order_url} target="_blank" rel="noopener noreferrer">
+                          <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">Commander</span>
+                          <span className="sm:hidden">🛒</span>
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-                  {wine.wine?.volume_ml && (
-                    <p className="text-xs text-muted-foreground">
-                      {wine.wine.volume_ml}ml
-                    </p>
-                  )}
-
-                  <p className="text-base sm:text-lg font-bold text-primary">
-                    {wine.price ? `${wine.price.toFixed(2)}€` : 'Prix en attente'}
-                  </p>
+          {/* Élément observé pour le scroll infini */}
+          {hasMoreWines && (
+            <div ref={observerTarget} className="h-20 flex items-center justify-center">
+              {isLoadingMoreWines && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  <span>Chargement de plus de vins...</span>
                 </div>
+              )}
+            </div>
+          )}
 
-                <div className="flex flex-col gap-1.5 sm:gap-2 mt-2 sm:mt-4">
-                  {wine.wine?.website_order_url && (
-                    <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8" asChild>
-                      <a href={wine.wine.website_order_url} target="_blank" rel="noopener noreferrer">
-                        <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                        <span className="hidden sm:inline">Commander</span>
-                        <span className="sm:hidden">🛒</span>
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+          {/* Message de fin */}
+          {!hasMoreWines && wines.length > 0 && (
+            <div className="text-center py-6">
+              <p className="text-sm text-muted-foreground">
+                Tous les vins ont été chargés ({wines.length} total)
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {selectedWine && (
