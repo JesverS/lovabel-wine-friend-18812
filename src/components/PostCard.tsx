@@ -11,6 +11,16 @@ import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { z } from 'zod';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const commentSchema = z.object({
   content: z.string().trim().min(1, 'Le commentaire est requis').max(1000, 'Maximum 1000 caractères'),
@@ -41,6 +51,8 @@ export const PostCard = ({ post }: PostCardProps) => {
   const [editedContent, setEditedContent] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchPostData();
@@ -232,6 +244,51 @@ export const PostCard = ({ post }: PostCardProps) => {
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!user || user.id !== post.user_id) return;
+    
+    setLoadingDelete(true);
+    try {
+      // 1. Supprimer l'image si elle existe
+      if (post.image_url) {
+        try {
+          const urlParts = post.image_url.split('/post/');
+          if (urlParts.length > 1) {
+            const fileName = urlParts[1].split('?')[0];
+            await supabase.storage.from('post').remove([fileName]);
+          }
+        } catch (storageError) {
+          console.warn('Erreur suppression image:', storageError);
+        }
+      }
+      
+      // 2. Supprimer le post (cascade automatique pour likes et commentaires)
+      const { error } = await supabase
+        .from('post')
+        .delete()
+        .eq('id', post.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Succès',
+        description: 'Post supprimé',
+      });
+      
+      // 3. Recharger le feed
+      window.location.reload();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: error.message || 'Impossible de supprimer le post',
+      });
+    } finally {
+      setLoadingDelete(false);
+      setDeleteDialogOpen(false);
+    }
+  };
+
   return (
     <Card className="p-6 space-y-4">
       <div className="flex items-start gap-3">
@@ -252,16 +309,25 @@ export const PostCard = ({ post }: PostCardProps) => {
               </p>
             </div>
             {user?.id === post.user_id && !isEditing && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setEditedContent(post.content);
-                  setIsEditing(true);
-                }}
-              >
-                <Edit2 className="w-4 h-4" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEditedContent(post.content);
+                    setIsEditing(true);
+                  }}
+                >
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -459,6 +525,32 @@ export const PostCard = ({ post }: PostCardProps) => {
           </div>
         </div>
       )}
+
+      {/* Delete Post Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le post ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le post et son image seront définitivement supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              disabled={loadingDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {loadingDelete ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                'Supprimer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

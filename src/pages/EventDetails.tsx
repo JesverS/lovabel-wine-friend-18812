@@ -386,25 +386,26 @@ const EventDetails = () => {
 
       if (fetchError) throw fetchError;
 
-      // 2. Si un banner existe, le supprimer du bucket
-      if (eventData?.banner_url) {
-        try {
-          // Extraire le nom du fichier depuis l'URL
-          const urlParts = eventData.banner_url.split('/event/');
-          if (urlParts.length > 1) {
-            const fileName = urlParts[1].split('?')[0];
-            
-            const { error: storageError } = await supabase.storage
-              .from('event')
-              .remove([fileName]);
-            
-            if (storageError) {
-              console.warn('Erreur lors de la suppression du banner:', storageError);
-            }
+      // 2. Supprimer tous les fichiers du dossier de l'événement
+      try {
+        const { data: files, error: listError } = await supabase.storage
+          .from('event')
+          .list(event.id);
+
+        if (listError) {
+          console.warn('Erreur lors de la liste des fichiers:', listError);
+        } else if (files && files.length > 0) {
+          const filePaths = files.map(file => `${event.id}/${file.name}`);
+          const { error: deleteError } = await supabase.storage
+            .from('event')
+            .remove(filePaths);
+
+          if (deleteError) {
+            console.warn('Erreur lors de la suppression des fichiers:', deleteError);
           }
-        } catch (storageError) {
-          console.warn('Erreur lors de la suppression du banner:', storageError);
         }
+      } catch (storageError) {
+        console.warn('Erreur lors de la suppression du dossier event:', storageError);
       }
 
       // 3. Supprimer l'événement de la base de données

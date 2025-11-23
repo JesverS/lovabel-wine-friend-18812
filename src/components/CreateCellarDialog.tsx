@@ -132,17 +132,33 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
     setLoading(true);
 
     try {
+      // Étape 1 : Créer la cave SANS images d'abord
+      const { data: cellarId, error: cellarError } = await supabase
+        .rpc('create_cellar_with_owner', {
+          p_name: name,
+          p_description: description || null,
+          p_location: location || null,
+          p_latitude: latitude,
+          p_longitude: longitude,
+          p_is_public: isPublic,
+          p_is_seller: isSeller,
+          p_logo_url: null,
+          p_banner_url: null,
+        });
+
+      if (cellarError) throw cellarError;
+
+      // Étape 2 : Uploader les images dans {cellar_id}/
       let logoUrl = null;
       let bannerUrl = null;
 
-      // Upload images first if provided
       if (newLogoBlob || newBannerBlob) {
         setUploadingImages(true);
       }
 
       // Upload logo if provided
       if (newLogoBlob) {
-        const fileName = `${user.id}/${Date.now()}-logo.jpg`;
+        const fileName = `${cellarId}/${Date.now()}-logo.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from('cellar')
@@ -159,7 +175,7 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
 
       // Upload banner if provided
       if (newBannerBlob) {
-        const fileName = `${user.id}/${Date.now()}-banner.jpg`;
+        const fileName = `${cellarId}/${Date.now()}-banner.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from('cellar')
@@ -176,21 +192,19 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
 
       setUploadingImages(false);
 
-      // Create cellar and user_cellar relationship atomically
-      const { data: cellarId, error: cellarError } = await supabase
-        .rpc('create_cellar_with_owner', {
-          p_name: name,
-          p_description: description || null,
-          p_location: location || null,
-          p_latitude: latitude,
-          p_longitude: longitude,
-          p_is_public: isPublic,
-          p_is_seller: isSeller,
-          p_logo_url: logoUrl,
-          p_banner_url: bannerUrl,
-        });
+      // Étape 3 : Mettre à jour la cave avec les URLs des images
+      if (logoUrl || bannerUrl) {
+        const { error: updateError } = await supabase
+          .from('cellar' as any)
+          .update({
+            logo_url: logoUrl,
+            banner_url: bannerUrl,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', cellarId);
 
-      if (cellarError) throw cellarError;
+        if (updateError) throw updateError;
+      }
 
       toast({
         title: 'Succès',

@@ -159,7 +159,7 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
 
       // Upload new logo
       if (newLogoBlob) {
-        const fileName = `${user.id}/${Date.now()}-logo.jpg`;
+        const fileName = `${cellar.id}/${Date.now()}-logo.jpg`;
         const { error: uploadError } = await supabase.storage
           .from('cellar')
           .upload(fileName, newLogoBlob);
@@ -180,7 +180,7 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
 
       // Upload new banner
       if (newBannerBlob) {
-        const fileName = `${user.id}/${Date.now()}-banner.jpg`;
+        const fileName = `${cellar.id}/${Date.now()}-banner.jpg`;
         const { error: uploadError } = await supabase.storage
           .from('cellar')
           .upload(fileName, newBannerBlob);
