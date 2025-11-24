@@ -19,7 +19,6 @@ import { CalendarPlus, Upload } from 'lucide-react';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { CellarAutocomplete } from './CellarAutocomplete';
-import { generateEventSlug } from '@/lib/slugUtils';
 
 interface CreateEventDialogProps {
   onEventCreated?: () => void;
@@ -95,15 +94,10 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     setLoading(true);
 
     try {
-      // Générer le slug
-      const generatedSlug = generateEventSlug(formData.name);
-
-      // Créer l'événement
-      const { data: eventData, error: eventError } = await supabase
-        .from('event')
-        .insert({
+      // Appeler l'Edge Function pour créer l'événement
+      const { data, error: createError } = await supabase.functions.invoke('create-event', {
+        body: {
           name: formData.name,
-          slug: generatedSlug,
           description: formData.description,
           start_date: formData.start_date,
           end_date: formData.end_date || null,
@@ -113,31 +107,21 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
           category: formData.category || null,
           registration_link: formData.registration_link || null,
           is_public: formData.is_public,
-          organizer_id: user.id,
           latitude,
           longitude,
           cellar_id: formData.cellarId,
-        })
-        .select()
-        .single();
+        },
+      });
 
-      if (eventError) throw eventError;
+      if (createError) throw createError;
+      if (!data) throw new Error('Aucune donnée retournée');
 
-      // Ajouter le créateur dans user_event
-      const { error: userEventError } = await supabase
-        .from('user_event')
-        .insert({
-          user_id: user.id,
-          event_id: eventData.id,
-          role: 'organizer',
-        });
-
-      if (userEventError) throw userEventError;
+      const { event_id, slug: generatedSlug, private_token } = data;
 
       // Upload de l'image si présente
-      if (imageFile && eventData) {
+      if (imageFile && event_id) {
         const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${eventData.id}/banner.${fileExt}`;
+        const fileName = `${event_id}/banner.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('event')
@@ -157,7 +141,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
         await supabase
           .from('event')
           .update({ banner_url: publicUrlData.publicUrl })
-          .eq('id', eventData.id);
+          .eq('id', event_id);
       }
 
       toast({

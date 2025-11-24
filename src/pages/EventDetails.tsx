@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2, Copy, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { WineDetailsDialog } from "@/components/WineDetailsDialog";
@@ -46,6 +46,8 @@ interface Event {
   location: string | null;
   banner_url: string | null;
   registration_link: string | null;
+  is_public: boolean | null;
+  private_token: string | null;
 }
 
 interface Domain {
@@ -103,18 +105,26 @@ const EventDetails = () => {
 
       setLoading(true);
 
-      // Fetch event
-      const { data: eventData, error: eventError } = await supabase
-        .from("event")
-        .select("*")
-        .eq("slug", slug)
-        .single();
+      // Récupérer le token depuis l'URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const privateToken = searchParams.get('token');
 
-      if (eventError || !eventData) {
+      // Appeler l'Edge Function pour récupérer l'événement
+      const { data, error: fetchError } = await supabase.functions.invoke('get-event-by-slug', {
+        body: { slug, token: privateToken }
+      });
+
+      if (fetchError || !data?.event) {
+        toast({
+          title: 'Erreur',
+          description: fetchError?.error || 'Impossible de charger l\'événement',
+          variant: 'destructive',
+        });
         setLoading(false);
         return;
       }
 
+      const eventData = data.event;
       setEvent(eventData);
 
       // Check if user can edit and get their role
@@ -554,6 +564,42 @@ const EventDetails = () => {
                       <ExternalLink className="ml-2 h-4 w-4" />
                     </a>
                   </Button>
+                )}
+
+                {canEdit && !event.is_public && event.private_token && (
+                  <Card className="p-6 bg-amber-50 border-amber-200">
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-semibold text-amber-900">Lien privé de l'événement</h3>
+                          <p className="text-sm text-amber-700 mt-1">
+                            ⚠️ Ne partagez ce lien qu'avec des personnes de confiance
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={`${window.location.origin}/event/${event.slug}?token=${event.private_token}`}
+                          readOnly
+                          className="flex-1 bg-white"
+                        />
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              `${window.location.origin}/event/${event.slug}?token=${event.private_token}`
+                            );
+                            toast({ title: 'Lien copié !' });
+                          }}
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copier
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
                 )}
 
                 <div className="space-y-6">
