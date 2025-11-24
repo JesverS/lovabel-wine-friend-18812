@@ -7,12 +7,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Calendar as CalendarIcon, MapPin, Search } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Search, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 interface Event {
@@ -27,10 +28,17 @@ interface Event {
   banner_url: string | null;
 }
 
+type ErrorState = {
+  hasError: boolean;
+  message: string;
+  canRetry: boolean;
+} | null;
+
 const Events = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ErrorState>(null);
   const [searchName, setSearchName] = useState("");
   const [searchCity, setSearchCity] = useState("");
   const [searchDate, setSearchDate] = useState<Date | undefined>(undefined);
@@ -41,42 +49,73 @@ const Events = () => {
 
   const fetchEvents = async () => {
     setLoading(true);
-    let query = supabase
-      .from("event")
-      .select("id, slug, name, description, start_date, end_date, city, address, banner_url")
-      .eq("is_public", true)
-      .order("start_date", { ascending: true });
+    setError(null);
 
-    // Filter by name
-    if (searchName.trim()) {
-      query = query.ilike("name", `%${searchName}%`);
+    try {
+      let query = supabase
+        .from("event")
+        .select("id, slug, name, description, start_date, end_date, city, address, banner_url")
+        .eq("is_public", true)
+        .order("start_date", { ascending: true });
+
+      // Filter by name
+      if (searchName.trim()) {
+        query = query.ilike("name", `%${searchName}%`);
+      }
+
+      // Filter by city
+      if (searchCity.trim()) {
+        query = query.ilike("city", `%${searchCity}%`);
+      }
+
+      // Filter by date
+      if (searchDate) {
+        const startOfDay = new Date(searchDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(searchDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        query = query
+          .lte("start_date", endOfDay.toISOString())
+          .or(`end_date.gte.${startOfDay.toISOString()},end_date.is.null`);
+      }
+
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) {
+        // Erreur de la base de données
+        console.error("Database error:", fetchError);
+        setError({
+          hasError: true,
+          message: "Impossible de charger les événements. Veuillez réessayer.",
+          canRetry: true,
+        });
+        setEvents([]);
+      } else if (data) {
+        setEvents(data);
+        // Pas d'erreur même si data est vide (résultat de recherche valide)
+      }
+    } catch (err) {
+      // Erreur réseau ou autre erreur inattendue
+      console.error("Unexpected error:", err);
+      setError({
+        hasError: true,
+        message: "Une erreur inattendue s'est produite. Vérifiez votre connexion internet.",
+        canRetry: true,
+      });
+      setEvents([]);
+    } finally {
+      setLoading(false);
     }
-
-    // Filter by city
-    if (searchCity.trim()) {
-      query = query.ilike("city", `%${searchCity}%`);
-    }
-
-    // Filter by date - check if the search date falls within the event's date range
-    if (searchDate) {
-      const startOfDay = new Date(searchDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(searchDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      
-      // Event should appear if: start_date <= searchDate AND (end_date >= searchDate OR end_date is null)
-      query = query
-        .lte("start_date", endOfDay.toISOString())
-        .or(`end_date.gte.${startOfDay.toISOString()},end_date.is.null`);
-    }
-
-    const { data, error } = await query;
-
-    if (!error && data) {
-      setEvents(data);
-    }
-    setLoading(false);
   };
+
+  const resetFilters = () => {
+    setSearchName("");
+    setSearchCity("");
+    setSearchDate(undefined);
+  };
+
+  const hasActiveFilters = searchName || searchCity || searchDate;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -84,21 +123,18 @@ const Events = () => {
       <main className="pt-20 flex-grow min-h-screen">
         <section className="container mx-auto px-4 py-16 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
+            {/* Header Section */}
             <div className="mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                 <div>
-                  <h1 className="text-3xl md:text-5xl font-serif font-bold mb-2">
-                    Événements Viticoles
-                  </h1>
+                  <h1 className="text-3xl md:text-5xl font-serif font-bold mb-2">Événements Viticoles</h1>
                   <p className="text-muted-foreground">
                     Découvrez les salons, dégustations et événements près de chez vous
                   </p>
                 </div>
                 {user && (
                   <div className="w-full md:w-auto">
-                    <CreateEventDialog 
-                      onEventCreated={fetchEvents}
-                    />
+                    <CreateEventDialog onEventCreated={fetchEvents} />
                   </div>
                 )}
               </div>
@@ -114,9 +150,10 @@ const Events = () => {
                     value={searchName}
                     onChange={(e) => setSearchName(e.target.value)}
                     className="pl-10"
+                    disabled={loading}
                   />
                 </div>
-                
+
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -124,6 +161,7 @@ const Events = () => {
                     value={searchCity}
                     onChange={(e) => setSearchCity(e.target.value)}
                     className="pl-10"
+                    disabled={loading}
                   />
                 </div>
 
@@ -131,9 +169,10 @@ const Events = () => {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
+                      disabled={loading}
                       className={cn(
                         "w-full justify-start text-left font-normal relative pl-10",
-                        !searchDate && "text-muted-foreground"
+                        !searchDate && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
@@ -152,29 +191,57 @@ const Events = () => {
                 </Popover>
               </div>
 
-              {(searchName || searchCity || searchDate) && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchName("");
-                    setSearchCity("");
-                    setSearchDate(undefined);
-                  }}
-                >
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={resetFilters} disabled={loading}>
                   Réinitialiser les filtres
                 </Button>
               )}
             </div>
 
-            {loading ? (
-              <div className="text-center py-12">Chargement...</div>
-            ) : events.length === 0 ? (
+            {/* Error State */}
+            {error?.hasError && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Erreur</AlertTitle>
+                <AlertDescription className="flex flex-col gap-2">
+                  <span>{error.message}</span>
+                  {error.canRetry && (
+                    <Button variant="outline" size="sm" onClick={fetchEvents} className="w-fit">
+                      Réessayer
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Loading State */}
+            {loading && (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">
-                  Aucun événement trouvé pour cette ville
-                </p>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p className="mt-4 text-muted-foreground">Chargement des événements...</p>
               </div>
-            ) : (
+            )}
+
+            {/* Empty State - No Events Found */}
+            {!loading && !error?.hasError && events.length === 0 && (
+              <Card className="p-12 text-center">
+                <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-semibold mb-2">Aucun événement trouvé</h3>
+                <p className="text-muted-foreground mb-4">
+                  {hasActiveFilters
+                    ? "Aucun événement ne correspond à vos critères de recherche."
+                    : "Il n'y a pas d'événements publics pour le moment."}
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="outline" onClick={resetFilters}>
+                    Afficher tous les événements
+                  </Button>
+                )}
+              </Card>
+            )}
+
+            {/* Events List */}
+            {!loading && !error?.hasError && events.length > 0 && (
               <div className="grid gap-6">
                 {events.map((event) => (
                   <Link key={event.id} to={`/event/${event.slug}`}>
@@ -185,12 +252,14 @@ const Events = () => {
                             src={event.banner_url}
                             alt={event.name}
                             className="w-full md:w-32 h-48 md:h-32 object-cover rounded-lg flex-shrink-0"
+                            onError={(e) => {
+                              // Gérer les images cassées
+                              e.currentTarget.style.display = "none";
+                            }}
                           />
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-xl md:text-2xl font-serif font-bold mb-2 break-words">
-                            {event.name}
-                          </h3>
+                          <h3 className="text-xl md:text-2xl font-serif font-bold mb-2 break-words">{event.name}</h3>
                           {event.description && (
                             <p className="text-sm md:text-base text-muted-foreground mb-4 line-clamp-2 break-words">
                               {event.description}
@@ -201,9 +270,7 @@ const Events = () => {
                               <CalendarIcon className="h-4 w-4 text-primary flex-shrink-0" />
                               <span className="break-words">
                                 {format(new Date(event.start_date), "PPP", { locale: fr })}
-                                {event.end_date && 
-                                  ` - ${format(new Date(event.end_date), "PPP", { locale: fr })}`
-                                }
+                                {event.end_date && ` - ${format(new Date(event.end_date), "PPP", { locale: fr })}`}
                               </span>
                             </div>
                             {event.city && (
