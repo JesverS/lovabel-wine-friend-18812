@@ -1,15 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, X, SlidersHorizontal } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, X, SlidersHorizontal } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface WineSearchFilterProps {
   onFilterChange: (filters: WineFilters) => void;
@@ -22,21 +18,17 @@ export interface WineFilters {
   wineTypeId: string | null;
   modeCultureId: string | null;
   classificationId: string | null;
-  sortBy: 'name' | 'year' | 'domain' | 'price' | 'added_at';
-  sortOrder: 'asc' | 'desc';
+  sortBy: "name" | "year" | "domain" | "price" | "added_at";
+  sortOrder: "asc" | "desc";
 }
 
-export function WineSearchFilter({ 
-  onFilterChange, 
-  showDomainFilter = true,
-  fixedDomainId 
-}: WineSearchFilterProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+export function WineSearchFilter({ onFilterChange, showDomainFilter = true, fixedDomainId }: WineSearchFilterProps) {
+  const [searchQuery, setSearchQuery] = useState("");
   const [wineTypeId, setWineTypeId] = useState<string | null>(null);
   const [modeCultureId, setModeCultureId] = useState<string | null>(null);
   const [classificationId, setClassificationId] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'name' | 'year' | 'domain' | 'price' | 'added_at'>('added_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<"name" | "year" | "domain" | "price" | "added_at">("added_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [isOpen, setIsOpen] = useState(false);
 
   const [wineTypes, setWineTypes] = useState<any[]>([]);
@@ -44,6 +36,12 @@ export function WineSearchFilter({
   const [classifications, setClassifications] = useState<any[]>([]);
 
   const isFirstRender = useRef(true);
+  const onFilterChangeRef = useRef(onFilterChange);
+
+  // Mettre à jour la ref quand la fonction change
+  useEffect(() => {
+    onFilterChangeRef.current = onFilterChange;
+  }, [onFilterChange]);
 
   useEffect(() => {
     fetchFilterOptions();
@@ -55,7 +53,8 @@ export function WineSearchFilter({
       return;
     }
 
-    onFilterChange({
+    // Utiliser la ref au lieu de la fonction directement
+    onFilterChangeRef.current({
       searchQuery,
       wineTypeId,
       modeCultureId,
@@ -63,31 +62,41 @@ export function WineSearchFilter({
       sortBy,
       sortOrder,
     });
-  }, [searchQuery, wineTypeId, modeCultureId, classificationId, sortBy, sortOrder, onFilterChange]);
+  }, [searchQuery, wineTypeId, modeCultureId, classificationId, sortBy, sortOrder]);
+  // ❌ Supprimé onFilterChange des dépendances
 
   const fetchFilterOptions = async () => {
     try {
       const [typesRes, culturesRes, classificationsRes] = await Promise.all([
-        supabase.from('wine_type' as any).select('*').order('type'),
-        supabase.from('mode_culture' as any).select('*').order('nom'),
-        supabase.from('wine_classification' as any).select('*').order('nom'),
+        supabase
+          .from("wine_type" as any)
+          .select("*")
+          .order("type"),
+        supabase
+          .from("mode_culture" as any)
+          .select("*")
+          .order("nom"),
+        supabase
+          .from("wine_classification" as any)
+          .select("*")
+          .order("nom"),
       ]);
 
       if (typesRes.data) setWineTypes(typesRes.data);
       if (culturesRes.data) setModeCultures(culturesRes.data);
       if (classificationsRes.data) setClassifications(classificationsRes.data);
     } catch (error) {
-      console.error('Error fetching filter options:', error);
+      console.error("Error fetching filter options:", error);
     }
   };
 
   const handleReset = () => {
-    setSearchQuery('');
+    setSearchQuery("");
     setWineTypeId(null);
     setModeCultureId(null);
     setClassificationId(null);
-    setSortBy('added_at');
-    setSortOrder('desc');
+    setSortBy("added_at");
+    setSortOrder("desc");
   };
 
   const hasActiveFilters = searchQuery || wineTypeId || modeCultureId || classificationId;
@@ -124,14 +133,18 @@ export function WineSearchFilter({
           <Button variant="outline" className="w-full">
             <SlidersHorizontal className="w-4 h-4 mr-2" />
             Filtres avancés
-            {hasActiveFilters && <span className="ml-2 text-xs">({[wineTypeId, modeCultureId, classificationId].filter(Boolean).length})</span>}
+            {hasActiveFilters && (
+              <span className="ml-2 text-xs">
+                ({[wineTypeId, modeCultureId, classificationId].filter(Boolean).length})
+              </span>
+            )}
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-4 pt-4">
           {/* Type de vin */}
           <div>
             <Label htmlFor="wine-type">Type de vin</Label>
-            <Select value={wineTypeId || 'all'} onValueChange={(val) => setWineTypeId(val === 'all' ? null : val)}>
+            <Select value={wineTypeId || "all"} onValueChange={(val) => setWineTypeId(val === "all" ? null : val)}>
               <SelectTrigger id="wine-type">
                 <SelectValue placeholder="Tous les types" />
               </SelectTrigger>
@@ -149,7 +162,10 @@ export function WineSearchFilter({
           {/* Mode de culture */}
           <div>
             <Label htmlFor="mode-culture">Mode de culture</Label>
-            <Select value={modeCultureId || 'all'} onValueChange={(val) => setModeCultureId(val === 'all' ? null : val)}>
+            <Select
+              value={modeCultureId || "all"}
+              onValueChange={(val) => setModeCultureId(val === "all" ? null : val)}
+            >
               <SelectTrigger id="mode-culture">
                 <SelectValue placeholder="Tous les modes" />
               </SelectTrigger>
@@ -167,7 +183,10 @@ export function WineSearchFilter({
           {/* Classification */}
           <div>
             <Label htmlFor="classification">Classification</Label>
-            <Select value={classificationId || 'all'} onValueChange={(val) => setClassificationId(val === 'all' ? null : val)}>
+            <Select
+              value={classificationId || "all"}
+              onValueChange={(val) => setClassificationId(val === "all" ? null : val)}
+            >
               <SelectTrigger id="classification">
                 <SelectValue placeholder="Toutes les classifications" />
               </SelectTrigger>
