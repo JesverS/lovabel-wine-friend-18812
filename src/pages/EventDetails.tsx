@@ -98,6 +98,10 @@ const EventDetails = () => {
   const [deleteEventDialogOpen, setDeleteEventDialogOpen] = useState(false);
   const [eventNameConfirmation, setEventNameConfirmation] = useState('');
   const [leaveEventDialogOpen, setLeaveEventDialogOpen] = useState(false);
+  const [errorState, setErrorState] = useState<{
+    type: 'not_found' | 'access_denied' | null;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -115,14 +119,30 @@ const EventDetails = () => {
       });
 
       if (fetchError || !data?.event) {
-        toast({
-          title: 'Erreur',
-          description: fetchError?.error || 'Impossible de charger l\'événement',
-          variant: 'destructive',
-        });
+        const errorCode = data?.code || fetchError?.status;
+        
+        if (errorCode === 404) {
+          setErrorState({
+            type: 'not_found',
+            message: 'Événement inexistant'
+          });
+        } else if (errorCode === 403) {
+          setErrorState({
+            type: 'access_denied',
+            message: 'Vous n\'avez pas accès à cet événement'
+          });
+        } else {
+          setErrorState({
+            type: 'not_found',
+            message: 'Événement inexistant'
+          });
+        }
+        
         setLoading(false);
         return;
       }
+
+      setErrorState(null);
 
       const eventData = data.event;
       setEvent(eventData);
@@ -484,11 +504,75 @@ const EventDetails = () => {
   }
 
   if (!event) {
+    if (errorState) {
+      return (
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main className="pt-20 flex-grow flex items-center justify-center min-h-[calc(100vh-80px)]">
+            <Card className="p-8 max-w-md w-full mx-4 text-center">
+              <div className="space-y-4">
+                {errorState.type === 'not_found' ? (
+                  <>
+                    <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
+                      <Calendar className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <h2 className="text-2xl font-semibold">
+                      {errorState.message}
+                    </h2>
+                    <p className="text-muted-foreground">
+                      L'événement que vous recherchez n'existe pas ou a été supprimé.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+                      <AlertTriangle className="w-8 h-8 text-destructive" />
+                    </div>
+                    <h2 className="text-2xl font-semibold">
+                      {errorState.message}
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Cet événement est privé. Vous devez disposer d'un lien d'invitation valide pour y accéder.
+                    </p>
+                  </>
+                )}
+                <Button 
+                  onClick={() => navigate('/events')}
+                  className="w-full mt-4"
+                >
+                  Voir tous les événements
+                </Button>
+              </div>
+            </Card>
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="pt-20 container mx-auto px-4 py-16 flex-grow min-h-screen">
-          <div className="text-center">Événement non trouvé</div>
+        <main className="pt-20 flex-grow flex items-center justify-center min-h-[calc(100vh-80px)]">
+          <Card className="p-8 max-w-md w-full mx-4 text-center">
+            <div className="space-y-4">
+              <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
+                <Calendar className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h2 className="text-2xl font-semibold">
+                Événement inexistant
+              </h2>
+              <p className="text-muted-foreground">
+                L'événement que vous recherchez n'existe pas ou a été supprimé.
+              </p>
+              <Button 
+                onClick={() => navigate('/events')}
+                className="w-full mt-4"
+              >
+                Voir tous les événements
+              </Button>
+            </div>
+          </Card>
         </main>
         <Footer />
       </div>
