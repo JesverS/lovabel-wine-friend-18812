@@ -27,17 +27,10 @@ interface Event {
   banner_url: string | null;
 }
 
-type ErrorState = {
-  hasError: boolean;
-  message: string;
-  canRetry: boolean;
-} | null;
-
 const Events = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ErrorState>(null);
   const [searchName, setSearchName] = useState("");
   const [searchCity, setSearchCity] = useState("");
   const [searchDate, setSearchDate] = useState<Date | undefined>(undefined);
@@ -48,7 +41,6 @@ const Events = () => {
 
   const fetchEvents = async () => {
     setLoading(true);
-    setError(null);
 
     try {
       let query = supabase
@@ -57,17 +49,14 @@ const Events = () => {
         .eq("is_public", true)
         .order("start_date", { ascending: true });
 
-      // Filter by name
       if (searchName.trim()) {
         query = query.ilike("name", `%${searchName}%`);
       }
 
-      // Filter by city
       if (searchCity.trim()) {
         query = query.ilike("city", `%${searchCity}%`);
       }
 
-      // Filter by date
       if (searchDate) {
         const startOfDay = new Date(searchDate);
         startOfDay.setHours(0, 0, 0, 0);
@@ -79,27 +68,13 @@ const Events = () => {
           .or(`end_date.gte.${startOfDay.toISOString()},end_date.is.null`);
       }
 
-      const { data, error: fetchError } = await query;
+      const { data, error } = await query;
 
-      if (fetchError) {
-        console.error("Database error:", fetchError);
-        setError({
-          hasError: true,
-          message: "Impossible de charger les événements",
-          canRetry: true,
-        });
-        setEvents([]);
-      } else if (data) {
+      if (!error && data) {
         setEvents(data);
       }
     } catch (err) {
-      console.error("Unexpected error:", err);
-      setError({
-        hasError: true,
-        message: "Une erreur s'est produite",
-        canRetry: true,
-      });
-      setEvents([]);
+      console.error("Error fetching events:", err);
     } finally {
       setLoading(false);
     }
@@ -119,7 +94,6 @@ const Events = () => {
       <main className="pt-20 flex-grow">
         <section className="container mx-auto px-4 py-16 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
-            {/* Header Section */}
             <div className="mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                 <div>
@@ -136,7 +110,6 @@ const Events = () => {
               </div>
             </div>
 
-            {/* Search and Filters Section */}
             <div className="mb-12 space-y-4">
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="relative">
@@ -146,7 +119,6 @@ const Events = () => {
                     value={searchName}
                     onChange={(e) => setSearchName(e.target.value)}
                     className="pl-10"
-                    disabled={loading}
                   />
                 </div>
 
@@ -157,7 +129,6 @@ const Events = () => {
                     value={searchCity}
                     onChange={(e) => setSearchCity(e.target.value)}
                     className="pl-10"
-                    disabled={loading}
                   />
                 </div>
 
@@ -165,7 +136,6 @@ const Events = () => {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      disabled={loading}
                       className={cn(
                         "w-full justify-start text-left font-normal relative pl-10",
                         !searchDate && "text-muted-foreground",
@@ -188,58 +158,35 @@ const Events = () => {
               </div>
 
               {hasActiveFilters && (
-                <Button variant="outline" onClick={resetFilters} disabled={loading}>
+                <Button variant="outline" onClick={resetFilters}>
                   Réinitialiser les filtres
                 </Button>
               )}
             </div>
 
-            {/* Loading State */}
-            {loading && (
-              <div className="flex flex-col items-center justify-center py-24">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-32">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-                <p className="text-muted-foreground">Chargement des événements...</p>
+                <p className="text-muted-foreground">Chargement...</p>
               </div>
-            )}
-
-            {/* Error State - Centered */}
-            {!loading && error?.hasError && (
-              <div className="flex flex-col items-center justify-center py-24">
-                <Card className="p-8 max-w-md text-center">
-                  <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
-                  <h3 className="text-xl font-semibold mb-2">Erreur de chargement</h3>
-                  <p className="text-muted-foreground mb-6">{error.message}</p>
-                  {error.canRetry && (
-                    <Button onClick={fetchEvents} className="w-full">
-                      Réessayer
-                    </Button>
-                  )}
-                </Card>
-              </div>
-            )}
-
-            {/* Empty State - Centered */}
-            {!loading && !error?.hasError && events.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-24">
-                <Card className="p-12 max-w-md text-center">
+            ) : events.length === 0 ? (
+              <div className="flex items-center justify-center py-32">
+                <Card className="p-12 text-center max-w-md">
                   <CalendarIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-xl font-semibold mb-2">Aucun événement trouvé</h3>
-                  <p className="text-muted-foreground mb-6">
+                  <p className="text-muted-foreground mb-4">
                     {hasActiveFilters
-                      ? "Aucun événement ne correspond à vos critères de recherche."
-                      : "Il n'y a pas d'événements publics pour le moment."}
+                      ? "Aucun événement ne correspond à vos critères."
+                      : "Aucun événement public disponible."}
                   </p>
                   {hasActiveFilters && (
-                    <Button variant="outline" onClick={resetFilters} className="w-full">
-                      Afficher tous les événements
+                    <Button variant="outline" onClick={resetFilters}>
+                      Réinitialiser
                     </Button>
                   )}
                 </Card>
               </div>
-            )}
-
-            {/* Events List */}
-            {!loading && !error?.hasError && events.length > 0 && (
+            ) : (
               <div className="grid gap-6">
                 {events.map((event) => (
                   <Link key={event.id} to={`/event/${event.slug}`}>
@@ -250,9 +197,7 @@ const Events = () => {
                             src={event.banner_url}
                             alt={event.name}
                             className="w-full md:w-32 h-48 md:h-32 object-cover rounded-lg flex-shrink-0"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
+                            onError={(e) => (e.currentTarget.style.display = "none")}
                           />
                         )}
                         <div className="flex-1 min-w-0">
