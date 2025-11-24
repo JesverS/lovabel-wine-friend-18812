@@ -13,7 +13,6 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 interface Event {
@@ -83,24 +82,21 @@ const Events = () => {
       const { data, error: fetchError } = await query;
 
       if (fetchError) {
-        // Erreur de la base de données
         console.error("Database error:", fetchError);
         setError({
           hasError: true,
-          message: "Impossible de charger les événements. Veuillez réessayer.",
+          message: "Impossible de charger les événements",
           canRetry: true,
         });
         setEvents([]);
       } else if (data) {
         setEvents(data);
-        // Pas d'erreur même si data est vide (résultat de recherche valide)
       }
     } catch (err) {
-      // Erreur réseau ou autre erreur inattendue
       console.error("Unexpected error:", err);
       setError({
         hasError: true,
-        message: "Une erreur inattendue s'est produite. Vérifiez votre connexion internet.",
+        message: "Une erreur s'est produite",
         canRetry: true,
       });
       setEvents([]);
@@ -120,7 +116,7 @@ const Events = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="pt-20 flex-grow min-h-screen">
+      <main className="pt-20 flex-grow">
         <section className="container mx-auto px-4 py-16 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
             {/* Header Section */}
@@ -198,46 +194,48 @@ const Events = () => {
               )}
             </div>
 
-            {/* Error State */}
-            {error?.hasError && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Erreur</AlertTitle>
-                <AlertDescription className="flex flex-col gap-2">
-                  <span>{error.message}</span>
-                  {error.canRetry && (
-                    <Button variant="outline" size="sm" onClick={fetchEvents} className="w-fit">
-                      Réessayer
-                    </Button>
-                  )}
-                </AlertDescription>
-              </Alert>
-            )}
-
             {/* Loading State */}
             {loading && (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <p className="mt-4 text-muted-foreground">Chargement des événements...</p>
+              <div className="flex flex-col items-center justify-center py-24">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                <p className="text-muted-foreground">Chargement des événements...</p>
               </div>
             )}
 
-            {/* Empty State - No Events Found */}
+            {/* Error State - Centered */}
+            {!loading && error?.hasError && (
+              <div className="flex flex-col items-center justify-center py-24">
+                <Card className="p-8 max-w-md text-center">
+                  <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+                  <h3 className="text-xl font-semibold mb-2">Erreur de chargement</h3>
+                  <p className="text-muted-foreground mb-6">{error.message}</p>
+                  {error.canRetry && (
+                    <Button onClick={fetchEvents} className="w-full">
+                      Réessayer
+                    </Button>
+                  )}
+                </Card>
+              </div>
+            )}
+
+            {/* Empty State - Centered */}
             {!loading && !error?.hasError && events.length === 0 && (
-              <Card className="p-12 text-center">
-                <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">Aucun événement trouvé</h3>
-                <p className="text-muted-foreground mb-4">
-                  {hasActiveFilters
-                    ? "Aucun événement ne correspond à vos critères de recherche."
-                    : "Il n'y a pas d'événements publics pour le moment."}
-                </p>
-                {hasActiveFilters && (
-                  <Button variant="outline" onClick={resetFilters}>
-                    Afficher tous les événements
-                  </Button>
-                )}
-              </Card>
+              <div className="flex flex-col items-center justify-center py-24">
+                <Card className="p-12 max-w-md text-center">
+                  <CalendarIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">Aucun événement trouvé</h3>
+                  <p className="text-muted-foreground mb-6">
+                    {hasActiveFilters
+                      ? "Aucun événement ne correspond à vos critères de recherche."
+                      : "Il n'y a pas d'événements publics pour le moment."}
+                  </p>
+                  {hasActiveFilters && (
+                    <Button variant="outline" onClick={resetFilters} className="w-full">
+                      Afficher tous les événements
+                    </Button>
+                  )}
+                </Card>
+              </div>
             )}
 
             {/* Events List */}
@@ -253,7 +251,6 @@ const Events = () => {
                             alt={event.name}
                             className="w-full md:w-32 h-48 md:h-32 object-cover rounded-lg flex-shrink-0"
                             onError={(e) => {
-                              // Gérer les images cassées
                               e.currentTarget.style.display = "none";
                             }}
                           />
