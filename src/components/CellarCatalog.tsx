@@ -266,260 +266,273 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
   if (loading) {
     return <p>Chargement du catalogue...</p>;
   }
+// Garde le code tel quel jusqu'au return, puis modifie comme ceci :
 
-  return (
-    <div className="space-y-6">
-      {(userRole === 'owner' || userRole === 'co_owner' || userRole === 'admin') && (
-        <div className="flex justify-end">
-          <AddWineDialog cellarId={cellarId} onWineAdded={fetchWines} />
-        </div>
-      )}
+return (
+  <div className="space-y-6">
+    {(userRole === 'owner' || userRole === 'co_owner' || userRole === 'admin') && (
+      <div className="flex justify-end">
+        <AddWineDialog cellarId={cellarId} onWineAdded={fetchWines} />
+      </div>
+    )}
 
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex gap-2">
+    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="flex gap-2">
+        <Button
+          variant={viewMode === 'all' ? 'default' : 'outline'}
+          onClick={() => {
+            setViewMode('all');
+            setSelectedDomain(null);
+          }}
+        >
+          Tous les vins
+        </Button>
+        <Button
+          variant={viewMode === 'by-domain' ? 'default' : 'outline'}
+          onClick={() => setViewMode('by-domain')}
+        >
+          Par domaine
+        </Button>
+      </div>
+      
+      <div className="hidden lg:flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Affichage:</span>
+        <div className="flex gap-1">
           <Button
-            variant={viewMode === 'all' ? 'default' : 'outline'}
-            onClick={() => {
-              setViewMode('all');
-              setSelectedDomain(null);
-            }}
+            variant={columnsPerRow === 3 ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setColumnsPerRow(3)}
+            className="w-9 h-9 p-0"
+            title="3 colonnes"
           >
-            Tous les vins
+            <LayoutGrid className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === 'by-domain' ? 'default' : 'outline'}
-            onClick={() => setViewMode('by-domain')}
+            variant={columnsPerRow === 4 ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setColumnsPerRow(4)}
+            className="w-9 h-9 p-0"
+            title="4 colonnes"
           >
-            Par domaine
+            <Grid3x3 className="h-4 w-4" />
           </Button>
-        </div>
-        
-        <div className="hidden lg:flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Affichage:</span>
-          <div className="flex gap-1">
-            <Button
-              variant={columnsPerRow === 3 ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setColumnsPerRow(3)}
-              className="w-9 h-9 p-0"
-              title="3 colonnes"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={columnsPerRow === 4 ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setColumnsPerRow(4)}
-              className="w-9 h-9 p-0"
-              title="4 colonnes"
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={columnsPerRow === 5 ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setColumnsPerRow(5)}
-              className="w-9 h-9 p-0"
-              title="5 colonnes"
-            >
-              <Grid2x2 className="h-5 w-5" />
-            </Button>
-          </div>
+          <Button
+            variant={columnsPerRow === 5 ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setColumnsPerRow(5)}
+            className="w-9 h-9 p-0"
+            title="5 colonnes"
+          >
+            <Grid2x2 className="h-5 w-5" />
+          </Button>
         </div>
       </div>
+    </div>
 
-      {viewMode === 'by-domain' && !selectedDomain && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {domains.map((domain) => (
-              <Card
-                key={domain.id}
-                className="cursor-pointer hover:border-primary transition-colors"
-                onClick={() => setSelectedDomain(domain.id)}
-              >
-                <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-                  {domain.logo_url ? (
-                    <Avatar className="w-20 h-20">
-                      <AvatarImage src={domain.logo_url} alt={domain.name} />
-                      <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <Avatar className="w-20 h-20">
-                      <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  )}
-                  <h3 className="font-semibold text-sm">{domain.name}</h3>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          {domainsLoading && (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">Chargement...</p>
-            </div>
-          )}
-          
-          {!domainsLoading && hasMoreDomains && domains.length > 0 && (
-            <div className="text-center">
-              <Button onClick={loadMoreDomains} variant="outline">
-                Charger plus de domaines
-              </Button>
-            </div>
-          )}
-          
-          {!hasMoreDomains && domains.length > 0 && (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">Tous les domaines ont été chargés</p>
-            </div>
-          )}
+    {/* ✅ Barre de recherche toujours visible (sauf en mode domaines) */}
+    {(viewMode === 'all' || selectedDomain) && (
+      <WineSearchFilter
+        onFilterChange={setFilters}
+        showDomainFilter={true}
+      />
+    )}
+
+    {/* ✅ Chargement initial UNIQUEMENT pour le catalogue */}
+    {loading ? (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span>Chargement du catalogue...</span>
         </div>
-      )}
+      </div>
+    ) : (
+      <>
+        {viewMode === 'by-domain' && !selectedDomain && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {domains.map((domain) => (
+                <Card
+                  key={domain.id}
+                  className="cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => setSelectedDomain(domain.id)}
+                >
+                  <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                    {domain.logo_url ? (
+                      <Avatar className="w-20 h-20">
+                        <AvatarImage src={domain.logo_url} alt={domain.name} />
+                        <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <Avatar className="w-20 h-20">
+                        <AvatarFallback>{domain.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    )}
+                    <h3 className="font-semibold text-sm">{domain.name}</h3>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {domainsLoading && (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">Chargement...</p>
+              </div>
+            )}
+            
+            {!domainsLoading && hasMoreDomains && domains.length > 0 && (
+              <div className="text-center">
+                <Button onClick={loadMoreDomains} variant="outline">
+                  Charger plus de domaines
+                </Button>
+              </div>
+            )}
+            
+            {!hasMoreDomains && domains.length > 0 && (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">Tous les domaines ont été chargés</p>
+              </div>
+            )}
+          </div>
+        )}
 
-      {viewMode === 'by-domain' && selectedDomain && (
-        <Button
-          variant="outline"
-          onClick={() => setSelectedDomain(null)}
-          className="mb-4"
-        >
-          ← Retour aux domaines
-        </Button>
-      )}
+        {viewMode === 'by-domain' && selectedDomain && (
+          <Button
+            variant="outline"
+            onClick={() => setSelectedDomain(null)}
+            className="mb-4"
+          >
+            ← Retour aux domaines
+          </Button>
+        )}
 
-      {(viewMode === 'all' || selectedDomain) && (
-        <WineSearchFilter
-          onFilterChange={setFilters}
-          showDomainFilter={true}
-        />
-      )}
-
-      {(viewMode === 'all' || selectedDomain) && filteredWines.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Wine className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              {filters.searchQuery || filters.wineTypeId || filters.modeCultureId || filters.classificationId
-                ? 'Aucun vin ne correspond à vos critères'
-                : 'Aucun vin dans le catalogue'}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (viewMode === 'all' || selectedDomain) && (
-        <>
-          <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
-            columnsPerRow === 3 
-              ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' 
-              : columnsPerRow === 4 
-              ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' 
-              : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
-          }`}>
-            {filteredWines.map((wine) => (
-              <Card 
-                key={wine.wine_id} 
-                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => setSelectedWine(wine)}
-              >
-                <div className="aspect-[3/4] sm:aspect-[2/3] relative overflow-hidden bg-muted">
-                  <img
-                    src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
-                    alt={wine.wine?.name}
-                    className="w-full h-full object-cover"
-                  />
-                  {userRole && (
-                    <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-background/80 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-xs sm:text-sm">
-                      <span className="hidden sm:inline">Stock: </span>{wine.quantity || 0}
-                    </div>
-                  )}
-                </div>
-                <CardContent className="p-2 sm:p-3 md:p-4">
-                  <div className="space-y-1 sm:space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-sm sm:text-base md:text-lg line-clamp-2">{wine.wine?.name}</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                          {wine.wine?.domain?.name}
-                        </p>
-                        {wine.wine?.wine_type && (
-                          <span className="text-xs text-muted-foreground">
-                            {wine.wine.wine_type.type.charAt(0).toUpperCase() + wine.wine.wine_type.type.slice(1)}
+        {(viewMode === 'all' || selectedDomain) && filteredWines.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Wine className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">
+                {filters.searchQuery || filters.wineTypeId || filters.modeCultureId || filters.classificationId
+                  ? 'Aucun vin ne correspond à vos critères'
+                  : 'Aucun vin dans le catalogue'}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (viewMode === 'all' || selectedDomain) && (
+          <>
+            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
+              columnsPerRow === 3 
+                ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' 
+                : columnsPerRow === 4 
+                ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' 
+                : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
+            }`}>
+              {filteredWines.map((wine) => (
+                <Card 
+                  key={wine.wine_id} 
+                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => setSelectedWine(wine)}
+                >
+                  <div className="aspect-[3/4] sm:aspect-[2/3] relative overflow-hidden bg-muted">
+                    <img
+                      src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
+                      alt={wine.wine?.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {userRole && (
+                      <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-background/80 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-xs sm:text-sm">
+                        <span className="hidden sm:inline">Stock: </span>{wine.quantity || 0}
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-2 sm:p-3 md:p-4">
+                    <div className="space-y-1 sm:space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-sm sm:text-base md:text-lg line-clamp-2">{wine.wine?.name}</h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                            {wine.wine?.domain?.name}
+                          </p>
+                          {wine.wine?.wine_type && (
+                            <span className="text-xs text-muted-foreground">
+                              {wine.wine.wine_type.type.charAt(0).toUpperCase() + wine.wine.wine_type.type.slice(1)}
+                            </span>
+                          )}
+                        </div>
+                        {wine.wine?.year && (
+                          <span className="text-xs sm:text-sm font-medium">
+                            {wine.wine.year}
                           </span>
                         )}
                       </div>
-                      {wine.wine?.year && (
-                        <span className="text-xs sm:text-sm font-medium">
-                          {wine.wine.year}
-                        </span>
+
+                      {(wine.description || wine.wine?.description) && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {wine.description || wine.wine?.description}
+                        </p>
                       )}
+
+                      {wine.wine?.volume_ml && (
+                        <p className="text-xs text-muted-foreground">
+                          {wine.wine.volume_ml}ml
+                        </p>
+                      )}
+
+                      <p className="text-base sm:text-lg font-bold text-primary">
+                        {wine.price ? `${wine.price.toFixed(2)}€` : 'Prix en attente'}
+                      </p>
                     </div>
 
-                    {(wine.description || wine.wine?.description) && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {wine.description || wine.wine?.description}
-                      </p>
-                    )}
-
-                    {wine.wine?.volume_ml && (
-                      <p className="text-xs text-muted-foreground">
-                        {wine.wine.volume_ml}ml
-                      </p>
-                    )}
-
-                    <p className="text-base sm:text-lg font-bold text-primary">
-                      {wine.price ? `${wine.price.toFixed(2)}€` : 'Prix en attente'}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5 sm:gap-2 mt-2 sm:mt-4">
-                    {wine.wine?.website_order_url && (
-                      <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8" asChild>
-                        <a href={wine.wine.website_order_url} target="_blank" rel="noopener noreferrer">
-                          <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">Commander</span>
-                          <span className="sm:hidden">🛒</span>
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Élément observé pour le scroll infini */}
-          {hasMoreWines && (
-            <div ref={observerTarget} className="h-20 flex items-center justify-center">
-              {isLoadingMoreWines && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                  <span>Chargement de plus de vins...</span>
-                </div>
-              )}
+                    <div className="flex flex-col gap-1.5 sm:gap-2 mt-2 sm:mt-4">
+                      {wine.wine?.website_order_url && (
+                        <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8" asChild>
+                          <a href={wine.wine.website_order_url} target="_blank" rel="noopener noreferrer">
+                            <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Commander</span>
+                            <span className="sm:hidden">🛒</span>
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          )}
 
-          {/* Message de fin */}
-          {!hasMoreWines && wines.length > 0 && (
-            <div className="text-center py-6">
-              <p className="text-sm text-muted-foreground">
-                Tous les vins ont été chargés ({wines.length} total)
-              </p>
-            </div>
-          )}
-        </>
-      )}
+            {/* Élément observé pour le scroll infini */}
+            {hasMoreWines && (
+              <div ref={observerTarget} className="h-20 flex items-center justify-center">
+                {isLoadingMoreWines && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <span>Chargement de plus de vins...</span>
+                  </div>
+                )}
+              </div>
+            )}
 
-      {selectedWine && (
-        <CellarWineDetailsDialog
-          wineData={selectedWine}
-          userRole={userRole}
-          cellarId={cellarId}
-          onClose={() => setSelectedWine(null)}
-          onUpdated={() => {
-            setSelectedWine(null);
-            fetchWines();
-          }}
-        />
-      )}
-    </div>
-  );
-}
+            {/* Message de fin */}
+            {!hasMoreWines && wines.length > 0 && (
+              <div className="text-center py-6">
+                <p className="text-sm text-muted-foreground">
+                  Tous les vins ont été chargés ({wines.length} total)
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </>
+    )}
+
+    {selectedWine && (
+      <CellarWineDetailsDialog
+        wineData={selectedWine}
+        userRole={userRole}
+        cellarId={cellarId}
+        onClose={() => setSelectedWine(null)}
+        onUpdated={() => {
+          setSelectedWine(null);
+          fetchWines();
+        }}
+      />
+    )}
+  </div>
+);
