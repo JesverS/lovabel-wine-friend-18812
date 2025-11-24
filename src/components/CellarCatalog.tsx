@@ -221,13 +221,14 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
     }
   }, [isLoadingMoreWines, hasMoreWines, loading, winesOffset, fetchWines]);
 
-  // Charger les vins et domaines au montage
+  // Charger les vins et domaines au montage - UNE SEULE FOIS
   useEffect(() => {
     if (cellarId) {
       fetchWines(0, false);
-      fetchDomains();
+      fetchDomains(0);
     }
-  }, [cellarId, fetchWines, fetchDomains]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cellarId]); // ✅ Seulement cellarId, pas fetchWines ni fetchDomains
 
   // Reset et recharge quand les filtres changent
   useEffect(() => {
@@ -236,7 +237,8 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
       setHasMoreWines(true);
       fetchWines(0, false);
     }
-  }, [filters, selectedDomain, viewMode, cellarId, fetchWines]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, selectedDomain, viewMode]); // ✅ Pas cellarId ni fetchWines
 
   // IntersectionObserver pour scroll infini (stable grâce aux refs)
   useEffect(() => {
@@ -275,7 +277,7 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
     <div className="space-y-6">
       {(userRole === "owner" || userRole === "co_owner" || userRole === "admin") && (
         <div className="flex justify-end">
-          <AddWineDialog cellarId={cellarId} onWineAdded={fetchWines} />
+          <AddWineDialog cellarId={cellarId} onWineAdded={() => fetchWines(0, false)} />
         </div>
       )}
 
@@ -526,7 +528,7 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
           onClose={() => setSelectedWine(null)}
           onUpdated={() => {
             setSelectedWine(null);
-            fetchWines();
+            fetchWines(0, false);
           }}
         />
       )}
