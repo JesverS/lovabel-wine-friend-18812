@@ -408,6 +408,7 @@ export type Database = {
           longitude: number | null
           name: string
           organizer_id: string | null
+          private_token: string | null
           registration_link: string | null
           slug: string
           start_date: string
@@ -429,6 +430,7 @@ export type Database = {
           longitude?: number | null
           name: string
           organizer_id?: string | null
+          private_token?: string | null
           registration_link?: string | null
           slug: string
           start_date: string
@@ -450,6 +452,7 @@ export type Database = {
           longitude?: number | null
           name?: string
           organizer_id?: string | null
+          private_token?: string | null
           registration_link?: string | null
           slug?: string
           start_date?: string
