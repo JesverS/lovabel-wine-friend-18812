@@ -165,47 +165,24 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
         setIsLoadingMoreWines(true);
       }
 
-      const from = offset;
-      const to = offset + WINES_PER_PAGE - 1;
-
-      const { data, error, count } = await supabase
-        .from('cellar_wine')
-        .select(`
-          *,
-          wine:wine_id (
-            id,
-            name,
-            year,
-            label_url,
-            domain_id,
-            type,
-            mode_culture,
-            wine_classification,
-            price,
-            volume_ml,
-            website_order_url,
-            description,
-            domain:domain_id (
-              name
-            )
-          )
-        `, { count: 'exact' })
-        .eq('cellar_id', cellarId)
-        .order('added_at', { ascending: false })
-        .range(from, to);
+      // Appeler l'edge function avec tous les filtres
+      const { data: result, error } = await supabase.functions.invoke('search-cellar-wines', {
+        body: {
+          cellarId,
+          searchQuery: filters.searchQuery || undefined,
+          wineTypeId: filters.wineTypeId ? parseInt(filters.wineTypeId) : undefined,
+          modeCultureId: filters.modeCultureId ? parseInt(filters.modeCultureId) : undefined,
+          classificationId: filters.classificationId ? parseInt(filters.classificationId) : undefined,
+          sortBy: filters.sortBy,
+          sortOrder: filters.sortOrder,
+          offset,
+          limit: WINES_PER_PAGE,
+        },
+      });
 
       if (error) throw error;
 
-      // Enrichir avec wine_type en utilisant le cache
-      const enrichedData = (data || []).map((item: any) => ({
-        ...item,
-        wine: {
-          ...item.wine,
-          wine_type: item.wine?.type && wineTypes[item.wine.type] 
-            ? { type: wineTypes[item.wine.type] }
-            : null
-        }
-      }));
+      const { wines: enrichedData, totalCount, hasMore } = result;
 
       // Ajouter ou remplacer
       if (append) {
@@ -216,8 +193,7 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
 
       // Mettre à jour les états de pagination
       setWinesOffset(offset + enrichedData.length);
-      setHasMoreWines(enrichedData.length === WINES_PER_PAGE && 
-                      (count ? offset + enrichedData.length < count : true));
+      setHasMoreWines(hasMore);
 
     } catch (error) {
       console.error('Error fetching wines:', error);
@@ -225,7 +201,7 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
       setLoading(false);
       setIsLoadingMoreWines(false);
     }
-  }, [cellarId, wineTypes]);
+  }, [cellarId, filters]);
 
   const loadMoreWines = useCallback(async () => {
     // Guard : empêcher les appels multiples
@@ -278,62 +254,13 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
     return () => observer.disconnect();
   }, [loadMoreWines]);
 
+  // Les vins sont déjà filtrés et triés par l'edge function
+  // On garde uniquement le filtre de domaine pour la vue "by-domain"
   const filteredWines = wines.filter((wine) => {
-    // Domain filter when viewing by domain
     if (viewMode === 'by-domain' && selectedDomain && wine.wine?.domain_id !== selectedDomain) {
       return false;
     }
-
-    // Recherche textuelle
-    if (filters.searchQuery) {
-      const query = filters.searchQuery.toLowerCase();
-      const matchesSearch = 
-        wine.wine?.name.toLowerCase().includes(query) ||
-        wine.wine?.domain?.name.toLowerCase().includes(query) ||
-        wine.wine?.year?.toString().includes(query);
-      
-      if (!matchesSearch) return false;
-    }
-
-    // Filtre par type de vin
-    if (filters.wineTypeId && wine.wine?.type?.toString() !== filters.wineTypeId) {
-      return false;
-    }
-
-    // Filtre par mode de culture
-    if (filters.modeCultureId && wine.wine?.mode_culture?.toString() !== filters.modeCultureId) {
-      return false;
-    }
-
-    // Filtre par classification
-    if (filters.classificationId && wine.wine?.wine_classification?.toString() !== filters.classificationId) {
-      return false;
-    }
-
     return true;
-  }).sort((a, b) => {
-    // Tri
-    let comparison = 0;
-    
-    switch (filters.sortBy) {
-      case 'name':
-        comparison = (a.wine?.name || '').localeCompare(b.wine?.name || '');
-        break;
-      case 'year':
-        comparison = (a.wine?.year || 0) - (b.wine?.year || 0);
-        break;
-      case 'domain':
-        comparison = (a.wine?.domain?.name || '').localeCompare(b.wine?.domain?.name || '');
-        break;
-      case 'price':
-        comparison = (a.price || 0) - (b.price || 0);
-        break;
-      case 'added_at':
-        comparison = new Date(a.added_at || 0).getTime() - new Date(b.added_at || 0).getTime();
-        break;
-    }
-
-    return filters.sortOrder === 'asc' ? comparison : -comparison;
   });
 
   if (loading) {
