@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 interface Cellar {
   id: string;
   name: string;
+  slug: string;
   logo_url: string | null;
   location: string | null;
   latitude: number | null;
@@ -255,7 +256,7 @@ export default function Cellars() {
               {cellars.map((cellar) => (
                 <Link 
                   key={cellar.id} 
-                  to={`/cellar/${cellar.id}`}
+                  to={`/cellar/${cellar.slug}`}
                 >
                   <Card className="group hover-lift h-full border-2 hover:border-primary/50 transition-all duration-300 overflow-hidden">
                     <div className="h-2 bg-gradient-wine"></div>

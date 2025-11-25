@@ -28,6 +28,7 @@ import {
 interface Cellar {
   id: string;
   name: string;
+  slug: string;
   logo_url: string | null;
   banner_url: string | null;
   location: string | null;
@@ -37,7 +38,7 @@ interface Cellar {
 }
 
 export default function CellarDetails() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [cellar, setCellar] = useState<Cellar | null>(null);
@@ -48,36 +49,52 @@ export default function CellarDetails() {
   const [leaveCellarDialogOpen, setLeaveCellarDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (id) {
+    if (slug) {
       fetchCellarData();
     }
-  }, [id, user]);
+  }, [slug, user]);
 
   const fetchCellarData = async () => {
+    if (!slug) return;
+
     setLoading(true);
 
-    // Fetch cellar
-    const { data: cellarData } = await supabase
-      .from('cellar' as any)
-      .select('*')
-      .eq('id', id)
-      .single();
+    try {
+      // Fetch cellar data
+      const { data: cellarData, error: cellarError } = await supabase
+        .from('cellar')
+        .select('*')
+        .eq('slug', slug)
+        .single();
 
-    setCellar(cellarData as any);
+      if (cellarError || !cellarData) {
+        console.error('Error fetching cellar:', cellarError);
+        setCellar(null);
+        setLoading(false);
+        return;
+      }
 
-    // Get user's role in this cellar
-    if (user && cellarData) {
-      const { data: membership } = await supabase
-        .from('user_cellar' as any)
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('user_cellar_id', (cellarData as any).id)
-        .maybeSingle();
+      setCellar(cellarData as any);
 
-      setUserRole((membership as any)?.role || null);
+      // Get user's role in this cellar
+      if (user && cellarData) {
+        const { data: membership } = await supabase
+          .from('user_cellar')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('user_cellar_id', cellarData.id)
+          .maybeSingle();
+
+        // Convertir 'co-owner' en 'co_owner'
+        const role = membership?.role === 'co-owner' ? 'co_owner' : membership?.role;
+        setUserRole(role || null);
+      }
+    } catch (error) {
+      console.error('Error in fetchCellarData:', error);
+      setCellar(null);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleDeleteCellar = async () => {
@@ -132,13 +149,13 @@ export default function CellarDetails() {
   };
 
   const handleLeaveCellar = async () => {
-    if (!user || !id) return;
+    if (!user || !cellar) return;
     
     try {
       const { error } = await supabase
-        .from('user_cellar' as any)
+        .from('user_cellar')
         .delete()
-        .eq('user_cellar_id', id)
+        .eq('user_cellar_id', cellar.id)
         .eq('user_id', user.id);
       
       if (error) throw error;

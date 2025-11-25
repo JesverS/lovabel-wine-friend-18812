@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,10 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Upload, X, Loader2 } from 'lucide-react';
+import { Plus, Upload, X, Loader2, Check, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
+import { sanitizeSlugInput } from '@/lib/cellarSlugUtils';
 
 interface CreateCellarDialogProps {
   onCellarCreated: () => void;
@@ -24,6 +26,7 @@ interface CreateCellarDialogProps {
 
 export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -42,6 +45,48 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
   const [cropBannerDialogOpen, setCropBannerDialogOpen] = useState(false);
   const [newLogoBlob, setNewLogoBlob] = useState<Blob | null>(null);
   const [newBannerBlob, setNewBannerBlob] = useState<Blob | null>(null);
+  
+  // États pour le slug
+  const [customSlug, setCustomSlug] = useState('');
+  const [slugStatus, setSlugStatus] = useState<'checking' | 'available' | 'taken' | 'invalid' | null>(null);
+  const [slugMessage, setSlugMessage] = useState('');
+
+  // Suggestion automatique du slug depuis le nom
+  useEffect(() => {
+    if (isPublic && name && !customSlug) {
+      const suggested = sanitizeSlugInput(name);
+      setCustomSlug(suggested);
+    }
+  }, [name, isPublic]);
+
+  // Vérification du slug avec debounce
+  useEffect(() => {
+    if (!isPublic || !customSlug) {
+      setSlugStatus(null);
+      setSlugMessage('');
+      return;
+    }
+
+    setSlugStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('check-cellar-slug', {
+          body: { slug: customSlug }
+        });
+
+        if (error) throw error;
+
+        setSlugStatus(data?.status || 'invalid');
+        setSlugMessage(data?.message || '');
+      } catch (error) {
+        console.error('Error checking slug:', error);
+        setSlugStatus('invalid');
+        setSlugMessage('Erreur de vérification du slug');
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [customSlug, isPublic]);
 
   const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -129,26 +174,41 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
     e.preventDefault();
     if (!user) return;
 
+    // Validation du slug pour les caves publiques
+    if (isPublic && (!customSlug || slugStatus !== 'available')) {
+      toast({
+        title: 'Erreur',
+        description: 'Le slug doit être valide et disponible pour une cave publique',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Étape 1 : Créer la cave SANS images d'abord
-      const { data: cellarId, error: cellarError } = await supabase
-        .rpc('create_cellar_with_owner', {
-          p_name: name,
-          p_description: description || null,
-          p_location: location || null,
-          p_latitude: latitude,
-          p_longitude: longitude,
-          p_is_public: isPublic,
-          p_is_seller: isSeller,
-          p_logo_url: null,
-          p_banner_url: null,
-        });
+      // Appeler l'Edge Function pour créer la cave
+      const { data, error } = await supabase.functions.invoke('create-cellar', {
+        body: {
+          name,
+          description: description || null,
+          location: location || null,
+          latitude,
+          longitude,
+          is_public: isPublic,
+          is_seller: isSeller,
+          logo_url: null,
+          banner_url: null,
+          custom_slug: isPublic ? customSlug : null
+        }
+      });
 
-      if (cellarError) throw cellarError;
+      if (error) throw error;
 
-      // Étape 2 : Uploader les images dans {cellar_id}/
+      const cellarId = data.cellar_id;
+      const slug = data.slug;
+
+      // Uploader les images si nécessaire
       let logoUrl = null;
       let bannerUrl = null;
 
@@ -156,10 +216,8 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
         setUploadingImages(true);
       }
 
-      // Upload logo if provided
       if (newLogoBlob) {
         const fileName = `${cellarId}/${Date.now()}-logo.jpg`;
-
         const { error: uploadError } = await supabase.storage
           .from('cellar')
           .upload(fileName, newLogoBlob);
@@ -173,10 +231,8 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
         logoUrl = urlData.publicUrl;
       }
 
-      // Upload banner if provided
       if (newBannerBlob) {
         const fileName = `${cellarId}/${Date.now()}-banner.jpg`;
-
         const { error: uploadError } = await supabase.storage
           .from('cellar')
           .upload(fileName, newBannerBlob);
@@ -192,10 +248,10 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
 
       setUploadingImages(false);
 
-      // Étape 3 : Mettre à jour la cave avec les URLs des images
+      // Mettre à jour les URLs des images
       if (logoUrl || bannerUrl) {
         const { error: updateError } = await supabase
-          .from('cellar' as any)
+          .from('cellar')
           .update({
             logo_url: logoUrl,
             banner_url: bannerUrl,
@@ -214,6 +270,9 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
       setOpen(false);
       resetForm();
       onCellarCreated();
+      
+      // Rediriger vers la cave créée
+      navigate(`/cellar/${slug}`);
     } catch (error: any) {
       console.error('Error creating cellar:', error);
       toast({
@@ -239,6 +298,9 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
     setBannerPreview('');
     setNewLogoBlob(null);
     setNewBannerBlob(null);
+    setCustomSlug('');
+    setSlugStatus(null);
+    setSlugMessage('');
   };
 
   return (
@@ -253,167 +315,191 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
         <DialogHeader>
           <DialogTitle>Créer une nouvelle cave</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
             <Label htmlFor="name">Nom de la cave *</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ma Cave"
+              placeholder="Ma cave à vin"
               required
             />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Décrivez votre cave..."
-              rows={4}
+              rows={3}
             />
           </div>
 
-          <div>
-            <Label htmlFor="location">Adresse</Label>
-            <AddressAutocomplete
-              value={location}
-              onChange={(address, coordinates) => {
-                setLocation(address);
-                if (coordinates) {
-                  setLatitude(coordinates.latitude);
-                  setLongitude(coordinates.longitude);
-                }
-              }}
-              placeholder="Rechercher une adresse..."
-              disabled={loading}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Sélectionnez une adresse dans la liste pour géolocaliser automatiquement
-            </p>
+          <AddressAutocomplete
+            value={location}
+            onChange={(address, coords) => {
+              setLocation(address);
+              if (coords) {
+                setLatitude(coords.latitude);
+                setLongitude(coords.longitude);
+              }
+            }}
+          />
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="isPublic">Cave publique</Label>
+              <Switch
+                id="isPublic"
+                checked={isPublic}
+                onCheckedChange={setIsPublic}
+              />
+            </div>
+
+            {isPublic && (
+              <div className="space-y-2 pl-4 border-l-2 border-primary">
+                <Label htmlFor="slug">
+                  URL personnalisée *
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (a-z, 0-9, tirets uniquement)
+                  </span>
+                </Label>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm text-muted-foreground">/cellar/</div>
+                  <Input
+                    id="slug"
+                    value={customSlug}
+                    onChange={(e) => setCustomSlug(e.target.value.toLowerCase())}
+                    placeholder="mon-caviste"
+                    required
+                  />
+                  {slugStatus === 'checking' && (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  )}
+                  {slugStatus === 'available' && (
+                    <Check className="w-4 h-4 text-green-600" />
+                  )}
+                  {(slugStatus === 'taken' || slugStatus === 'invalid') && (
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                  )}
+                </div>
+                {slugMessage && (
+                  <p className={`text-xs ${
+                    slugStatus === 'available' ? 'text-green-600' : 
+                    slugStatus === 'taken' || slugStatus === 'invalid' ? 'text-destructive' : 
+                    'text-muted-foreground'
+                  }`}>
+                    {slugMessage}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="isSeller">Cave vendeuse</Label>
+              <Switch
+                id="isSeller"
+                checked={isSeller}
+                onCheckedChange={setIsSeller}
+              />
+            </div>
           </div>
 
+          {/* Logo upload */}
           <div className="space-y-2">
-            <Label>Logo (optionnel)</Label>
+            <Label>Logo</Label>
             {logoPreview ? (
-              <div className="relative">
-                <img
-                  src={logoPreview}
-                  alt="Logo preview"
-                  className="w-32 h-32 object-cover rounded-lg border"
-                />
+              <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2">
+                <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
                 <Button
                   type="button"
                   variant="destructive"
-                  size="sm"
-                  className="absolute -top-2 -right-2"
+                  size="icon"
+                  className="absolute top-1 right-1 h-6 w-6"
                   onClick={handleRemoveLogo}
                 >
                   <X className="w-4 h-4" />
                 </Button>
               </div>
             ) : (
-              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('logo-input')?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Choisir un logo
+                </Button>
                 <input
+                  id="logo-input"
                   type="file"
                   accept="image/*"
-                  onChange={handleLogoSelect}
                   className="hidden"
-                  id="logo-upload"
+                  onChange={handleLogoSelect}
                 />
-                <label htmlFor="logo-upload" className="cursor-pointer">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Ajouter un logo
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Image carrée recommandée • Max 5 Mo
-                  </p>
-                </label>
               </div>
             )}
           </div>
 
+          {/* Banner upload */}
           <div className="space-y-2">
-            <Label>Bannière (optionnel)</Label>
+            <Label>Bannière</Label>
             {bannerPreview ? (
-              <div className="relative">
-                <img
-                  src={bannerPreview}
-                  alt="Banner preview"
-                  className="w-full h-32 object-cover rounded-lg border"
-                />
+              <div className="relative w-full h-32 rounded-lg overflow-hidden border-2">
+                <img src={bannerPreview} alt="Bannière" className="w-full h-full object-cover" />
                 <Button
                   type="button"
                   variant="destructive"
-                  size="sm"
-                  className="absolute top-2 right-2"
+                  size="icon"
+                  className="absolute top-1 right-1 h-6 w-6"
                   onClick={handleRemoveBanner}
                 >
                   <X className="w-4 h-4" />
                 </Button>
               </div>
             ) : (
-              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('banner-input')?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Choisir une bannière
+                </Button>
                 <input
+                  id="banner-input"
                   type="file"
                   accept="image/*"
-                  onChange={handleBannerSelect}
                   className="hidden"
-                  id="banner-upload"
+                  onChange={handleBannerSelect}
                 />
-                <label htmlFor="banner-upload" className="cursor-pointer">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Ajouter une bannière
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Format paysage recommandé • Max 5 Mo
-                  </p>
-                </label>
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="space-y-0.5">
-              <Label htmlFor="is_public">Cave publique</Label>
-              <p className="text-sm text-muted-foreground">
-                Visible par tous les utilisateurs
-              </p>
-            </div>
-            <Switch
-              id="is_public"
-              checked={isPublic}
-              onCheckedChange={setIsPublic}
-            />
-          </div>
-
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="space-y-0.5">
-              <Label htmlFor="is_seller">Cave vendeuse</Label>
-              <p className="text-sm text-muted-foreground">
-                Apparaît dans la liste des cavistes
-              </p>
-            </div>
-            <Switch
-              id="is_seller"
-              checked={isSeller}
-              onCheckedChange={setIsSeller}
-            />
-          </div>
-
-          <div className="flex gap-2 justify-end pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={loading || uploadingImages}
+            >
               Annuler
             </Button>
-            <Button type="submit" disabled={loading || uploadingImages}>
-              {loading || uploadingImages ? (
+            <Button 
+              type="submit" 
+              disabled={loading || uploadingImages || (isPublic && slugStatus !== 'available')}
+            >
+              {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {uploadingImages ? 'Upload en cours...' : 'Création...'}
+                  {uploadingImages ? 'Upload images...' : 'Création...'}
                 </>
               ) : (
                 'Créer la cave'
@@ -422,17 +508,14 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
           </div>
         </form>
 
-        {/* Crop Dialogs */}
+        {/* Image Crop Dialogs */}
         {selectedLogoImage && (
           <ImageCropDialog
             open={cropLogoDialogOpen}
             onOpenChange={setCropLogoDialogOpen}
             imageSrc={selectedLogoImage}
             onCropComplete={handleLogoCropComplete}
-            loading={uploadingImages}
             aspect={1}
-            cropShape="round"
-            title="Ajuster le logo"
           />
         )}
         {selectedBannerImage && (
@@ -441,10 +524,7 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
             onOpenChange={setCropBannerDialogOpen}
             imageSrc={selectedBannerImage}
             onCropComplete={handleBannerCropComplete}
-            loading={uploadingImages}
-            aspect={21 / 9}
-            cropShape="rect"
-            title="Ajuster la bannière"
+            aspect={16 / 9}
           />
         )}
       </DialogContent>
