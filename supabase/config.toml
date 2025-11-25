@@ -1,5 +1,11 @@
 project_id = "amzutunyjouejovlrlah"
 
+[functions.create-cellar]
+verify_jwt = true
+
+[functions.check-cellar-slug]
+verify_jwt = true
+
 [functions.fetch-game-questions]
 verify_jwt = true
 

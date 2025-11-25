@@ -100,7 +100,7 @@ export default function CellarInvitation() {
       if (deleteError) throw deleteError;
 
       toast.success('Vous avez rejoint la cave !');
-      navigate(`/cellar/${invitation.cellar_id}`);
+      navigate(`/cellar/${cellar.slug}`);
     } catch (error: any) {
       console.error('Error accepting invitation:', error);
       toast.error(error.message);

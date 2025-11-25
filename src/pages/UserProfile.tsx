@@ -390,7 +390,7 @@ export default function UserProfile() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {cellars.map((cellar) => (
-                  <Link key={cellar.id} to={`/cellar/${cellar.id}`}>
+                  <Link key={cellar.id} to={`/cellar/${cellar.slug}`}>
                     <Card className="hover:shadow-lg transition-shadow">
                       <CardContent className="p-6">
                         <div className="flex items-start gap-4">
