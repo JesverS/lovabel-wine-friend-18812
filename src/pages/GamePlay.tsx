@@ -123,8 +123,8 @@ export default function GamePlay() {
 
   const currentQuestion = questions[currentQuestionIndex];
 
-  // Créer la question avec introduction régionale si applicable
-  const questionWithRegion = wine.region && currentQuestion.question
+  // Créer la question avec introduction régionale UNIQUEMENT pour les questions de type 3
+  const questionWithRegion = wine.region && currentQuestion.question && currentQuestion.answer_type === 3
     ? `Cette bouteille venant ${getRegionIntroduction(wine.region)}, ${currentQuestion.question.charAt(0).toLowerCase()}${currentQuestion.question.slice(1)}`
     : currentQuestion.question;
 
