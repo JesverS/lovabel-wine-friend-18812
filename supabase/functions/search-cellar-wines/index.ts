@@ -7,6 +7,7 @@ interface SearchCellarWinesRequest {
   wineTypeId?: number;
   modeCultureId?: number;
   classificationId?: number;
+  domainId?: string;
   sortBy: string;
   sortOrder: 'asc' | 'desc';
   offset: number;
@@ -38,6 +39,7 @@ Deno.serve(async (req) => {
       wineTypeId,
       modeCultureId,
       classificationId,
+      domainId,
       sortBy,
       sortOrder,
       offset,
@@ -50,141 +52,59 @@ Deno.serve(async (req) => {
       wineTypeId,
       modeCultureId,
       classificationId,
+      domainId,
       sortBy,
       sortOrder,
       offset,
       limit,
     });
 
-    // Construire la requête de base
-    let query = supabaseClient
-      .from('cellar_wine')
-      .select(
-        `
-          *,
-          wine:wine_id (
-            id,
-            name,
-            year,
-            label_url,
-            domain_id,
-            type,
-            mode_culture,
-            wine_classification,
-            price,
-            volume_ml,
-            website_order_url,
-            description,
-            domain:domain_id (
-              name
-            )
-          )
-        `,
-        { count: 'exact' }
-      )
-      .eq('cellar_id', cellarId);
-
-    // Filtrer par type de vin
-    if (wineTypeId) {
-      query = query.eq('wine.type', wineTypeId);
-    }
-
-    // Filtrer par mode de culture
-    if (modeCultureId) {
-      query = query.eq('wine.mode_culture', modeCultureId);
-    }
-
-    // Filtrer par classification
-    if (classificationId) {
-      query = query.eq('wine.wine_classification', classificationId);
-    }
-
-    // Ajouter le tri
-    switch (sortBy) {
-      case 'name':
-        query = query.order('wine.name', { ascending: sortOrder === 'asc' });
-        break;
-      case 'year':
-        query = query.order('wine.year', { ascending: sortOrder === 'asc' });
-        break;
-      case 'domain':
-        query = query.order('wine.domain.name', { ascending: sortOrder === 'asc' });
-        break;
-      case 'price':
-        query = query.order('price', { ascending: sortOrder === 'asc' });
-        break;
-      case 'added_at':
-      default:
-        query = query.order('added_at', { ascending: sortOrder === 'asc' });
-        break;
-    }
-
-    // Pagination
-    query = query.range(offset, offset + limit - 1);
-
-    // Exécuter la requête
-    const { data: wines, error, count } = await query;
+    // Appeler la fonction RPC qui gère tout le filtrage en SQL
+    const { data: results, error } = await supabaseClient.rpc('search_cellar_wines', {
+      p_cellar_id: cellarId,
+      p_search_query: searchQuery || null,
+      p_wine_type_id: wineTypeId || null,
+      p_mode_culture_id: modeCultureId || null,
+      p_classification_id: classificationId || null,
+      p_domain_id: domainId || null,
+      p_sort_by: sortBy,
+      p_sort_order: sortOrder,
+      p_offset: offset,
+      p_limit: limit,
+    });
 
     if (error) {
-      console.error('Error fetching cellar wines:', error);
+      console.error('Error searching cellar wines:', error);
       throw error;
     }
 
-    // Filtrage textuel côté application (car les relations imbriquées ne supportent pas or())
-    let filteredWines = wines || [];
-    
-    if (searchQuery && searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filteredWines = filteredWines.filter((wine: any) => {
-        const wineName = wine.wine?.name?.toLowerCase() || '';
-        const domainName = wine.wine?.domain?.name?.toLowerCase() || '';
-        const wineYear = wine.wine?.year?.toString() || '';
-        
-        return (
-          wineName.includes(query) ||
-          domainName.includes(query) ||
-          wineYear.includes(query)
-        );
-      });
-    }
-
-    // Enrichir avec wine_type
-    const { data: wineTypes } = await supabaseClient
-      .from('wine_type')
-      .select('id, type');
-
-    const wineTypesMap = (wineTypes || []).reduce(
-      (acc: Record<number, string>, type: any) => {
-        acc[type.id] = type.type;
-        return acc;
-      },
-      {} as Record<number, string>
-    );
-
-    const enrichedWines = filteredWines.map((item: any) => ({
-      ...item,
-      wine: {
-        ...item.wine,
-        wine_type:
-          item.wine?.type && wineTypesMap[item.wine.type]
-            ? { type: wineTypesMap[item.wine.type] }
-            : null,
-      },
+    // Transformer les résultats de la RPC
+    const wines = (results || []).map((row: any) => ({
+      wine_id: row.wine_id,
+      cellar_id: row.cellar_id,
+      added_at: row.added_at,
+      description: row.description,
+      label_url: row.label_url,
+      price: row.price,
+      quantity: row.quantity,
+      domain_id: row.domain_id,
+      wine: row.wine_data,
     }));
 
-    // Calculer hasMore
-    const hasMore = enrichedWines.length === limit && (count ? offset + enrichedWines.length < count : true);
+    // Le total_count est le même pour toutes les lignes
+    const totalCount = results && results.length > 0 ? results[0].total_count : 0;
+    const hasMore = wines.length === limit;
 
     console.log('Search results:', {
-      winesCount: enrichedWines.length,
-      totalCount: count,
+      winesCount: wines.length,
+      totalCount,
       hasMore,
     });
 
     return new Response(
       JSON.stringify({
-        wines: enrichedWines,
-        totalCount: count,
+        wines,
+        totalCount,
         hasMore,
       }),
       {

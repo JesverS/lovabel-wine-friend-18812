@@ -1960,6 +1960,32 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      search_cellar_wines: {
+        Args: {
+          p_cellar_id: string
+          p_classification_id?: number
+          p_domain_id?: string
+          p_limit?: number
+          p_mode_culture_id?: number
+          p_offset?: number
+          p_search_query?: string
+          p_sort_by?: string
+          p_sort_order?: string
+          p_wine_type_id?: number
+        }
+        Returns: {
+          added_at: string
+          cellar_id: string
+          description: string
+          domain_id: string
+          label_url: string
+          price: number
+          quantity: number
+          total_count: number
+          wine_data: Json
+          wine_id: string
+        }[]
+      }
       search_domains: {
         Args: { query: string }
         Returns: {
