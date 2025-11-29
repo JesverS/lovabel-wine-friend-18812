@@ -260,10 +260,11 @@ const LessonDetails = () => {
     }
   };
 
-  const handleCompleteQuiz = () => {
+  const handleCompleteQuiz = (finalAnswers?: Record<string, string | null>) => {
+    const answersToUse = finalAnswers || quizAnswers;
     const correctAnswers = quizzes.filter(([key, quiz]) => {
       // @ts-ignore
-      return quizAnswers[key] === quiz.correct_answer;
+      return answersToUse[key] === quiz.correct_answer;
     }).length;
 
     if (lessonAccess?.is_completed) {
@@ -277,7 +278,7 @@ const LessonDetails = () => {
     }
 
     submitQuizMutation.mutate({
-      answers: quizAnswers,
+      answers: answersToUse,
       score: correctAnswers,
       maxScore: totalQuizzes,
     });
@@ -380,7 +381,7 @@ const LessonDetails = () => {
               quizzes={quizzes}
               onComplete={(finalAnswers) => {
                 setQuizAnswers(finalAnswers);
-                handleCompleteQuiz();
+                handleCompleteQuiz(finalAnswers);
               }}
               isCompleted={lessonAccess?.is_completed}
             />
