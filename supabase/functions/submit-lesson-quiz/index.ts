@@ -176,6 +176,8 @@ serve(async (req) => {
         newLevel,
         difficulty: lesson.difficulty,
         leveledUp: newLevel > (profile.level || 1),
+        score,
+        max_score,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
