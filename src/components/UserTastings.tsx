@@ -4,12 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays } from 'lucide-react';
+import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays, Map, Plus } from 'lucide-react';
 import { WineDetailsDialog } from './WineDetailsDialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import TastingsMap from './TastingsMap';
+import SpontaneousTastingDialog from './SpontaneousTastingDialog';
 
-type ViewMode = 'date' | 'domain' | 'event' | 'cellar';
+type ViewMode = 'date' | 'domain' | 'event' | 'cellar' | 'map';
 
 interface TastingNote {
   id: string;
@@ -80,6 +82,7 @@ export const UserTastings = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [showDisliked, setShowDisliked] = useState(false);
+  const [showSpontaneousDialog, setShowSpontaneousDialog] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -982,6 +985,13 @@ export const UserTastings = () => {
             <MapPin className="w-4 h-4 mr-2" />
             Par cave
           </Button>
+          <Button
+            variant={viewMode === 'map' ? 'default' : 'outline'}
+            onClick={() => setViewMode('map')}
+          >
+            <Map className="w-4 h-4 mr-2" />
+            Carte
+          </Button>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -1107,7 +1117,7 @@ export const UserTastings = () => {
               </Card>
             ))}
           </div>
-        ) : (
+        ) : viewMode === 'cellar' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {cellars.map((cellar) => (
               <Card
@@ -1140,7 +1150,9 @@ export const UserTastings = () => {
               </Card>
             ))}
           </div>
-        )}
+        ) : viewMode === 'map' ? (
+          <TastingsMap sourceFilter={null} />
+        ) : null}
 
         {loading && <p className="text-center py-4">Chargement...</p>}
         {!hasMore && (
@@ -1187,6 +1199,28 @@ export const UserTastings = () => {
           onClose={() => setSelectedWine(null)}
         />
       )}
+
+      <SpontaneousTastingDialog
+        open={showSpontaneousDialog}
+        onOpenChange={setShowSpontaneousDialog}
+        onSuccess={() => {
+          // Recharger les données après ajout
+          if (viewMode === 'date') {
+            fetchTastingsByDate(0);
+          } else if (viewMode === 'map') {
+            // La carte se rechargera automatiquement
+          }
+        }}
+      />
+
+      {/* Bouton flottant pour dégustation spontanée */}
+      <Button
+        onClick={() => setShowSpontaneousDialog(true)}
+        className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-50"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
     </div>
   );
 };
