@@ -1556,8 +1556,11 @@ export type Database = {
           created_at: string | null
           details: Json | null
           id: string
+          latitude: number | null
           liked: number
+          longitude: number | null
           rating: number | null
+          spontaneous: boolean | null
           updated_at: string | null
           user_id: string
           wine_id: string
@@ -1567,8 +1570,11 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
+          latitude?: number | null
           liked?: number
+          longitude?: number | null
           rating?: number | null
+          spontaneous?: boolean | null
           updated_at?: string | null
           user_id: string
           wine_id: string
@@ -1578,8 +1584,11 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
+          latitude?: number | null
           liked?: number
+          longitude?: number | null
           rating?: number | null
+          spontaneous?: boolean | null
           updated_at?: string | null
           user_id?: string
           wine_id?: string
@@ -1944,6 +1953,23 @@ export type Database = {
       }
       get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_role: { Args: never; Returns: string }
+      get_user_tastings_with_location: {
+        Args: { p_source_filter?: string; p_user_id: string }
+        Returns: {
+          created_at: string
+          domain_name: string
+          id: string
+          latitude: number
+          liked: number
+          longitude: number
+          source_id: string
+          source_name: string
+          source_type: string
+          wine_id: string
+          wine_name: string
+          wine_year: number
+        }[]
+      }
       get_weekly_lesson_slots: {
         Args: { p_user_id: string }
         Returns: {
