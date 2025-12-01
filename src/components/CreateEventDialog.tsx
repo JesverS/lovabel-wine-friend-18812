@@ -19,6 +19,7 @@ import { CalendarPlus, Upload } from 'lucide-react';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { CellarAutocomplete } from './CellarAutocomplete';
+import { EventAccessSettings } from './EventAccessSettings';
 
 interface CreateEventDialogProps {
   onEventCreated?: () => void;
@@ -51,6 +52,13 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     is_public: true,
     cellarId: null as string | null,
     cellarName: '',
+    access_type: 'public' as 'public' | 'paid' | 'request_based' | 'invite_only',
+    price: '',
+    currency: 'EUR',
+    max_participants: '',
+    confidential_address: false,
+    confidential_phone: false,
+    confidential_participant_list: false,
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,6 +118,13 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
           latitude,
           longitude,
           cellar_id: formData.cellarId,
+          access_type: formData.access_type,
+          price: formData.price ? parseFloat(formData.price) : null,
+          currency: formData.currency,
+          max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+          confidential_address: formData.confidential_address,
+          confidential_phone: formData.confidential_phone,
+          confidential_participant_list: formData.confidential_participant_list,
         },
       });
 
@@ -162,6 +177,13 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
         is_public: true,
         cellarId: null,
         cellarName: '',
+        access_type: 'public',
+        price: '',
+        currency: 'EUR',
+        max_participants: '',
+        confidential_address: false,
+        confidential_phone: false,
+        confidential_participant_list: false,
       });
       setImageFile(null);
       setImagePreview(null);
@@ -343,6 +365,23 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
               Événement public (visible par tous)
             </Label>
           </div>
+
+          <EventAccessSettings
+            accessType={formData.access_type}
+            price={formData.price}
+            currency={formData.currency}
+            maxParticipants={formData.max_participants}
+            confidentialAddress={formData.confidential_address}
+            confidentialPhone={formData.confidential_phone}
+            confidentialParticipantList={formData.confidential_participant_list}
+            onAccessTypeChange={(value) => setFormData({ ...formData, access_type: value })}
+            onPriceChange={(value) => setFormData({ ...formData, price: value })}
+            onCurrencyChange={(value) => setFormData({ ...formData, currency: value })}
+            onMaxParticipantsChange={(value) => setFormData({ ...formData, max_participants: value })}
+            onConfidentialAddressChange={(value) => setFormData({ ...formData, confidential_address: value })}
+            onConfidentialPhoneChange={(value) => setFormData({ ...formData, confidential_phone: value })}
+            onConfidentialParticipantListChange={(value) => setFormData({ ...formData, confidential_participant_list: value })}
+          />
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

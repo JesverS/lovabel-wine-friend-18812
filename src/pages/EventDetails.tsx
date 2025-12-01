@@ -16,6 +16,8 @@ import { AddWineToEventDialog } from "@/components/AddWineToEventDialog";
 import { EditEventDialog } from "@/components/EditEventDialog";
 import { InviteMemberToEventDialog } from "@/components/InviteMemberToEventDialog";
 import { EventAdministration } from "@/components/EventAdministration";
+import { EventAccessRequestDialog } from "@/components/EventAccessRequestDialog";
+import { EventAccessRequestsManagement } from "@/components/EventAccessRequestsManagement";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -48,6 +50,8 @@ interface Event {
   registration_link: string | null;
   is_public: boolean | null;
   private_token: string | null;
+  access_type: 'public' | 'paid' | 'request_based' | 'invite_only';
+  confidential_address: boolean | null;
 }
 
 interface Domain {
@@ -98,6 +102,8 @@ const EventDetails = () => {
   const [deleteEventDialogOpen, setDeleteEventDialogOpen] = useState(false);
   const [eventNameConfirmation, setEventNameConfirmation] = useState('');
   const [leaveEventDialogOpen, setLeaveEventDialogOpen] = useState(false);
+  const [hasAccessRequest, setHasAccessRequest] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
   const [errorState, setErrorState] = useState<{
     type: 'not_found' | 'access_denied' | null;
     message: string;
@@ -165,6 +171,28 @@ const EventDetails = () => {
         setUserRole(role);
         setCanManageMembers(canManageMembers);
         setCanDeleteEvent(canDeleteEvent);
+
+        // Check if user has access request for this event
+        if (eventData.access_type === 'request_based') {
+          const { data: requestData } = await supabase
+            .from('event_access_request')
+            .select('id, status')
+            .eq('event_id', eventData.id)
+            .eq('user_id', user.id)
+            .single();
+
+          setHasAccessRequest(requestData?.status === 'pending');
+
+          // Check if user has access
+          const { data: memberData } = await supabase
+            .from('event_member')
+            .select('id')
+            .eq('event_id', eventData.id)
+            .eq('user_id', user.id)
+            .single();
+
+          setHasAccess(!!memberData || !!role);
+        }
       }
 
       // Fetch domains
@@ -633,12 +661,42 @@ const EventDetails = () => {
                   )}
                 </div>
 
-                {event.address && (
+                {event.address && !event.confidential_address && (
                   <p className="text-muted-foreground">{event.address}</p>
+                )}
+
+                {event.address && event.confidential_address && !hasAccess && (
+                  <Card className="p-4 bg-muted/50">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      L'adresse complète est confidentielle et sera visible après approbation de votre demande
+                    </p>
+                  </Card>
                 )}
 
                 {event.description && (
                   <p className="text-lg">{event.description}</p>
+                )}
+
+                {event.access_type === 'request_based' && !canEdit && (
+                  <Card className="p-6 bg-primary/5 border-primary/20">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Accès sur demande</h3>
+                        <p className="text-muted-foreground">
+                          Cet événement nécessite l'approbation des organisateurs. {hasAccess ? 'Vous avez accès à cet événement.' : 'Faites une demande pour accéder aux détails complets.'}
+                        </p>
+                      </div>
+                      {!hasAccess && (
+                        <EventAccessRequestDialog
+                          eventId={event.id}
+                          eventName={event.name}
+                          hasExistingRequest={hasAccessRequest}
+                          onRequestSent={() => setHasAccessRequest(true)}
+                        />
+                      )}
+                    </div>
+                  </Card>
                 )}
 
                 {event.registration_link && (
@@ -838,6 +896,13 @@ const EventDetails = () => {
               </TabsContent>
 
               <TabsContent value="organisateurs" className="mt-6">
+                {canManageMembers && event.access_type === 'request_based' && (
+                  <div className="mb-8">
+                    <h3 className="text-xl font-semibold mb-4">Demandes d'accès</h3>
+                    <EventAccessRequestsManagement eventId={event.id} />
+                  </div>
+                )}
+
                 {canManageMembers && userRole && (
                   <div className="mb-6">
                     <InviteMemberToEventDialog

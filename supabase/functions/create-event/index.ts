@@ -62,7 +62,14 @@ Deno.serve(async (req) => {
       is_public,
       latitude,
       longitude,
-      cellar_id
+      cellar_id,
+      access_type,
+      price,
+      currency,
+      max_participants,
+      confidential_address,
+      confidential_phone,
+      confidential_participant_list,
     } = body;
 
     if (!name || !start_date || !city) {
@@ -98,6 +105,13 @@ Deno.serve(async (req) => {
         latitude: latitude || null,
         longitude: longitude || null,
         cellar_id: cellar_id || null,
+        access_type: access_type || 'public',
+        price: price || null,
+        currency: currency || 'EUR',
+        max_participants: max_participants || null,
+        confidential_address: confidential_address || false,
+        confidential_phone: confidential_phone || false,
+        confidential_participant_list: confidential_participant_list || false,
       })
       .select()
       .single();

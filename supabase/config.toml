@@ -23,3 +23,9 @@ verify_jwt = true
 
 [functions.get-event-by-slug]
 verify_jwt = false
+
+[functions.request-event-access]
+verify_jwt = true
+
+[functions.process-access-request]
+verify_jwt = true
