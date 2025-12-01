@@ -245,6 +245,7 @@ export type Database = {
           phone: string | null
           region: Database["public"]["Enums"]["domain_region"] | null
           regions: string | null
+          slug: string | null
           subregions: string | null
           updated_at: string | null
           website_url: string | null
@@ -265,6 +266,7 @@ export type Database = {
           phone?: string | null
           region?: Database["public"]["Enums"]["domain_region"] | null
           regions?: string | null
+          slug?: string | null
           subregions?: string | null
           updated_at?: string | null
           website_url?: string | null
@@ -285,6 +287,7 @@ export type Database = {
           phone?: string | null
           region?: Database["public"]["Enums"]["domain_region"] | null
           regions?: string | null
+          slug?: string | null
           subregions?: string | null
           updated_at?: string | null
           website_url?: string | null
@@ -1552,7 +1555,6 @@ export type Database = {
       }
       user_wine_notice: {
         Row: {
-          comment: string | null
           created_at: string | null
           details: Json | null
           id: string
@@ -1566,7 +1568,6 @@ export type Database = {
           wine_id: string
         }
         Insert: {
-          comment?: string | null
           created_at?: string | null
           details?: Json | null
           id?: string
@@ -1580,7 +1581,6 @@ export type Database = {
           wine_id: string
         }
         Update: {
-          comment?: string | null
           created_at?: string | null
           details?: Json | null
           id?: string
@@ -1872,6 +1872,7 @@ export type Database = {
           experience: number | null
           full_name: string | null
           id: string | null
+          last_name: string | null
           level: number | null
           logo_adress: string | null
           phone_number: number | null
@@ -1885,6 +1886,7 @@ export type Database = {
           experience?: never
           full_name?: string | null
           id?: string | null
+          last_name?: string | null
           level?: number | null
           logo_adress?: string | null
           phone_number?: never
@@ -1898,6 +1900,7 @@ export type Database = {
           experience?: never
           full_name?: string | null
           id?: string | null
+          last_name?: string | null
           level?: number | null
           logo_adress?: string | null
           phone_number?: never
