@@ -399,12 +399,18 @@ export type Database = {
       }
       event: {
         Row: {
+          access_type: Database["public"]["Enums"]["event_access_type"]
           address: string | null
           banner_url: string | null
           category: string | null
           cellar_id: string | null
           city: string | null
+          confidential_address: boolean | null
+          confidential_documents: string[] | null
+          confidential_participant_list: boolean | null
+          confidential_phone: boolean | null
           created_at: string | null
+          currency: string | null
           description: string | null
           end_date: string | null
           id: string
@@ -412,8 +418,10 @@ export type Database = {
           latitude: number | null
           location: string
           longitude: number | null
+          max_participants: number | null
           name: string
           organizer_id: string | null
+          price: number | null
           private_token: string | null
           registration_link: string | null
           slug: string
@@ -421,12 +429,18 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          access_type?: Database["public"]["Enums"]["event_access_type"]
           address?: string | null
           banner_url?: string | null
           category?: string | null
           cellar_id?: string | null
           city?: string | null
+          confidential_address?: boolean | null
+          confidential_documents?: string[] | null
+          confidential_participant_list?: boolean | null
+          confidential_phone?: boolean | null
           created_at?: string | null
+          currency?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -434,8 +448,10 @@ export type Database = {
           latitude?: number | null
           location: string
           longitude?: number | null
+          max_participants?: number | null
           name: string
           organizer_id?: string | null
+          price?: number | null
           private_token?: string | null
           registration_link?: string | null
           slug: string
@@ -443,12 +459,18 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          access_type?: Database["public"]["Enums"]["event_access_type"]
           address?: string | null
           banner_url?: string | null
           category?: string | null
           cellar_id?: string | null
           city?: string | null
+          confidential_address?: boolean | null
+          confidential_documents?: string[] | null
+          confidential_participant_list?: boolean | null
+          confidential_phone?: boolean | null
           created_at?: string | null
+          currency?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -456,8 +478,10 @@ export type Database = {
           latitude?: number | null
           location?: string
           longitude?: number | null
+          max_participants?: number | null
           name?: string
           organizer_id?: string | null
+          price?: number | null
           private_token?: string | null
           registration_link?: string | null
           slug?: string
@@ -484,6 +508,47 @@ export type Database = {
             columns: ["organizer_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_access_request: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          message: string | null
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          message?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          message?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_access_request_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
             referencedColumns: ["id"]
           },
         ]
@@ -633,6 +698,94 @@ export type Database = {
             columns: ["invitee_user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_member: {
+        Row: {
+          access_type: Database["public"]["Enums"]["event_access_type"]
+          created_at: string
+          event_id: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          access_type: Database["public"]["Enums"]["event_access_type"]
+          created_at?: string
+          event_id: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          access_type?: Database["public"]["Enums"]["event_access_type"]
+          created_at?: string
+          event_id?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_member_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_payment: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          currency: string
+          event_id: string
+          id: string
+          metadata: Json | null
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          event_id: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          event_id?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_payment_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
             referencedColumns: ["id"]
           },
         ]
@@ -860,6 +1013,42 @@ export type Database = {
           description?: string | null
           id?: number
           nom?: string
+        }
+        Relationships: []
+      }
+      organizer_stripe_account: {
+        Row: {
+          account_status: string
+          charges_enabled: boolean | null
+          created_at: string
+          id: string
+          onboarding_completed: boolean | null
+          payouts_enabled: boolean | null
+          stripe_account_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_status?: string
+          charges_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          onboarding_completed?: boolean | null
+          payouts_enabled?: boolean | null
+          stripe_account_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_status?: string
+          charges_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          onboarding_completed?: boolean | null
+          payouts_enabled?: boolean | null
+          stripe_account_id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2071,6 +2260,14 @@ export type Database = {
         }
         Returns: string
       }
+      user_can_see_confidential_info: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_has_event_access: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_is_event_organizer: {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
@@ -2100,6 +2297,7 @@ export type Database = {
         | "Sud-Ouest"
         | "Corse"
         | "Provence"
+      event_access_type: "public" | "paid" | "request_based" | "invite_only"
       event_role: "organizer" | "co_organizer" | "admin"
       quiz_wine_color: "red" | "white" | "rose" | "eff" | "all"
       wine_type_enum:
@@ -2253,6 +2451,7 @@ export const Constants = {
         "Corse",
         "Provence",
       ],
+      event_access_type: ["public", "paid", "request_based", "invite_only"],
       event_role: ["organizer", "co_organizer", "admin"],
       quiz_wine_color: ["red", "white", "rose", "eff", "all"],
       wine_type_enum: [
