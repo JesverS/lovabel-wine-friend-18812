@@ -29,3 +29,9 @@ verify_jwt = true
 
 [functions.process-access-request]
 verify_jwt = true
+
+[functions.create-event-checkout-session]
+verify_jwt = true
+
+[functions.stripe-event-webhook]
+verify_jwt = false
