@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2, Copy, AlertTriangle } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2, Copy, AlertTriangle, Lock, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { WineDetailsDialog } from "@/components/WineDetailsDialog";
@@ -18,6 +18,7 @@ import { InviteMemberToEventDialog } from "@/components/InviteMemberToEventDialo
 import { EventAdministration } from "@/components/EventAdministration";
 import { EventAccessRequestDialog } from "@/components/EventAccessRequestDialog";
 import { EventAccessRequestsManagement } from "@/components/EventAccessRequestsManagement";
+import { EventPaymentButton } from "@/components/EventPaymentButton";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -52,6 +53,9 @@ interface Event {
   private_token: string | null;
   access_type: 'public' | 'paid' | 'request_based' | 'invite_only';
   confidential_address: boolean | null;
+  price: number | null;
+  currency: string | null;
+  max_participants: number | null;
 }
 
 interface Domain {
@@ -86,6 +90,7 @@ interface DomainWithWines {
 
 const EventDetails = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
@@ -104,6 +109,7 @@ const EventDetails = () => {
   const [leaveEventDialogOpen, setLeaveEventDialogOpen] = useState(false);
   const [hasAccessRequest, setHasAccessRequest] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
+  const [hasPendingPayment, setHasPendingPayment] = useState(false);
   const [errorState, setErrorState] = useState<{
     type: 'not_found' | 'access_denied' | null;
     message: string;
@@ -182,8 +188,10 @@ const EventDetails = () => {
             .single();
 
           setHasAccessRequest(requestData?.status === 'pending');
+        }
 
-          // Check if user has access
+        // Check if user has access (for all non-public events)
+        if (eventData.access_type !== 'public') {
           const { data: memberData } = await supabase
             .from('event_member')
             .select('id')
@@ -192,6 +200,21 @@ const EventDetails = () => {
             .single();
 
           setHasAccess(!!memberData || !!role);
+
+          // Check for pending payment for paid events
+          if (eventData.access_type === 'paid') {
+            const { data: paymentData } = await supabase
+              .from('event_payment')
+              .select('id, status')
+              .eq('event_id', eventData.id)
+              .eq('user_id', user.id)
+              .eq('status', 'pending')
+              .single();
+
+            setHasPendingPayment(!!paymentData);
+          }
+        } else {
+          setHasAccess(true);
         }
       }
 
@@ -269,6 +292,30 @@ const EventDetails = () => {
 
     fetchEventDetails();
   }, [slug, user]);
+
+  // Handle payment status from URL params
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    if (paymentStatus === 'success') {
+      toast({
+        title: 'Paiement réussi !',
+        description: 'Vous avez maintenant accès à cet événement.',
+      });
+      // Remove the payment param from URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      // Refresh to update access status
+      setHasAccess(true);
+    } else if (paymentStatus === 'cancelled') {
+      toast({
+        title: 'Paiement annulé',
+        description: 'Votre paiement a été annulé.',
+        variant: 'destructive',
+      });
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [searchParams]);
 
   const refetchData = async () => {
     if (!slug) return;
@@ -694,6 +741,66 @@ const EventDetails = () => {
                           hasExistingRequest={hasAccessRequest}
                           onRequestSent={() => setHasAccessRequest(true)}
                         />
+                      )}
+                    </div>
+                  </Card>
+                )}
+
+                {event.access_type === 'paid' && !canEdit && (
+                  <Card className="p-6 bg-primary/5 border-primary/20">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="w-6 h-6 text-primary" />
+                        <div>
+                          <h3 className="font-semibold text-lg">Événement payant</h3>
+                          <p className="text-muted-foreground">
+                            {hasAccess 
+                              ? 'Vous avez accès à cet événement.' 
+                              : 'Un paiement est requis pour accéder aux détails complets de cet événement.'}
+                          </p>
+                        </div>
+                      </div>
+                      {!hasAccess && user && event.price && (
+                        <EventPaymentButton
+                          eventId={event.id}
+                          eventName={event.name}
+                          price={event.price}
+                          currency={event.currency || 'EUR'}
+                          disabled={hasPendingPayment}
+                        />
+                      )}
+                      {!hasAccess && !user && (
+                        <Button onClick={() => navigate('/auth')} className="w-full">
+                          Se connecter pour accéder
+                        </Button>
+                      )}
+                      {hasPendingPayment && (
+                        <p className="text-sm text-amber-600">
+                          Un paiement est en cours de traitement. Veuillez patienter ou réessayer.
+                        </p>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
+                {event.access_type === 'invite_only' && !canEdit && (
+                  <Card className="p-6 bg-primary/5 border-primary/20">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Lock className="w-6 h-6 text-primary" />
+                        <div>
+                          <h3 className="font-semibold text-lg">Événement sur invitation</h3>
+                          <p className="text-muted-foreground">
+                            {hasAccess 
+                              ? 'Vous avez accès à cet événement.' 
+                              : 'Cet événement est accessible uniquement sur invitation des organisateurs.'}
+                          </p>
+                        </div>
+                      </div>
+                      {!hasAccess && (
+                        <p className="text-sm text-muted-foreground">
+                          Contactez les organisateurs pour recevoir une invitation.
+                        </p>
                       )}
                     </div>
                   </Card>
