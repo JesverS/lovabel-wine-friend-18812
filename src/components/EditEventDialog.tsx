@@ -18,6 +18,7 @@ import { Pencil, Upload } from 'lucide-react';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { CellarAutocomplete } from './CellarAutocomplete';
+import { EventAccessSettings } from './EventAccessSettings';
 
 interface EditEventDialogProps {
   eventId: string;
@@ -51,6 +52,15 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
     cellarId: null as string | null,
     cellarName: '',
   });
+
+  // Access settings state
+  const [accessType, setAccessType] = useState<'public' | 'paid' | 'request_based' | 'invite_only'>('public');
+  const [price, setPrice] = useState('');
+  const [currency, setCurrency] = useState('EUR');
+  const [maxParticipants, setMaxParticipants] = useState('');
+  const [confidentialAddress, setConfidentialAddress] = useState(false);
+  const [confidentialPhone, setConfidentialPhone] = useState(false);
+  const [confidentialParticipantList, setConfidentialParticipantList] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -108,6 +118,15 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
         if (data.banner_url) {
           setImagePreview(data.banner_url);
         }
+
+        // Load access settings
+        setAccessType(data.access_type || 'public');
+        setPrice(data.price?.toString() || '');
+        setCurrency(data.currency || 'EUR');
+        setMaxParticipants(data.max_participants?.toString() || '');
+        setConfidentialAddress(data.confidential_address || false);
+        setConfidentialPhone(data.confidential_phone || false);
+        setConfidentialParticipantList(data.confidential_participant_list || false);
       }
     } catch (error: any) {
       toast({
@@ -172,10 +191,17 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
           location: formData.address || formData.city,
           category: formData.category || null,
           registration_link: formData.registration_link || null,
-          is_public: formData.is_public,
+          is_public: accessType === 'public',
           latitude,
           longitude,
           cellar_id: formData.cellarId,
+          access_type: accessType,
+          price: accessType === 'paid' && price ? parseFloat(price) : null,
+          currency: accessType === 'paid' ? currency : 'EUR',
+          max_participants: maxParticipants ? parseInt(maxParticipants, 10) : null,
+          confidential_address: confidentialAddress,
+          confidential_phone: confidentialPhone,
+          confidential_participant_list: confidentialParticipantList,
         })
         .eq('id', eventId);
 
@@ -375,18 +401,22 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
             )}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="is_public"
-              checked={formData.is_public}
-              onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
-              className="rounded"
-            />
-            <Label htmlFor="is_public" className="cursor-pointer">
-              Événement public (visible par tous)
-            </Label>
-          </div>
+          <EventAccessSettings
+            accessType={accessType}
+            price={price}
+            currency={currency}
+            maxParticipants={maxParticipants}
+            confidentialAddress={confidentialAddress}
+            confidentialPhone={confidentialPhone}
+            confidentialParticipantList={confidentialParticipantList}
+            onAccessTypeChange={setAccessType}
+            onPriceChange={setPrice}
+            onCurrencyChange={setCurrency}
+            onMaxParticipantsChange={setMaxParticipants}
+            onConfidentialAddressChange={setConfidentialAddress}
+            onConfidentialPhoneChange={setConfidentialPhone}
+            onConfidentialParticipantListChange={setConfidentialParticipantList}
+          />
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
