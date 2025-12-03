@@ -7,7 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2, Copy, AlertTriangle, Lock, CreditCard } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2, Copy, AlertTriangle, Lock, CreditCard, Globe, Users, Eye, EyeOff } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { WineDetailsDialog } from "@/components/WineDetailsDialog";
@@ -566,6 +567,47 @@ const EventDetails = () => {
     }
   };
 
+  // Helper pour obtenir les infos du badge selon le type d'accès
+  const getAccessTypeBadge = () => {
+    if (!event) return null;
+    
+    const formatPrice = (price: number, currency: string) => {
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: currency,
+      }).format(price);
+    };
+
+    switch (event.access_type) {
+      case 'public':
+        return {
+          label: 'Public',
+          icon: <Globe className="w-3 h-3" />,
+          className: 'bg-green-500/10 text-green-700 border-green-500/20 dark:text-green-400',
+        };
+      case 'paid':
+        return {
+          label: event.price ? `Payant - ${formatPrice(event.price, event.currency || 'EUR')}` : 'Payant',
+          icon: <CreditCard className="w-3 h-3" />,
+          className: 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400',
+        };
+      case 'request_based':
+        return {
+          label: 'Sur demande',
+          icon: <Users className="w-3 h-3" />,
+          className: 'bg-orange-500/10 text-orange-700 border-orange-500/20 dark:text-orange-400',
+        };
+      case 'invite_only':
+        return {
+          label: 'Sur invitation',
+          icon: <Lock className="w-3 h-3" />,
+          className: 'bg-purple-500/10 text-purple-700 border-purple-500/20 dark:text-purple-400',
+        };
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -671,9 +713,22 @@ const EventDetails = () => {
         <section className="container mx-auto px-4 py-16 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-              <h1 className="text-3xl md:text-5xl font-serif font-bold break-words">
-                {event.name}
-              </h1>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-3xl md:text-5xl font-serif font-bold break-words">
+                    {event.name}
+                  </h1>
+                  {getAccessTypeBadge() && (
+                    <Badge 
+                      variant="outline" 
+                      className={`${getAccessTypeBadge()?.className} flex items-center gap-1.5 text-xs font-medium`}
+                    >
+                      {getAccessTypeBadge()?.icon}
+                      {getAccessTypeBadge()?.label}
+                    </Badge>
+                  )}
+                </div>
+              </div>
               {canEdit && (
                 <div className="w-full md:w-auto">
                   <EditEventDialog 
@@ -683,6 +738,55 @@ const EventDetails = () => {
                 </div>
               )}
             </div>
+
+            {/* Carte récapitulative pour les organisateurs */}
+            {canEdit && (
+              <Card className="p-4 mb-6 bg-muted/30 border-dashed">
+                <div className="flex items-center gap-2 mb-3">
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Configuration de l'événement</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground block">Type d'accès</span>
+                    <span className="font-medium capitalize">
+                      {event.access_type === 'public' && 'Public'}
+                      {event.access_type === 'paid' && 'Payant'}
+                      {event.access_type === 'request_based' && 'Sur demande'}
+                      {event.access_type === 'invite_only' && 'Sur invitation'}
+                    </span>
+                  </div>
+                  {event.access_type === 'paid' && (
+                    <div>
+                      <span className="text-muted-foreground block">Prix</span>
+                      <span className="font-medium">
+                        {event.price ? new Intl.NumberFormat('fr-FR', { style: 'currency', currency: event.currency || 'EUR' }).format(event.price) : 'Non défini'}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground block">Places max</span>
+                    <span className="font-medium">{event.max_participants || 'Illimité'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block">Confidentialité</span>
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {event.confidential_address && (
+                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                          <EyeOff className="w-3 h-3" /> Adresse
+                        </Badge>
+                      )}
+                      {!event.confidential_address && !event.is_public && (
+                        <span className="text-muted-foreground text-xs">Aucune</span>
+                      )}
+                      {event.is_public !== false && !event.confidential_address && (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
 
             <Tabs defaultValue="presentation" className="mt-8">
               <TabsList className="mb-6">
