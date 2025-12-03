@@ -54,6 +54,9 @@ interface Event {
   private_token: string | null;
   access_type: 'public' | 'paid' | 'request_based' | 'invite_only';
   confidential_address: boolean | null;
+  confidential_phone: boolean | null;
+  confidential_participant_list: boolean | null;
+  confidential_documents: string[] | null;
   price: number | null;
   currency: string | null;
   max_participants: number | null;
@@ -776,11 +779,23 @@ const EventDetails = () => {
                           <EyeOff className="w-3 h-3" /> Adresse
                         </Badge>
                       )}
-                      {!event.confidential_address && !event.is_public && (
-                        <span className="text-muted-foreground text-xs">Aucune</span>
+                      {event.confidential_phone && (
+                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                          <EyeOff className="w-3 h-3" /> Téléphone
+                        </Badge>
                       )}
-                      {event.is_public !== false && !event.confidential_address && (
-                        <span className="text-muted-foreground text-xs">-</span>
+                      {event.confidential_participant_list && (
+                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                          <EyeOff className="w-3 h-3" /> Participants
+                        </Badge>
+                      )}
+                      {event.confidential_documents && event.confidential_documents.length > 0 && (
+                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                          <EyeOff className="w-3 h-3" /> Documents
+                        </Badge>
+                      )}
+                      {!event.confidential_address && !event.confidential_phone && !event.confidential_participant_list && (!event.confidential_documents || event.confidential_documents.length === 0) && (
+                        <span className="text-muted-foreground text-xs">Aucune option activée</span>
                       )}
                     </div>
                   </div>
