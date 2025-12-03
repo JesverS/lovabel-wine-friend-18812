@@ -175,6 +175,16 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
     e.preventDefault();
     if (!user) return;
 
+    // Validation pour les événements payants
+    if (accessType === 'paid' && (!price || parseFloat(price) <= 0)) {
+      toast({
+        title: 'Prix requis',
+        description: 'Veuillez définir un prix supérieur à 0 pour un événement payant.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
