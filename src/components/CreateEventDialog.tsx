@@ -99,6 +99,16 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     e.preventDefault();
     if (!user) return;
 
+    // Validation pour les événements payants
+    if (formData.access_type === 'paid' && (!formData.price || parseFloat(formData.price) <= 0)) {
+      toast({
+        title: 'Prix requis',
+        description: 'Veuillez définir un prix supérieur à 0 pour un événement payant.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {

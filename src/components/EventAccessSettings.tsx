@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Info } from 'lucide-react';
 
 interface EventAccessSettingsProps {
   accessType: 'public' | 'paid' | 'request_based' | 'invite_only';
@@ -75,12 +74,6 @@ export function EventAccessSettings({
 
       {accessType === 'paid' && (
         <div className="space-y-4 bg-muted/50 p-4 rounded-lg">
-          <div className="flex items-start gap-2">
-            <Info className="w-4 h-4 text-primary mt-0.5" />
-            <p className="text-sm text-muted-foreground">
-              La fonctionnalité de paiement sera disponible prochainement
-            </p>
-          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Prix *</Label>
@@ -88,16 +81,19 @@ export function EventAccessSettings({
                 id="price"
                 type="number"
                 step="0.01"
-                min="0"
+                min="0.01"
                 value={price}
                 onChange={(e) => onPriceChange(e.target.value)}
-                placeholder="0.00"
-                disabled
+                placeholder="10.00"
+                required
               />
+              <p className="text-xs text-muted-foreground">
+                Le prix minimum est de 0.01
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="currency">Devise</Label>
-              <Select value={currency} onValueChange={onCurrencyChange} disabled>
+              <Select value={currency} onValueChange={onCurrencyChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
