@@ -8,6 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Info } from 'lucide-react';
+
+// Frais plateforme (inclut Stripe ~2.9% + frais plateforme)
+const PLATFORM_FEE_PERCENT = 10;
 
 interface EventAccessSettingsProps {
   accessType: 'public' | 'paid' | 'request_based' | 'invite_only';
@@ -105,6 +109,24 @@ export function EventAccessSettings({
               </Select>
             </div>
           </div>
+          
+          {/* Affichage des gains nets */}
+          {price && parseFloat(price) > 0 && (
+            <div className="border border-border rounded-md p-3 bg-background">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="space-y-1 text-sm">
+                  <p className="text-muted-foreground">
+                    Prix affiché aux participants : <strong className="text-foreground">{parseFloat(price).toFixed(2)} {currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£'}</strong>
+                  </p>
+                  <p className="text-muted-foreground">
+                    Vous recevrez environ : <strong className="text-green-600">{(parseFloat(price) * (1 - PLATFORM_FEE_PERCENT / 100)).toFixed(2)} {currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£'}</strong>
+                    <span className="text-xs ml-1">(après frais de service de {PLATFORM_FEE_PERCENT}%)</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

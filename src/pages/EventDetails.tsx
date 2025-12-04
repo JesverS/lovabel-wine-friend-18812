@@ -105,7 +105,7 @@ const EventDetails = () => {
   const [canEdit, setCanEdit] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ type: 'domain' | 'wine', id: string, domainId?: string, name: string } | null>(null);
-  const [userRole, setUserRole] = useState<'organizer' | 'co_organizer' | 'admin' | null>(null);
+  const [userRole, setUserRole] = useState<'organizer' | 'co_organizer' | 'admin' | 'participant' | null>(null);
   const [canManageMembers, setCanManageMembers] = useState(false);
   const [canDeleteEvent, setCanDeleteEvent] = useState(false);
   const [deleteEventDialogOpen, setDeleteEventDialogOpen] = useState(false);

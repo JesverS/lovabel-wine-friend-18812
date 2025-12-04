@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Upload } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { CellarAutocomplete } from './CellarAutocomplete';
@@ -408,6 +409,31 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
                 alt="Aperçu"
                 className="mt-2 w-full h-48 object-cover rounded-md"
               />
+            )}
+          </div>
+
+          <div className="space-y-3 border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="is_public" className="text-base font-medium">Visibilité de l'événement</Label>
+                <p className="text-sm text-muted-foreground">
+                  {formData.is_public 
+                    ? "Visible dans la liste des événements publics" 
+                    : "Accessible uniquement via un lien de partage"}
+                </p>
+              </div>
+              <Switch
+                id="is_public"
+                checked={formData.is_public}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
+              />
+            </div>
+            {!formData.is_public && (
+              <div className="bg-muted/50 rounded-md p-3 text-sm">
+                <p className="text-muted-foreground">
+                  <strong>Événement privé :</strong> Seules les personnes possédant le lien de partage pourront accéder à la page de l'événement.
+                </p>
+              </div>
             )}
           </div>
 
