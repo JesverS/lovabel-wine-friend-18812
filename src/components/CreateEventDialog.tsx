@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { CalendarPlus, Upload } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { CellarAutocomplete } from './CellarAutocomplete';
@@ -363,17 +364,31 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
             )}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="is_public"
-              checked={formData.is_public}
-              onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
-              className="rounded"
-            />
-            <Label htmlFor="is_public" className="cursor-pointer">
-              Événement public (visible par tous)
-            </Label>
+          <div className="space-y-3 border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="is_public" className="text-base font-medium">Visibilité de l'événement</Label>
+                <p className="text-sm text-muted-foreground">
+                  {formData.is_public 
+                    ? "Visible dans la liste des événements publics" 
+                    : "Accessible uniquement via un lien de partage"}
+                </p>
+              </div>
+              <Switch
+                id="is_public"
+                checked={formData.is_public}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
+              />
+            </div>
+            {!formData.is_public && (
+              <div className="bg-muted/50 rounded-md p-3 text-sm">
+                <p className="text-muted-foreground">
+                  <strong>Événement privé :</strong> Un lien unique sera généré après la création. 
+                  Seules les personnes possédant ce lien pourront accéder à la page de l'événement.
+                  Vous contrôlez ainsi totalement la diffusion.
+                </p>
+              </div>
+            )}
           </div>
 
           <EventAccessSettings

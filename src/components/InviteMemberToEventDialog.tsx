@@ -11,14 +11,14 @@ import { z } from 'zod';
 
 const inviteSchema = z.object({
   email: z.string().email('Email invalide'),
-  role: z.enum(['admin', 'co_organizer']),
+  role: z.enum(['admin', 'co_organizer', 'participant']),
 });
 
 interface InviteMemberToEventDialogProps {
   eventId: string;
   eventName: string;
   inviterName: string;
-  userRole: 'organizer' | 'co_organizer' | 'admin';
+  userRole: 'organizer' | 'co_organizer' | 'admin' | 'participant';
   onInvitationSent?: () => void;
 }
 
@@ -31,22 +31,25 @@ export function InviteMemberToEventDialog({
 }: InviteMemberToEventDialogProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'admin' | 'co_organizer'>('admin');
+  const [role, setRole] = useState<'admin' | 'co_organizer' | 'participant'>('participant');
   const [loading, setLoading] = useState(false);
 
-  // Admin ne peut pas inviter
-  if (userRole === 'admin') {
+  // Admin et participant ne peuvent pas inviter
+  if (userRole === 'admin' || userRole === 'participant') {
     return null;
   }
 
-  // Co_organizer ne peut inviter que des admin
+  // Organizer peut inviter co_organizer, admin, participant
+  // Co_organizer peut inviter admin, participant
   const availableRoles = userRole === 'organizer' 
     ? [
-        { value: 'co_organizer', label: 'Co-organisateur' },
-        { value: 'admin', label: 'Administrateur' },
+        { value: 'participant', label: 'Participant', description: 'Peut participer à l\'événement sans droits d\'administration' },
+        { value: 'admin', label: 'Administrateur', description: 'Peut gérer les vins et modifier l\'événement' },
+        { value: 'co_organizer', label: 'Co-organisateur', description: 'Peut inviter des membres et gérer l\'événement' },
       ]
     : [
-        { value: 'admin', label: 'Administrateur' },
+        { value: 'participant', label: 'Participant', description: 'Peut participer à l\'événement sans droits d\'administration' },
+        { value: 'admin', label: 'Administrateur', description: 'Peut gérer les vins et modifier l\'événement' },
       ];
 
   const handleInvite = async () => {
@@ -68,7 +71,7 @@ export function InviteMemberToEventDialog({
 
       toast.success('Invitation envoyée par email !');
       setEmail('');
-      setRole('admin');
+      setRole('participant');
       setOpen(false);
       onInvitationSent?.();
     } catch (error: any) {
@@ -112,7 +115,7 @@ export function InviteMemberToEventDialog({
           
           <div className="space-y-2">
             <Label htmlFor="role">Rôle</Label>
-            <Select value={role} onValueChange={(val) => setRole(val as 'admin' | 'co_organizer')}>
+            <Select value={role} onValueChange={(val) => setRole(val as 'admin' | 'co_organizer' | 'participant')}>
               <SelectTrigger id="role">
                 <SelectValue />
               </SelectTrigger>
@@ -125,9 +128,7 @@ export function InviteMemberToEventDialog({
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground">
-              {role === 'admin' 
-                ? 'Peut gérer les vins et modifier l\'événement' 
-                : 'Peut inviter des administrateurs et gérer l\'événement'}
+              {availableRoles.find(r => r.value === role)?.description}
             </p>
           </div>
         </div>

@@ -21,7 +21,7 @@ import {
 
 interface EventAdministrationProps {
   eventId: string;
-  userRole: 'organizer' | 'co_organizer' | 'admin' | null;
+  userRole: 'organizer' | 'co_organizer' | 'admin' | 'participant' | null;
 }
 
 interface Member {

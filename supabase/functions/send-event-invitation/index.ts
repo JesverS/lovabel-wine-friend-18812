@@ -12,7 +12,7 @@ const corsHeaders = {
 interface InvitationRequest {
   event_id: string;
   invitee_email: string;
-  role: 'co_organizer' | 'admin';
+  role: 'co_organizer' | 'admin' | 'participant';
   event_name: string;
   inviter_name: string;
 }
@@ -85,9 +85,10 @@ serve(async (req) => {
     // URL de l'invitation
     const invitationUrl = `${Deno.env.get('SITE_URL')}/event-invitation/${token_unique}`;
 
-    const roleLabels = {
+    const roleLabels: Record<string, string> = {
       'co_organizer': 'Co-organisateur',
       'admin': 'Administrateur',
+      'participant': 'Participant',
     };
 
     console.log('Sending email to:', invitee_email);

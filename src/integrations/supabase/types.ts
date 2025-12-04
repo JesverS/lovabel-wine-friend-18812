@@ -2298,7 +2298,7 @@ export type Database = {
         | "Corse"
         | "Provence"
       event_access_type: "public" | "paid" | "request_based" | "invite_only"
-      event_role: "organizer" | "co_organizer" | "admin"
+      event_role: "organizer" | "co_organizer" | "admin" | "participant"
       quiz_wine_color: "red" | "white" | "rose" | "eff" | "all"
       wine_type_enum:
         | "champagne"
@@ -2452,7 +2452,7 @@ export const Constants = {
         "Provence",
       ],
       event_access_type: ["public", "paid", "request_based", "invite_only"],
-      event_role: ["organizer", "co_organizer", "admin"],
+      event_role: ["organizer", "co_organizer", "admin", "participant"],
       quiz_wine_color: ["red", "white", "rose", "eff", "all"],
       wine_type_enum: [
         "champagne",

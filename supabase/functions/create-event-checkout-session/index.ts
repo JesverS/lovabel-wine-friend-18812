@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Platform fee percentage (includes Stripe fees ~2.9% + platform commission)
+const PLATFORM_FEE_PERCENT = 10;
+
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[EVENT-CHECKOUT] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -13,6 +21,8 @@ serve(async (req) => {
   }
 
   try {
+    logStep("Function started");
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Non autorisé" }), {
@@ -29,11 +39,14 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
+      logStep("Auth error", { error: authError?.message });
       return new Response(JSON.stringify({ error: "Non autorisé" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    logStep("User authenticated", { userId: user.id });
 
     const { eventId, successUrl, cancelUrl } = await req.json();
 
@@ -44,20 +57,22 @@ serve(async (req) => {
       });
     }
 
-    // Get event details
+    // Get event details with organizer
     const { data: event, error: eventError } = await supabaseClient
       .from("event")
-      .select("id, name, price, currency, access_type, max_participants")
+      .select("id, name, price, currency, access_type, max_participants, organizer_id")
       .eq("id", eventId)
       .single();
 
     if (eventError || !event) {
-      console.error("Event not found:", eventError);
+      logStep("Event not found", { error: eventError?.message });
       return new Response(JSON.stringify({ error: "Événement non trouvé" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    logStep("Event found", { eventId: event.id, price: event.price, organizerId: event.organizer_id });
 
     if (event.access_type !== "paid") {
       return new Response(JSON.stringify({ error: "Cet événement n'est pas payant" }), {
@@ -120,11 +135,33 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2023-10-16",
+      apiVersion: "2025-08-27.basil",
     });
 
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Get organizer's Stripe Connect account
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    const { data: organizerAccount } = await supabaseAdmin
+      .from("organizer_stripe_account")
+      .select("stripe_account_id, charges_enabled")
+      .eq("user_id", event.organizer_id)
+      .single();
+
+    const amountInCents = Math.round(event.price * 100);
+    const applicationFeeAmount = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
+
+    logStep("Payment calculation", {
+      amountInCents,
+      applicationFeeAmount,
+      organizerReceives: amountInCents - applicationFeeAmount,
+      hasConnectAccount: !!organizerAccount?.stripe_account_id,
+    });
+
+    // Build checkout session options
+    const sessionOptions: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
       line_items: [
         {
@@ -134,7 +171,7 @@ serve(async (req) => {
               name: event.name,
               description: `Accès à l'événement: ${event.name}`,
             },
-            unit_amount: Math.round(event.price * 100), // Convert to cents
+            unit_amount: amountInCents,
           },
           quantity: 1,
         },
@@ -147,14 +184,26 @@ serve(async (req) => {
         event_id: eventId,
         user_id: user.id,
       },
-    });
+    };
+
+    // If organizer has Stripe Connect, use transfer_data to send funds to them
+    if (organizerAccount?.stripe_account_id && organizerAccount?.charges_enabled) {
+      sessionOptions.payment_intent_data = {
+        application_fee_amount: applicationFeeAmount,
+        transfer_data: {
+          destination: organizerAccount.stripe_account_id,
+        },
+      };
+      logStep("Using Stripe Connect", { destinationAccount: organizerAccount.stripe_account_id });
+    } else {
+      logStep("No Connect account, payment goes to platform");
+    }
+
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create(sessionOptions);
+    logStep("Checkout session created", { sessionId: session.id });
 
     // Create payment record
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
     const { error: paymentError } = await supabaseAdmin
       .from("event_payment")
       .insert({
@@ -167,18 +216,16 @@ serve(async (req) => {
       });
 
     if (paymentError) {
-      console.error("Error creating payment record:", paymentError);
+      logStep("Error creating payment record", { error: paymentError.message });
     }
-
-    console.log("Checkout session created:", session.id);
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Error creating checkout session:", error);
     const message = error instanceof Error ? error.message : "Erreur inconnue";
+    logStep("ERROR", { message });
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
