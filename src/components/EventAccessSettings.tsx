@@ -8,7 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Info } from 'lucide-react';
+import { Info, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 // Frais plateforme (inclut Stripe ~2.9% + frais plateforme)
 const PLATFORM_FEE_PERCENT = 10;
@@ -28,6 +30,9 @@ interface EventAccessSettingsProps {
   onConfidentialAddressChange: (value: boolean) => void;
   onConfidentialPhoneChange: (value: boolean) => void;
   onConfidentialParticipantListChange: (value: boolean) => void;
+  stripeConfigured?: boolean;
+  stripeLoading?: boolean;
+  userProfileSlug?: string;
 }
 
 export function EventAccessSettings({
@@ -45,6 +50,9 @@ export function EventAccessSettings({
   onConfidentialAddressChange,
   onConfidentialPhoneChange,
   onConfidentialParticipantListChange,
+  stripeConfigured,
+  stripeLoading,
+  userProfileSlug,
 }: EventAccessSettingsProps) {
   return (
     <div className="space-y-6 border-t pt-6">
@@ -78,6 +86,25 @@ export function EventAccessSettings({
 
       {accessType === 'paid' && (
         <div className="space-y-4 bg-muted/50 p-4 rounded-lg">
+          {/* Avertissement Stripe non configuré */}
+          {stripeConfigured === false && !stripeLoading && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="font-medium text-destructive">Compte Stripe non configuré</p>
+                  <p className="text-sm text-muted-foreground">
+                    Pour créer un événement payant, vous devez d'abord configurer votre compte Stripe 
+                    pour recevoir les paiements.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Rendez-vous dans les paramètres de votre profil (icône ⚙️) pour configurer votre compte Stripe.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Prix *</Label>

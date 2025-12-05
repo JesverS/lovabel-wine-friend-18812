@@ -1561,6 +1561,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_public: boolean
           last_name: string | null
           latitude: number | null
           level: number | null
@@ -1583,6 +1584,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_public?: boolean
           last_name?: string | null
           latitude?: number | null
           level?: number | null
@@ -1605,6 +1607,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_public?: boolean
           last_name?: string | null
           latitude?: number | null
           level?: number | null

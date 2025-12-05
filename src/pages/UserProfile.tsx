@@ -10,7 +10,7 @@ import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart } from 'lucide-react';
+import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -19,6 +19,8 @@ import { UserFavorites } from '@/components/UserFavorites';
 import { UserTastings } from '@/components/UserTastings';
 import { UserDomains } from '@/components/UserDomains';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { OrganizerStripeSetup } from '@/components/OrganizerStripeSetup';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function UserProfile() {
@@ -176,8 +178,23 @@ export default function UserProfile() {
                 <h1 className="text-2xl md:text-3xl font-bold break-words">{profile.full_name || 'Utilisateur'}</h1>
                 <div className="flex gap-2 w-full sm:w-auto">
                   {isOwnProfile ? (
-                    <div className="w-full sm:w-auto">
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <EditProfileDialog profile={profile} onProfileUpdated={fetchProfileData} />
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="icon">
+                            <Settings className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Paramètres du compte</DialogTitle>
+                          </DialogHeader>
+                          <div className="mt-4">
+                            <OrganizerStripeSetup />
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   ) : user ? (
                     <Button onClick={handleFollow} variant={isFollowing ? 'outline' : 'default'} className="w-full sm:w-auto">
