@@ -48,6 +48,12 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id });
 
+    // Create admin client early to bypass RLS for event lookup
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
     const { eventId, successUrl, cancelUrl } = await req.json();
 
     if (!eventId || !successUrl || !cancelUrl) {
@@ -57,8 +63,8 @@ serve(async (req) => {
       });
     }
 
-    // Get event details with organizer
-    const { data: event, error: eventError } = await supabaseClient
+    // Get event details with organizer - use admin client to bypass RLS for private events
+    const { data: event, error: eventError } = await supabaseAdmin
       .from("event")
       .select("id, name, price, currency, access_type, max_participants, organizer_id")
       .eq("id", eventId)
@@ -138,12 +144,7 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Get organizer's Stripe Connect account
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
+    // Get organizer's Stripe Connect account (supabaseAdmin already created above)
     const { data: organizerAccount } = await supabaseAdmin
       .from("organizer_stripe_account")
       .select("stripe_account_id, charges_enabled")

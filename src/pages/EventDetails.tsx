@@ -20,6 +20,7 @@ import { EventAdministration } from "@/components/EventAdministration";
 import { EventAccessRequestDialog } from "@/components/EventAccessRequestDialog";
 import { EventAccessRequestsManagement } from "@/components/EventAccessRequestsManagement";
 import { EventPaymentButton } from "@/components/EventPaymentButton";
+import { OrganizerStripeSetup } from "@/components/OrganizerStripeSetup";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -1146,6 +1147,17 @@ const EventDetails = () => {
                   eventId={event.id} 
                   userRole={userRole || null} 
                 />
+
+                {/* Configuration Stripe pour événements payants */}
+                {canEdit && event.access_type === 'paid' && (
+                  <Card className="mt-8 p-6">
+                    <h3 className="text-lg font-semibold mb-4">Configuration des paiements</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Gérez votre compte Stripe pour recevoir les paiements de cet événement.
+                    </p>
+                    <OrganizerStripeSetup />
+                  </Card>
+                )}
 
                 {(userRole === 'co_organizer' || userRole === 'admin') && (
                   <Card className="mt-8 border-destructive">

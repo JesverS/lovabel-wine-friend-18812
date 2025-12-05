@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarPlus, Upload } from 'lucide-react';
+import { CalendarPlus, Upload, AlertTriangle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
@@ -25,6 +25,13 @@ import { EventAccessSettings } from './EventAccessSettings';
 interface CreateEventDialogProps {
   onEventCreated?: () => void;
   triggerButton?: React.ReactNode;
+}
+
+interface StripeStatus {
+  hasAccount: boolean;
+  onboardingComplete: boolean;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
 }
 
 export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEventDialogProps) {
@@ -40,6 +47,8 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
   const [uploadLoading, setUploadLoading] = useState(false);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
+  const [stripeLoading, setStripeLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -61,6 +70,22 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     confidential_phone: false,
     confidential_participant_list: false,
   });
+
+  // Vérifier le statut Stripe à l'ouverture du dialog
+  useEffect(() => {
+    if (open && user) {
+      setStripeLoading(true);
+      supabase.functions.invoke('get-stripe-account-status')
+        .then(({ data, error }) => {
+          if (!error && data) {
+            setStripeStatus(data);
+          }
+        })
+        .finally(() => setStripeLoading(false));
+    }
+  }, [open, user]);
+
+  const stripeConfigured = stripeStatus?.onboardingComplete && stripeStatus?.chargesEnabled;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -401,6 +426,8 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
             confidentialParticipantList={formData.confidential_participant_list}
             onAccessTypeChange={(value) => setFormData({ ...formData, access_type: value })}
             onPriceChange={(value) => setFormData({ ...formData, price: value })}
+            stripeConfigured={stripeConfigured}
+            stripeLoading={stripeLoading}
             onCurrencyChange={(value) => setFormData({ ...formData, currency: value })}
             onMaxParticipantsChange={(value) => setFormData({ ...formData, max_participants: value })}
             onConfidentialAddressChange={(value) => setFormData({ ...formData, confidential_address: value })}
@@ -412,7 +439,10 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button 
+              type="submit" 
+              disabled={loading || (formData.access_type === 'paid' && !stripeConfigured)}
+            >
               {loading ? 'Création...' : 'Créer l\'événement'}
             </Button>
           </div>
