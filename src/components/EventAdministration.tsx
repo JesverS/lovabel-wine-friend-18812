@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Trash2, Mail, UserCircle } from 'lucide-react';
+import { Trash2, Mail, UserCircle, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import {
@@ -27,7 +27,9 @@ interface EventAdministrationProps {
 interface Member {
   user_id: string;
   role: string;
+  access_origin: string | null;
   user_profiles_public: {
+    slug: string | null;
     full_name: string | null;
     logo_adress: string | null;
   } | null;
@@ -42,7 +44,8 @@ interface Invitation {
 
 export function EventAdministration({ eventId, userRole }: EventAdministrationProps) {
   const { user } = useAuth();
-  const [members, setMembers] = useState<Member[]>([]);
+  const [teamMembers, setTeamMembers] = useState<Member[]>([]);
+  const [participants, setParticipants] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -58,12 +61,13 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
   const fetchData = async () => {
     setLoading(true);
 
-    // Fetch members
+    // Fetch all members from user_event
     const { data: membersData } = await supabase
       .from('user_event')
       .select(`
         user_id,
         role,
+        access_origin,
         user_profiles_public (
           slug,
           full_name,
@@ -74,7 +78,16 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       .order('role', { ascending: true }) as any;
 
     if (membersData) {
-      setMembers(membersData);
+      // Séparer équipe organisatrice et participants
+      const team = membersData.filter((m: Member) => 
+        ['organizer', 'co_organizer', 'admin'].includes(m.role)
+      );
+      const partis = membersData.filter((m: Member) => 
+        m.role === 'participant'
+      );
+      
+      setTeamMembers(team);
+      setParticipants(partis);
     }
 
     // Fetch invitations (uniquement si organizer ou co_organizer)
@@ -158,8 +171,25 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
         return 'Organisateur';
       case 'admin':
         return 'Administrateur';
+      case 'participant':
+        return 'Participant';
       default:
         return role;
+    }
+  };
+
+  const getAccessOriginLabel = (origin: string | null) => {
+    switch (origin) {
+      case 'paid':
+        return 'Payé';
+      case 'approved':
+        return 'Demande approuvée';
+      case 'invited':
+        return 'Invité';
+      case 'public':
+        return 'Public';
+      default:
+        return null;
     }
   };
 
@@ -179,11 +209,11 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
     // Ne peut pas se supprimer soi-même
     if (memberId === user?.id) return false;
     
-    // Organizer peut supprimer co_organizer et admin
+    // Organizer peut supprimer co_organizer, admin et participant
     if (userRole === 'organizer' && memberRole !== 'organizer') return true;
     
-    // Co_organizer peut supprimer admin uniquement
-    if (userRole === 'co_organizer' && memberRole === 'admin') return true;
+    // Co_organizer peut supprimer admin et participant
+    if (userRole === 'co_organizer' && ['admin', 'participant'].includes(memberRole)) return true;
     
     return false;
   };
@@ -194,11 +224,11 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
 
   return (
     <div className="space-y-6">
-      {/* Membres */}
+      {/* Équipe organisatrice */}
       <Card className="p-6">
-        <h3 className="text-xl font-semibold mb-4">Membres de l'équipe organisatrice</h3>
+        <h3 className="text-xl font-semibold mb-4">Équipe organisatrice</h3>
         <div className="space-y-2">
-          {members.map((member) => (
+          {teamMembers.map((member) => (
             <div
               key={member.user_id}
               className="flex items-center justify-between p-3 rounded-lg hover:bg-muted"
@@ -211,7 +241,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <Link to={`/user/${(member.user_profiles_public as any)?.slug || ''}`}>
+                  <Link to={`/user/${member.user_profiles_public?.slug || ''}`}>
                     <p className="font-medium hover:underline cursor-pointer text-primary">
                       {member.user_profiles_public?.full_name || 'Utilisateur'}
                       {member.user_id === user?.id && (
@@ -247,6 +277,66 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
           ))}
         </div>
       </Card>
+
+      {/* Participants */}
+      {participants.length > 0 && (
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="h-5 w-5" />
+            <h3 className="text-xl font-semibold">Participants ({participants.length})</h3>
+          </div>
+          <div className="space-y-2">
+            {participants.map((member) => (
+              <div
+                key={member.user_id}
+                className="flex items-center justify-between p-3 rounded-lg hover:bg-muted"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={member.user_profiles_public?.logo_adress || undefined} />
+                    <AvatarFallback>
+                      <UserCircle className="w-6 h-6" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <Link to={`/user/${member.user_profiles_public?.slug || ''}`}>
+                      <p className="font-medium hover:underline cursor-pointer text-primary">
+                        {member.user_profiles_public?.full_name || 'Utilisateur'}
+                        {member.user_id === user?.id && (
+                          <span className="text-sm text-muted-foreground ml-2">(Vous)</span>
+                        )}
+                      </p>
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{getRoleLabel(member.role)}</Badge>
+                      {member.access_origin && getAccessOriginLabel(member.access_origin) && (
+                        <span className="text-xs text-muted-foreground">
+                          • {getAccessOriginLabel(member.access_origin)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {!isReadOnly && canDeleteMember(member.role, member.user_id) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() =>
+                      openDeleteDialog(
+                        'member',
+                        member.user_id,
+                        member.user_profiles_public?.full_name || 'ce participant'
+                      )
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Invitations en attente */}
       {!isReadOnly && canManageMembers && invitations.length > 0 && (

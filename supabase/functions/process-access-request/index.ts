@@ -94,26 +94,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Si approuvé, ajouter l'utilisateur à event_member
+    // Si approuvé, ajouter l'utilisateur dans user_event avec role participant
     if (approve) {
-      const { data: event } = await supabase
-        .from('event')
-        .select('access_type')
-        .eq('id', request.event_id)
-        .single();
+      // Vérifier si l'utilisateur n'existe pas déjà
+      const { data: existingMember } = await supabase
+        .from('user_event')
+        .select('user_id')
+        .eq('event_id', request.event_id)
+        .eq('user_id', request.user_id)
+        .maybeSingle();
 
-      const { error: memberError } = await supabase
-        .from('event_member')
-        .insert({
-          event_id: request.event_id,
-          user_id: request.user_id,
-          access_type: event?.access_type || 'request_based',
-          granted_by: user.id,
-        });
+      if (!existingMember) {
+        const { error: memberError } = await supabase
+          .from('user_event')
+          .insert({
+            event_id: request.event_id,
+            user_id: request.user_id,
+            role: 'participant',
+            access_origin: 'approved',
+            granted_by: user.id,
+          });
 
-      if (memberError) {
-        console.error('Member insert error:', memberError);
-        // Ne pas échouer complètement, la demande est approuvée
+        if (memberError) {
+          console.error('Member insert error:', memberError);
+          // Ne pas échouer complètement, la demande est approuvée
+        }
       }
     }
 

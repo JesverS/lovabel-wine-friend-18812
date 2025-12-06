@@ -1324,20 +1324,26 @@ export type Database = {
       }
       user_event: {
         Row: {
+          access_origin: string | null
           created_at: string
           event_id: string
+          granted_by: string | null
           role: Database["public"]["Enums"]["event_role"]
           user_id: string
         }
         Insert: {
+          access_origin?: string | null
           created_at?: string
           event_id: string
+          granted_by?: string | null
           role?: Database["public"]["Enums"]["event_role"]
           user_id: string
         }
         Update: {
+          access_origin?: string | null
           created_at?: string
           event_id?: string
+          granted_by?: string | null
           role?: Database["public"]["Enums"]["event_role"]
           user_id?: string
         }
