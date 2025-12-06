@@ -78,34 +78,36 @@ serve(async (req) => {
         console.error("Error updating payment:", updateError);
       }
 
-      // Check if user already has access
+      // Check if user already exists in user_event
       const { data: existingMember } = await supabaseAdmin
-        .from("event_member")
-        .select("id")
+        .from("user_event")
+        .select("user_id")
         .eq("event_id", eventId)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (!existingMember) {
-        // Add user as event member
+        // Add user as participant with 'paid' access_origin
         const { error: memberError } = await supabaseAdmin
-          .from("event_member")
+          .from("user_event")
           .insert({
             event_id: eventId,
             user_id: userId,
-            access_type: "paid",
-            granted_at: new Date().toISOString(),
+            role: "participant",
+            access_origin: "paid",
           });
 
         if (memberError) {
-          console.error("Error adding event member:", memberError);
-          return new Response(JSON.stringify({ error: "Erreur lors de l'ajout du membre" }), {
+          console.error("Error adding event participant:", memberError);
+          return new Response(JSON.stringify({ error: "Erreur lors de l'ajout du participant" }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        console.log(`User ${userId} added as member to event ${eventId}`);
+        console.log(`User ${userId} added as paid participant to event ${eventId}`);
+      } else {
+        console.log(`User ${userId} already exists in event ${eventId}`);
       }
     }
 
