@@ -34,8 +34,10 @@ export function EventPaymentButton({
 
     try {
       const currentUrl = window.location.href;
-      const successUrl = `${currentUrl}?payment=success`;
-      const cancelUrl = `${currentUrl}?payment=cancelled`;
+      // Utiliser & si l'URL contient déjà des paramètres (ex: ?token=xxx)
+      const separator = currentUrl.includes('?') ? '&' : '?';
+      const successUrl = `${currentUrl}${separator}payment=success`;
+      const cancelUrl = `${currentUrl}${separator}payment=cancelled`;
 
       const { data, error } = await supabase.functions.invoke('create-event-checkout-session', {
         body: {

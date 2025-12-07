@@ -10,7 +10,8 @@ import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings } from 'lucide-react';
+import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -101,7 +102,7 @@ export default function UserProfile() {
       const eventIds = userEvents.map((ue: any) => ue.event_id);
       const { data: eventsData } = await supabase
         .from('event')
-        .select('*')
+        .select('id, name, slug, banner_url, start_date, city, description, is_public, private_token')
         .in('id', eventIds)
         .order('start_date', { ascending: false });
       setEvents(eventsData || []);
@@ -470,47 +471,61 @@ export default function UserProfile() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-                {events.map((event) => (
-                  <Link key={event.id} to={`/event/${event.slug}`}>
-                    <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-                      <CardContent className="p-4 md:p-6">
-                        <div className="flex flex-col md:flex-row gap-4">
-                          {event.banner_url && (
-                            <img
-                              src={event.banner_url}
-                              alt={event.name}
-                              className="w-full md:w-32 h-48 md:h-32 object-cover rounded-md"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-xl mb-2 break-words">{event.name}</h3>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                              <CalendarDays className="w-4 h-4 flex-shrink-0" />
-                              <span className="break-words">
-                                {new Date(event.start_date).toLocaleDateString('fr-FR', {
-                                  day: 'numeric',
-                                  month: 'long',
-                                  year: 'numeric',
-                                })}
-                              </span>
-                            </div>
-                            {event.city && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                                <Store className="w-4 h-4 flex-shrink-0" />
-                                <span className="break-words">{event.city}</span>
+                {events.map((event) => {
+                  const eventUrl = event.is_public 
+                    ? `/event/${event.slug}` 
+                    : `/event/${event.slug}?token=${event.private_token}`;
+                  return (
+                    <Link key={event.id} to={eventUrl}>
+                      <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+                        <CardContent className="p-4 md:p-6">
+                          <div className="flex flex-col md:flex-row gap-4">
+                            {event.banner_url && (
+                              <img
+                                src={event.banner_url}
+                                alt={event.name}
+                                className="w-full md:w-32 h-48 md:h-32 object-cover rounded-md"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-xl break-words">{event.name}</h3>
+                                <Badge variant={event.is_public ? "secondary" : "outline"} className="flex-shrink-0">
+                                  {event.is_public ? (
+                                    <><Globe className="w-3 h-3 mr-1" />Public</>
+                                  ) : (
+                                    <><Lock className="w-3 h-3 mr-1" />Privé</>
+                                  )}
+                                </Badge>
                               </div>
-                            )}
-                            {event.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-2 break-words">
-                                {event.description}
-                              </p>
-                            )}
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                <CalendarDays className="w-4 h-4 flex-shrink-0" />
+                                <span className="break-words">
+                                  {new Date(event.start_date).toLocaleDateString('fr-FR', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                              </div>
+                              {event.city && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                  <Store className="w-4 h-4 flex-shrink-0" />
+                                  <span className="break-words">{event.city}</span>
+                                </div>
+                              )}
+                              {event.description && (
+                                <p className="text-sm text-muted-foreground line-clamp-2 break-words">
+                                  {event.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
