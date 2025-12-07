@@ -198,8 +198,8 @@ const EventDetails = () => {
         // Check if user has access (for all non-public events)
         if (eventData.access_type !== 'public') {
           const { data: memberData } = await supabase
-            .from('event_member')
-            .select('id')
+            .from('user_event')
+            .select('user_id')
             .eq('event_id', eventData.id)
             .eq('user_id', user.id)
             .single();
