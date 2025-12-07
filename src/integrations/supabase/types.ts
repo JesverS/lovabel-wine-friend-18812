@@ -702,44 +702,6 @@ export type Database = {
           },
         ]
       }
-      event_member: {
-        Row: {
-          access_type: Database["public"]["Enums"]["event_access_type"]
-          created_at: string
-          event_id: string
-          granted_at: string
-          granted_by: string | null
-          id: string
-          user_id: string
-        }
-        Insert: {
-          access_type: Database["public"]["Enums"]["event_access_type"]
-          created_at?: string
-          event_id: string
-          granted_at?: string
-          granted_by?: string | null
-          id?: string
-          user_id: string
-        }
-        Update: {
-          access_type?: Database["public"]["Enums"]["event_access_type"]
-          created_at?: string
-          event_id?: string
-          granted_at?: string
-          granted_by?: string | null
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_member_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       event_payment: {
         Row: {
           amount: number
