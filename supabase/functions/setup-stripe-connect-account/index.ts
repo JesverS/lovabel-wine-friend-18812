@@ -64,17 +64,33 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
+    // Récupérer le slug de l'utilisateur pour l'URL du profil
+    const { data: userProfile } = await supabaseAdmin
+      .from("user_profiles")
+      .select("slug")
+      .eq("id", user.id)
+      .single();
+
+    const siteUrl = Deno.env.get("SITE_URL") || "https://winenote.me";
+    const userProfileUrl = `${siteUrl}/user/${userProfile?.slug || user.id}`;
+
     let stripeAccountId: string;
 
     if (existingAccount?.stripe_account_id) {
       logStep("Existing Stripe account found", { accountId: existingAccount.stripe_account_id });
       stripeAccountId = existingAccount.stripe_account_id;
     } else {
-      // Create new Express account
-      logStep("Creating new Stripe Express account");
+      // Create new Express account with pre-filled information
+      logStep("Creating new Stripe Express account", { profileUrl: userProfileUrl });
       const account = await stripe.accounts.create({
         type: "express",
+        country: "FR",
         email: user.email,
+        business_profile: {
+          mcc: "7991", // Code pour événements/divertissement
+          product_description: "Organisation d'événements de dégustation de vin",
+          url: userProfileUrl,
+        },
         metadata: {
           user_id: user.id,
         },
