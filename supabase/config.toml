@@ -35,3 +35,54 @@ verify_jwt = true
 
 [functions.stripe-event-webhook]
 verify_jwt = false
+
+[functions.send-cellar-invitation]
+verify_jwt = true
+
+[functions.send-event-invitation]
+verify_jwt = true
+
+[functions.accept-event-invitation]
+verify_jwt = true
+
+[functions.reject-event-invitation]
+verify_jwt = true
+
+[functions.cancel-event-invitation]
+verify_jwt = true
+
+[functions.remove-event-member]
+verify_jwt = true
+
+[functions.setup-stripe-connect-account]
+verify_jwt = true
+
+[functions.get-stripe-account-status]
+verify_jwt = true
+
+[functions.create-stripe-login-link]
+verify_jwt = true
+
+[functions.submit-lesson-quiz]
+verify_jwt = true
+
+[functions.approve-domain-application]
+verify_jwt = true
+
+[functions.reject-domain-application]
+verify_jwt = true
+
+[functions.remove-domain-member]
+verify_jwt = true
+
+[functions.get-event-revenue]
+verify_jwt = true
+
+[functions.get-organizer-revenue]
+verify_jwt = true
+
+[functions.refund-event-payment]
+verify_jwt = true
+
+[functions.cleanup-expired-payments]
+verify_jwt = false

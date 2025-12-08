@@ -79,6 +79,22 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validation pour les événements payants : vérifier que l'organisateur a un compte Stripe actif
+    if (access_type === 'paid') {
+      const { data: stripeAccount } = await supabase
+        .from('organizer_stripe_account')
+        .select('charges_enabled')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (!stripeAccount?.charges_enabled) {
+        return new Response(
+          JSON.stringify({ error: 'Vous devez configurer votre compte Stripe pour créer un événement payant. Rendez-vous dans les paramètres de votre profil.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // Générer le slug
     const slug = generateEventSlug(name);
 

@@ -22,7 +22,9 @@ import { UserDomains } from '@/components/UserDomains';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { OrganizerStripeSetup } from '@/components/OrganizerStripeSetup';
+import { OrganizerRevenueDashboard } from '@/components/OrganizerRevenueDashboard';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTabsList, TabsTrigger as InnerTabsTrigger } from '@/components/ui/tabs';
 
 export default function UserProfile() {
   const { slug } = useParams<{ slug: string }>();
@@ -187,13 +189,22 @@ export default function UserProfile() {
                             <Settings className="w-4 h-4" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>Paramètres du compte</DialogTitle>
                           </DialogHeader>
-                          <div className="mt-4">
-                            <OrganizerStripeSetup />
-                          </div>
+                          <InnerTabs defaultValue="stripe" className="mt-4">
+                            <InnerTabsList className="grid w-full grid-cols-2">
+                              <InnerTabsTrigger value="stripe">Compte Stripe</InnerTabsTrigger>
+                              <InnerTabsTrigger value="revenue">Mes revenus</InnerTabsTrigger>
+                            </InnerTabsList>
+                            <InnerTabsContent value="stripe" className="mt-4">
+                              <OrganizerStripeSetup />
+                            </InnerTabsContent>
+                            <InnerTabsContent value="revenue" className="mt-4">
+                              <OrganizerRevenueDashboard />
+                            </InnerTabsContent>
+                          </InnerTabs>
                         </DialogContent>
                       </Dialog>
                     </div>
