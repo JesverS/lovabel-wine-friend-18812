@@ -75,10 +75,14 @@ serve(async (req) => {
     });
 
     const account = await stripe.accounts.retrieve(accountData.stripe_account_id);
+    const requirements = account.requirements;
+    
     logStep("Stripe account retrieved", { 
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
       detailsSubmitted: account.details_submitted,
+      currentlyDue: requirements?.currently_due,
+      pendingVerification: requirements?.pending_verification,
     });
 
     // Update database with latest status
@@ -102,6 +106,12 @@ serve(async (req) => {
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
       accountStatus: isOnboardingComplete ? "active" : "pending",
+      // Détails pour diagnostic précis
+      detailsSubmitted: account.details_submitted,
+      pendingVerification: (requirements?.pending_verification?.length ?? 0) > 0,
+      currentlyDue: requirements?.currently_due || [],
+      eventuallyDue: requirements?.eventually_due || [],
+      disabledReason: requirements?.disabled_reason || null,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

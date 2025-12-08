@@ -12,7 +12,41 @@ interface StripeAccountStatus {
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
   accountStatus?: string;
+  detailsSubmitted?: boolean;
+  pendingVerification?: boolean;
+  currentlyDue?: string[];
+  eventuallyDue?: string[];
+  disabledReason?: string | null;
 }
+
+const translateStripeRequirement = (requirement: string): string => {
+  const translations: Record<string, string> = {
+    'individual.verification.document': 'Pièce d\'identité',
+    'individual.verification.additional_document': 'Document complémentaire',
+    'business_profile.url': 'URL du site web',
+    'business_profile.mcc': 'Catégorie d\'activité',
+    'external_account': 'Coordonnées bancaires (IBAN)',
+    'tos_acceptance.date': 'Acceptation des conditions',
+    'tos_acceptance.ip': 'Acceptation des conditions',
+    'individual.first_name': 'Prénom',
+    'individual.last_name': 'Nom',
+    'individual.dob.day': 'Date de naissance',
+    'individual.dob.month': 'Date de naissance',
+    'individual.dob.year': 'Date de naissance',
+    'individual.address.line1': 'Adresse',
+    'individual.address.city': 'Ville',
+    'individual.address.postal_code': 'Code postal',
+    'individual.phone': 'Numéro de téléphone',
+    'individual.email': 'Email',
+    'individual.id_number': 'Numéro d\'identification',
+    'company.address.line1': 'Adresse de l\'entreprise',
+    'company.address.city': 'Ville de l\'entreprise',
+    'company.address.postal_code': 'Code postal de l\'entreprise',
+    'company.name': 'Nom de l\'entreprise',
+    'company.tax_id': 'Numéro de TVA',
+  };
+  return translations[requirement] || requirement.split('.').pop()?.replace(/_/g, ' ') || requirement;
+};
 
 export function OrganizerStripeSetup() {
   const [loading, setLoading] = useState(true);
@@ -155,8 +189,45 @@ export function OrganizerStripeSetup() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Votre compte Stripe a été créé mais la configuration n'est pas terminée.
-              Veuillez compléter les informations requises pour pouvoir recevoir des paiements.
             </p>
+            
+            {/* Cas 1: En cours de vérification par Stripe */}
+            {status?.detailsSubmitted && status?.pendingVerification && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-700 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Votre compte est en cours de vérification par Stripe. 
+                  Cela peut prendre quelques minutes à quelques heures.
+                </p>
+              </div>
+            )}
+            
+            {/* Cas 2: Informations manquantes */}
+            {status?.currentlyDue && status.currentlyDue.length > 0 && !status?.pendingVerification && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 space-y-2">
+                <p className="text-sm text-yellow-800 font-medium">
+                  Informations requises pour activer votre compte :
+                </p>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                  {[...new Set(status.currentlyDue.map(translateStripeRequirement))].map((item) => (
+                    <li key={item} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Cas 3: Détails soumis mais pas encore activé */}
+            {status?.detailsSubmitted && !status?.pendingVerification && (!status?.currentlyDue || status.currentlyDue.length === 0) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-700">
+                  Vos informations ont été soumises. Stripe finalise l'activation de votre compte.
+                </p>
+              </div>
+            )}
+
             <Button onClick={handleSetupStripe} disabled={setupLoading} className="w-full">
               {setupLoading ? (
                 <>
@@ -166,7 +237,7 @@ export function OrganizerStripeSetup() {
               ) : (
                 <>
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Compléter la configuration
+                  {status?.detailsSubmitted ? 'Vérifier le statut' : 'Compléter la configuration'}
                 </>
               )}
             </Button>
