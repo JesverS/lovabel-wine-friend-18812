@@ -2226,6 +2226,27 @@ export type Database = {
             referencedRelation: "lessons"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "xp_history_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xp_history_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xp_history_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
