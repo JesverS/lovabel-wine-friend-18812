@@ -430,6 +430,8 @@ export type Database = {
           confidential_documents: string[] | null
           confidential_participant_list: boolean | null
           confidential_phone: boolean | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string | null
           currency: string | null
           description: string | null
@@ -460,6 +462,8 @@ export type Database = {
           confidential_documents?: string[] | null
           confidential_participant_list?: boolean | null
           confidential_phone?: boolean | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string | null
           currency?: string | null
           description?: string | null
@@ -490,6 +494,8 @@ export type Database = {
           confidential_documents?: string[] | null
           confidential_participant_list?: boolean | null
           confidential_phone?: boolean | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string | null
           currency?: string | null
           description?: string | null

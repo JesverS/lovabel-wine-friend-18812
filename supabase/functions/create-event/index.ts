@@ -70,6 +70,8 @@ Deno.serve(async (req) => {
       confidential_address,
       confidential_phone,
       confidential_participant_list,
+      contact_phone,
+      contact_email,
     } = body;
 
     if (!name || !start_date || !city) {
@@ -128,6 +130,8 @@ Deno.serve(async (req) => {
         confidential_address: confidential_address || false,
         confidential_phone: confidential_phone || false,
         confidential_participant_list: confidential_participant_list || false,
+        contact_phone: contact_phone || null,
+        contact_email: contact_email || null,
       })
       .select()
       .single();

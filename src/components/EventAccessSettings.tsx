@@ -23,6 +23,8 @@ interface EventAccessSettingsProps {
   confidentialAddress: boolean;
   confidentialPhone: boolean;
   confidentialParticipantList: boolean;
+  contactPhone?: string;
+  contactEmail?: string;
   onAccessTypeChange: (value: 'public' | 'paid' | 'request_based' | 'invite_only') => void;
   onPriceChange: (value: string) => void;
   onCurrencyChange: (value: string) => void;
@@ -30,6 +32,8 @@ interface EventAccessSettingsProps {
   onConfidentialAddressChange: (value: boolean) => void;
   onConfidentialPhoneChange: (value: boolean) => void;
   onConfidentialParticipantListChange: (value: boolean) => void;
+  onContactPhoneChange?: (value: string) => void;
+  onContactEmailChange?: (value: string) => void;
   stripeConfigured?: boolean;
   stripeLoading?: boolean;
   userProfileSlug?: string;
@@ -43,6 +47,8 @@ export function EventAccessSettings({
   confidentialAddress,
   confidentialPhone,
   confidentialParticipantList,
+  contactPhone,
+  contactEmail,
   onAccessTypeChange,
   onPriceChange,
   onCurrencyChange,
@@ -50,6 +56,8 @@ export function EventAccessSettings({
   onConfidentialAddressChange,
   onConfidentialPhoneChange,
   onConfidentialParticipantListChange,
+  onContactPhoneChange,
+  onContactEmailChange,
   stripeConfigured,
   stripeLoading,
   userProfileSlug,
@@ -160,10 +168,44 @@ export function EventAccessSettings({
       {(accessType === 'request_based' || accessType === 'invite_only' || accessType === 'paid') && (
         <div className="space-y-4">
           <div>
-            <h4 className="text-sm font-medium mb-3">Informations confidentielles</h4>
+            <h4 className="text-sm font-medium mb-3">Informations de contact pour les participants</h4>
             <p className="text-xs text-muted-foreground mb-4">
-              Ces informations ne seront visibles que par les participants approuvés ou ayant payé
+              Ces informations seront visibles uniquement par les participants approuvés ou ayant payé
             </p>
+          </div>
+
+          {/* Champs de contact */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
+            <div className="space-y-2">
+              <Label htmlFor="contact_phone">Téléphone de contact</Label>
+              <Input
+                id="contact_phone"
+                type="tel"
+                value={contactPhone || ''}
+                onChange={(e) => onContactPhoneChange?.(e.target.value)}
+                placeholder="+33 6 12 34 56 78"
+              />
+              <p className="text-xs text-muted-foreground">
+                Visible après accès validé
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact_email">Email de contact</Label>
+              <Input
+                id="contact_email"
+                type="email"
+                value={contactEmail || ''}
+                onChange={(e) => onContactEmailChange?.(e.target.value)}
+                placeholder="contact@example.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                Visible après accès validé
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-3">Options de confidentialité</h4>
           </div>
 
           <div className="flex items-center justify-between">

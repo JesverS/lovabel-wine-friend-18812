@@ -62,6 +62,8 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
   const [confidentialAddress, setConfidentialAddress] = useState(false);
   const [confidentialPhone, setConfidentialPhone] = useState(false);
   const [confidentialParticipantList, setConfidentialParticipantList] = useState(false);
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -128,6 +130,8 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
         setConfidentialAddress(data.confidential_address || false);
         setConfidentialPhone(data.confidential_phone || false);
         setConfidentialParticipantList(data.confidential_participant_list || false);
+        setContactPhone((data as any).contact_phone || '');
+        setContactEmail((data as any).contact_email || '');
       }
     } catch (error: any) {
       toast({
@@ -213,6 +217,8 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
           confidential_address: confidentialAddress,
           confidential_phone: confidentialPhone,
           confidential_participant_list: confidentialParticipantList,
+          contact_phone: contactPhone || null,
+          contact_email: contactEmail || null,
         })
         .eq('id', eventId);
 
@@ -445,6 +451,8 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
             confidentialAddress={confidentialAddress}
             confidentialPhone={confidentialPhone}
             confidentialParticipantList={confidentialParticipantList}
+            contactPhone={contactPhone}
+            contactEmail={contactEmail}
             onAccessTypeChange={setAccessType}
             onPriceChange={setPrice}
             onCurrencyChange={setCurrency}
@@ -452,6 +460,8 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
             onConfidentialAddressChange={setConfidentialAddress}
             onConfidentialPhoneChange={setConfidentialPhone}
             onConfidentialParticipantListChange={setConfidentialParticipantList}
+            onContactPhoneChange={setContactPhone}
+            onContactEmailChange={setContactEmail}
           />
 
           <div className="flex justify-end gap-2">
