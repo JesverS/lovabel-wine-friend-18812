@@ -62,6 +62,8 @@ interface Event {
   price: number | null;
   currency: string | null;
   max_participants: number | null;
+  contact_phone: string | null;
+  contact_email: string | null;
 }
 
 interface Domain {
@@ -829,15 +831,46 @@ const EventDetails = () => {
                   )}
                 </div>
 
-                {event.address && !event.confidential_address && (
-                  <p className="text-muted-foreground">{event.address}</p>
+                {/* Affichage de l'adresse */}
+                {event.address && (
+                  <>
+                    {/* Cas 1: Pas confidentielle OU a accès (payé, approuvé, membre) OU peut éditer */}
+                    {(!event.confidential_address || hasAccess || canEdit) && (
+                      <p className="text-muted-foreground">{event.address}</p>
+                    )}
+                    {/* Cas 2: Confidentielle ET pas accès */}
+                    {event.confidential_address && !hasAccess && !canEdit && (
+                      <Card className="p-4 bg-muted/50">
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          L'adresse complète est confidentielle et sera visible après validation de votre accès
+                        </p>
+                      </Card>
+                    )}
+                  </>
                 )}
 
-                {event.address && event.confidential_address && !hasAccess && (
+                {/* Affichage des informations de contact (téléphone et email) */}
+                {(hasAccess || canEdit) && (event.contact_phone || event.contact_email) && (
+                  <Card className="p-4 bg-primary/5 border-primary/20">
+                    <h4 className="text-sm font-medium mb-2">Informations de contact</h4>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      {event.contact_phone && (
+                        <p>📞 <a href={`tel:${event.contact_phone}`} className="hover:underline">{event.contact_phone}</a></p>
+                      )}
+                      {event.contact_email && (
+                        <p>✉️ <a href={`mailto:${event.contact_email}`} className="hover:underline">{event.contact_email}</a></p>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Message si contact confidentiel */}
+                {!hasAccess && !canEdit && event.confidential_phone && event.access_type !== 'public' && (
                   <Card className="p-4 bg-muted/50">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      L'adresse complète est confidentielle et sera visible après approbation de votre demande
+                      <Lock className="w-4 h-4" />
+                      Les informations de contact seront visibles après validation de votre accès
                     </p>
                   </Card>
                 )}

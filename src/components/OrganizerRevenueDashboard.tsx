@@ -10,11 +10,13 @@ import {
   RefreshCcw, 
   TrendingUp,
   Users,
-  ExternalLink
+  ExternalLink,
+  Banknote
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import { PayoutRequestDialog } from './PayoutRequestDialog';
 
 interface EventRevenue {
   id: string;
@@ -101,9 +103,19 @@ export function OrganizerRevenueDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Mes revenus d'organisateur</h3>
-        <Button variant="ghost" size="sm" onClick={fetchRevenue}>
-          <RefreshCcw className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <PayoutRequestDialog
+            triggerButton={
+              <Button variant="default" size="sm">
+                <Banknote className="w-4 h-4 mr-2" />
+                Demander un virement
+              </Button>
+            }
+          />
+          <Button variant="ghost" size="sm" onClick={fetchRevenue}>
+            <RefreshCcw className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Stats cards */}

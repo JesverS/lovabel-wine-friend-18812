@@ -69,6 +69,8 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     confidential_address: false,
     confidential_phone: false,
     confidential_participant_list: false,
+    contact_phone: '',
+    contact_email: '',
   });
 
   // Vérifier le statut Stripe à l'ouverture du dialog
@@ -161,6 +163,8 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
           confidential_address: formData.confidential_address,
           confidential_phone: formData.confidential_phone,
           confidential_participant_list: formData.confidential_participant_list,
+          contact_phone: formData.contact_phone || null,
+          contact_email: formData.contact_email || null,
         },
       });
 
@@ -220,6 +224,8 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
         confidential_address: false,
         confidential_phone: false,
         confidential_participant_list: false,
+        contact_phone: '',
+        contact_email: '',
       });
       setImageFile(null);
       setImagePreview(null);
@@ -424,6 +430,8 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
             confidentialAddress={formData.confidential_address}
             confidentialPhone={formData.confidential_phone}
             confidentialParticipantList={formData.confidential_participant_list}
+            contactPhone={formData.contact_phone}
+            contactEmail={formData.contact_email}
             onAccessTypeChange={(value) => setFormData({ ...formData, access_type: value })}
             onPriceChange={(value) => setFormData({ ...formData, price: value })}
             stripeConfigured={stripeConfigured}
@@ -433,6 +441,8 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
             onConfidentialAddressChange={(value) => setFormData({ ...formData, confidential_address: value })}
             onConfidentialPhoneChange={(value) => setFormData({ ...formData, confidential_phone: value })}
             onConfidentialParticipantListChange={(value) => setFormData({ ...formData, confidential_participant_list: value })}
+            onContactPhoneChange={(value) => setFormData({ ...formData, contact_phone: value })}
+            onContactEmailChange={(value) => setFormData({ ...formData, contact_email: value })}
           />
 
           <div className="flex justify-end gap-2">
