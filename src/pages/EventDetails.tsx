@@ -21,6 +21,7 @@ import { EventAccessRequestDialog } from "@/components/EventAccessRequestDialog"
 import { EventAccessRequestsManagement } from "@/components/EventAccessRequestsManagement";
 import { EventPaymentButton } from "@/components/EventPaymentButton";
 import { OrganizerStripeSetup } from "@/components/OrganizerStripeSetup";
+import { EventRevenueDashboard } from "@/components/EventRevenueDashboard";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -1147,6 +1148,16 @@ const EventDetails = () => {
                   eventId={event.id} 
                   userRole={userRole || null} 
                 />
+
+                {/* Dashboard des revenus pour événements payants */}
+                {canEdit && event.access_type === 'paid' && (
+                  <div className="mt-8">
+                    <EventRevenueDashboard 
+                      eventId={event.id} 
+                      canManageMembers={canManageMembers} 
+                    />
+                  </div>
+                )}
 
                 {/* Configuration Stripe pour événements payants */}
                 {canEdit && event.access_type === 'paid' && (

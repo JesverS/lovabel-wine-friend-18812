@@ -744,8 +744,10 @@ export type Database = {
           created_at: string
           currency: string
           event_id: string
+          expires_at: string | null
           id: string
           metadata: Json | null
+          refunded_at: string | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
@@ -757,8 +759,10 @@ export type Database = {
           created_at?: string
           currency?: string
           event_id: string
+          expires_at?: string | null
           id?: string
           metadata?: Json | null
+          refunded_at?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -770,8 +774,10 @@ export type Database = {
           created_at?: string
           currency?: string
           event_id?: string
+          expires_at?: string | null
           id?: string
           metadata?: Json | null
+          refunded_at?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
