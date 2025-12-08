@@ -122,6 +122,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cellar_invitation_invitee_user_id_fkey"
+            columns: ["invitee_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cellar_invitation_inviter_id_fkey"
             columns: ["inviter_id"]
             isOneToOne: false
@@ -133,6 +140,13 @@ export type Database = {
             columns: ["inviter_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cellar_invitation_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
         ]
@@ -389,6 +403,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "domain_enrichment_status_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "domain_enrichment_status_domain_id_fkey"
             columns: ["domain_id"]
             isOneToOne: false
@@ -508,6 +529,13 @@ export type Database = {
             columns: ["organizer_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_organizer_id_fkey1"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
         ]
@@ -700,6 +728,13 @@ export type Database = {
             referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "event_invitation_invitee_user_id_fkey"
+            columns: ["invitee_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
         ]
       }
       event_payment: {
@@ -850,6 +885,13 @@ export type Database = {
             referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lesson_completion_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lesson_quiz_result: {
@@ -903,6 +945,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_quiz_result_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
         ]
@@ -1058,6 +1107,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "post_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "post_vin_id_fkey"
             columns: ["wine_id"]
             isOneToOne: false
@@ -1113,6 +1169,13 @@ export type Database = {
             referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_comment_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
         ]
       }
       post_like: {
@@ -1151,6 +1214,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_like_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
         ]
@@ -1196,6 +1266,13 @@ export type Database = {
             referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_cellar_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_domain: {
@@ -1239,6 +1316,13 @@ export type Database = {
             referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_domain_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_domain_application: {
@@ -1280,6 +1364,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_domain_application_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
         ]
@@ -1331,6 +1422,13 @@ export type Database = {
             referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_event_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_favorite: {
@@ -1375,6 +1473,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_favorite_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_favorite_wine_id_fkey"
             columns: ["wine_id"]
             isOneToOne: false
@@ -1388,16 +1493,19 @@ export type Database = {
           followed_at: string | null
           follower_id: string
           following_id: string
+          status: Database["public"]["Enums"]["user_request"]
         }
         Insert: {
           followed_at?: string | null
           follower_id: string
           following_id: string
+          status?: Database["public"]["Enums"]["user_request"]
         }
         Update: {
           followed_at?: string | null
           follower_id?: string
           following_id?: string
+          status?: Database["public"]["Enums"]["user_request"]
         }
         Relationships: [
           {
@@ -1415,6 +1523,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_follow_follower_id_fkey1"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_follow_following_id_fkey1"
             columns: ["following_id"]
             isOneToOne: false
@@ -1426,6 +1541,56 @@ export type Database = {
             columns: ["following_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follow_following_id_fkey1"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_follow_counts: {
+        Row: {
+          followers_count: number
+          following_count: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          followers_count?: number
+          following_count?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          followers_count?: number
+          following_count?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_follow_counts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follow_counts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follow_counts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
         ]
@@ -1465,6 +1630,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_game_proposition_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
           {
@@ -1512,6 +1684,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_lesson_unlock_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
         ]
@@ -1622,6 +1801,13 @@ export type Database = {
             referencedRelation: "user_profiles_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_wine_comment: {
@@ -1659,6 +1845,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_wine_comment_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
           {
@@ -1709,6 +1902,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_comment_reaction_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
         ]
@@ -1773,6 +1973,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_wine_notice_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
             referencedColumns: ["id"]
           },
         ]
@@ -2030,40 +2237,45 @@ export type Database = {
           description: string | null
           email: string | null
           experience: number | null
+          followers_count: number | null
+          following_count: number | null
           full_name: string | null
           id: string | null
+          is_public: boolean | null
           last_name: string | null
           level: number | null
           logo_adress: string | null
           phone_number: number | null
           slug: string | null
         }
+        Relationships: []
+      }
+      user_profiles_public_search: {
+        Row: {
+          city: string | null
+          full_name: string | null
+          id: string | null
+          is_public: boolean | null
+          last_name: string | null
+          logo_adress: string | null
+          slug: string | null
+        }
         Insert: {
-          address?: never
           city?: string | null
-          description?: string | null
-          email?: never
-          experience?: never
           full_name?: string | null
           id?: string | null
+          is_public?: boolean | null
           last_name?: string | null
-          level?: number | null
           logo_adress?: string | null
-          phone_number?: never
           slug?: string | null
         }
         Update: {
-          address?: never
           city?: string | null
-          description?: string | null
-          email?: never
-          experience?: never
           full_name?: string | null
           id?: string | null
+          is_public?: boolean | null
           last_name?: string | null
-          level?: number | null
           logo_adress?: string | null
-          phone_number?: never
           slug?: string | null
         }
         Relationships: []
@@ -2271,6 +2483,7 @@ export type Database = {
       event_access_type: "public" | "paid" | "request_based" | "invite_only"
       event_role: "organizer" | "co_organizer" | "admin" | "participant"
       quiz_wine_color: "red" | "white" | "rose" | "eff" | "all"
+      user_request: "accepted" | "pending" | "rejected"
       wine_type_enum:
         | "champagne"
         | "crémant"
@@ -2425,6 +2638,7 @@ export const Constants = {
       event_access_type: ["public", "paid", "request_based", "invite_only"],
       event_role: ["organizer", "co_organizer", "admin", "participant"],
       quiz_wine_color: ["red", "white", "rose", "eff", "all"],
+      user_request: ["accepted", "pending", "rejected"],
       wine_type_enum: [
         "champagne",
         "crémant",
