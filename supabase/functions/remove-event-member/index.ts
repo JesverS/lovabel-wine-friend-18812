@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import Stripe from "https://esm.sh/stripe@14.21.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,6 +76,48 @@ serve(async (req) => {
       );
     }
 
+    // Vérifier si le membre a un paiement complété pour cet événement
+    const { data: payment } = await supabase
+      .from('event_payment')
+      .select('id, stripe_payment_intent_id, amount, currency, status')
+      .eq('event_id', event_id)
+      .eq('user_id', member_user_id)
+      .eq('status', 'completed')
+      .single();
+
+    // Si paiement trouvé, effectuer le remboursement via Stripe
+    if (payment && payment.stripe_payment_intent_id) {
+      const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+      if (stripeSecretKey) {
+        try {
+          const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
+          
+          // Effectuer le remboursement
+          await stripe.refunds.create({
+            payment_intent: payment.stripe_payment_intent_id,
+            reason: 'requested_by_customer',
+          });
+          
+          console.log(`Refund created for payment ${payment.id}`);
+          
+          // Mettre à jour le statut du paiement
+          await supabase
+            .from('event_payment')
+            .update({ 
+              status: 'refunded', 
+              refunded_at: new Date().toISOString() 
+            })
+            .eq('id', payment.id);
+            
+          console.log(`Payment ${payment.id} marked as refunded`);
+        } catch (stripeError) {
+          console.error('Stripe refund error:', stripeError);
+          // Continue avec la suppression même si le remboursement échoue
+          // L'organisateur pourra rembourser manuellement via Stripe Dashboard
+        }
+      }
+    }
+
     // Retirer le membre
     const { error } = await supabase
       .from('user_event')
@@ -85,11 +128,12 @@ serve(async (req) => {
     if (error) throw error;
 
     return new Response(
-      JSON.stringify({ success: true }), 
+      JSON.stringify({ success: true, refunded: !!payment }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
+    console.error('Error removing member:', error);
     return new Response(
       JSON.stringify({ error: 'Erreur serveur' }), 
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

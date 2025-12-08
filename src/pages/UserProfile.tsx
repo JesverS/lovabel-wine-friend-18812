@@ -34,6 +34,8 @@ export default function UserProfile() {
   const [posts, setPosts] = useState<any[]>([]);
   const [cellars, setCellars] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [eventRoles, setEventRoles] = useState<Record<string, string>>({});
+  const [eventFilter, setEventFilter] = useState<'all' | 'organizing' | 'participating'>('all');
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -94,14 +96,20 @@ export default function UserProfile() {
       .eq('following_id', userId);
     setFollowersCount(count || 0);
 
-    // Fetch events (created or participating)
+    // Fetch events (created or participating) WITH roles
     const { data: userEvents } = await supabase
       .from('user_event')
-      .select('event_id')
+      .select('event_id, role')
       .eq('user_id', userId);
 
     if (userEvents) {
       const eventIds = userEvents.map((ue: any) => ue.event_id);
+      const rolesMap: Record<string, string> = {};
+      userEvents.forEach((ue: any) => {
+        rolesMap[ue.event_id] = ue.role;
+      });
+      setEventRoles(rolesMap);
+      
       const { data: eventsData } = await supabase
         .from('event')
         .select('id, name, slug, banner_url, start_date, city, description, is_public, private_token')
@@ -463,82 +471,135 @@ export default function UserProfile() {
 
           <TabsContent value="events" className="mt-6">
             {isOwnProfile && (
-              <div className="mb-6">
+              <div className="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <CreateEventDialog onEventCreated={fetchProfileData} />
+                <div className="flex gap-2">
+                  <Button 
+                    variant={eventFilter === 'all' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setEventFilter('all')}
+                  >
+                    Tous
+                  </Button>
+                  <Button 
+                    variant={eventFilter === 'organizing' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setEventFilter('organizing')}
+                  >
+                    J'organise
+                  </Button>
+                  <Button 
+                    variant={eventFilter === 'participating' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setEventFilter('participating')}
+                  >
+                    J'y participe
+                  </Button>
+                </div>
               </div>
             )}
             
-            {events.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <CalendarDays className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground mb-4">Aucun événement pour le moment</p>
-                  {isOwnProfile && (
-                    <p className="text-sm text-muted-foreground">
-                      Créez votre premier événement pour commencer à organiser
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {events.map((event) => {
-                  const eventUrl = event.is_public 
-                    ? `/event/${event.slug}` 
-                    : `/event/${event.slug}?token=${event.private_token}`;
-                  return (
-                    <Link key={event.id} to={eventUrl}>
-                      <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-                        <CardContent className="p-4 md:p-6">
-                          <div className="flex flex-col md:flex-row gap-4">
-                            {event.banner_url && (
-                              <img
-                                src={event.banner_url}
-                                alt={event.name}
-                                className="w-full md:w-32 h-48 md:h-32 object-cover rounded-md"
-                              />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="font-semibold text-xl break-words">{event.name}</h3>
-                                <Badge variant={event.is_public ? "secondary" : "outline"} className="flex-shrink-0">
-                                  {event.is_public ? (
-                                    <><Globe className="w-3 h-3 mr-1" />Public</>
-                                  ) : (
-                                    <><Lock className="w-3 h-3 mr-1" />Privé</>
+            {(() => {
+              const filteredEvents = events.filter(event => {
+                const role = eventRoles[event.id];
+                if (eventFilter === 'organizing') {
+                  return ['organizer', 'co_organizer', 'admin'].includes(role);
+                }
+                if (eventFilter === 'participating') {
+                  return role === 'participant';
+                }
+                return true;
+              });
+              
+              if (filteredEvents.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <CalendarDays className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground mb-4">
+                        {eventFilter === 'organizing' 
+                          ? "Vous n'organisez aucun événement"
+                          : eventFilter === 'participating'
+                            ? "Vous ne participez à aucun événement"
+                            : "Aucun événement pour le moment"}
+                      </p>
+                      {isOwnProfile && eventFilter === 'all' && (
+                        <p className="text-sm text-muted-foreground">
+                          Créez votre premier événement pour commencer à organiser
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              return (
+                <div className="grid grid-cols-1 gap-6">
+                  {filteredEvents.map((event) => {
+                    const eventUrl = event.is_public 
+                      ? `/event/${event.slug}` 
+                      : `/event/${event.slug}?token=${event.private_token}`;
+                    const role = eventRoles[event.id];
+                    const isOrganizing = ['organizer', 'co_organizer', 'admin'].includes(role);
+                    return (
+                      <Link key={event.id} to={eventUrl}>
+                        <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+                          <CardContent className="p-4 md:p-6">
+                            <div className="flex flex-col md:flex-row gap-4">
+                              {event.banner_url && (
+                                <img
+                                  src={event.banner_url}
+                                  alt={event.name}
+                                  className="w-full md:w-32 h-48 md:h-32 object-cover rounded-md"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <h3 className="font-semibold text-xl break-words">{event.name}</h3>
+                                  <Badge variant={event.is_public ? "secondary" : "outline"} className="flex-shrink-0">
+                                    {event.is_public ? (
+                                      <><Globe className="w-3 h-3 mr-1" />Public</>
+                                    ) : (
+                                      <><Lock className="w-3 h-3 mr-1" />Privé</>
+                                    )}
+                                  </Badge>
+                                  {isOwnProfile && (
+                                    <Badge variant={isOrganizing ? "default" : "secondary"} className="flex-shrink-0">
+                                      {isOrganizing ? "Organisateur" : "Participant"}
+                                    </Badge>
                                   )}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                                <CalendarDays className="w-4 h-4 flex-shrink-0" />
-                                <span className="break-words">
-                                  {new Date(event.start_date).toLocaleDateString('fr-FR', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric',
-                                  })}
-                                </span>
-                              </div>
-                              {event.city && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                                  <Store className="w-4 h-4 flex-shrink-0" />
-                                  <span className="break-words">{event.city}</span>
                                 </div>
-                              )}
-                              {event.description && (
-                                <p className="text-sm text-muted-foreground line-clamp-2 break-words">
-                                  {event.description}
-                                </p>
-                              )}
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                  <CalendarDays className="w-4 h-4 flex-shrink-0" />
+                                  <span className="break-words">
+                                    {new Date(event.start_date).toLocaleDateString('fr-FR', {
+                                      day: 'numeric',
+                                      month: 'long',
+                                      year: 'numeric',
+                                    })}
+                                  </span>
+                                </div>
+                                {event.city && (
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                    <Store className="w-4 h-4 flex-shrink-0" />
+                                    <span className="break-words">{event.city}</span>
+                                  </div>
+                                )}
+                                {event.description && (
+                                  <p className="text-sm text-muted-foreground line-clamp-2 break-words">
+                                    {event.description}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="tastings" className="mt-6">

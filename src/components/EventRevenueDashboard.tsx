@@ -191,7 +191,7 @@ export function EventRevenueDashboard({ eventId, canManageMembers }: EventRevenu
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2 text-green-600 mb-1">
                   <Euro className="w-4 h-4" />
-                  <span className="text-sm">Revenus nets ({100 - data.platformFeePercent}%)</span>
+                  <span className="text-sm">TTC (net des frais WineNote)</span>
                 </div>
                 <p className="text-2xl font-bold text-green-600">{formatCurrency(data.netRevenue, data.currency)}</p>
               </CardContent>
@@ -210,6 +210,13 @@ export function EventRevenueDashboard({ eventId, canManageMembers }: EventRevenu
               </CardContent>
             </Card>
           </div>
+
+          {/* VAT Notice */}
+          <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+            💡 Les montants affichés sont TTC. La déclaration et le paiement de la TVA 
+            restent à votre charge. Vous pouvez gérer cela depuis votre compte Stripe 
+            ou auprès de votre comptable.
+          </p>
 
           {/* Payments list */}
           {data.payments.length > 0 ? (
