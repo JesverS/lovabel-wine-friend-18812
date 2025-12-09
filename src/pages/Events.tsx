@@ -25,7 +25,7 @@ interface Event {
   start_date: string;
   end_date: string | null;
   city: string | null;
-  address: string | null;
+  address?: string | null;
   banner_url: string | null;
   is_public?: boolean;
   private_token?: string | null;
@@ -57,10 +57,10 @@ const Events = () => {
     setLoading(true);
 
     try {
+      // Utiliser la VIEW event_public_list qui masque automatiquement les champs confidentiels
       let query = supabase
-        .from("event")
-        .select("id, slug, name, description, start_date, end_date, city, address, banner_url")
-        .eq("is_public", true)
+        .from("event_public_list")
+        .select("id, slug, name, description, start_date, end_date, city, banner_url")
         .order("start_date", { ascending: true });
 
       if (searchName.trim()) {
