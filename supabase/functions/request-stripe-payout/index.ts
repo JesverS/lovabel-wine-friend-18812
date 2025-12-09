@@ -37,13 +37,9 @@ serve(async (req) => {
     if (authError || !user) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    const { method, amount, currency = 'eur' } = await req.json();
+    const body = await req.json();
+    const { method, amount, currency = 'eur' } = body;
     logStep("Request body", { method, amount, currency });
-
-    // Validate method
-    if (!['standard', 'instant'].includes(method)) {
-      throw new Error("Invalid payout method. Use 'standard' or 'instant'.");
-    }
 
     // Get user's Stripe account
     const supabaseAdmin = createClient(
@@ -91,7 +87,7 @@ serve(async (req) => {
     const availableAmount = availableBalance.amount; // In cents
     logStep("Available balance", { availableAmount, currency });
 
-    // If no amount specified, return balance info
+    // If no amount specified, return balance info (no method validation needed)
     if (!amount) {
       // Calculate instant payout fee (1.5% with minimum 0.50€)
       const instantFeePercent = 1.5;
@@ -124,6 +120,11 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
+    }
+
+    // Validate method only when creating a payout
+    if (!method || !['standard', 'instant'].includes(method)) {
+      throw new Error("Invalid payout method. Use 'standard' or 'instant'.");
     }
 
     // Convert amount to cents

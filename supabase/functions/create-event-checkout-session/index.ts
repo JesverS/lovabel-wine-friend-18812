@@ -95,9 +95,9 @@ serve(async (req) => {
     }
 
     // Check if user already has access
-    const { data: existingMember } = await supabaseClient
-      .from("event_member")
-      .select("id")
+    const { data: existingMember } = await supabaseAdmin
+      .from("user_event")
+      .select("user_id")
       .eq("event_id", eventId)
       .eq("user_id", user.id)
       .single();
@@ -111,8 +111,8 @@ serve(async (req) => {
 
     // Check max participants
     if (event.max_participants) {
-      const { count } = await supabaseClient
-        .from("event_member")
+      const { count } = await supabaseAdmin
+        .from("user_event")
         .select("*", { count: "exact", head: true })
         .eq("event_id", eventId);
 
