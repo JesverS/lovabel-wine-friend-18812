@@ -309,8 +309,12 @@ const EventDetails = () => {
         title: 'Paiement réussi !',
         description: 'Vous avez maintenant accès à cet événement.',
       });
-      // Remove the payment param from URL
-      const newUrl = window.location.pathname;
+      // Remove only the payment param from URL, preserve token
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('payment');
+      const newUrl = newParams.toString() 
+        ? `${window.location.pathname}?${newParams.toString()}`
+        : window.location.pathname;
       window.history.replaceState({}, '', newUrl);
       // Refresh to update access status
       setHasAccess(true);
@@ -320,7 +324,12 @@ const EventDetails = () => {
         description: 'Votre paiement a été annulé.',
         variant: 'destructive',
       });
-      const newUrl = window.location.pathname;
+      // Remove only the payment param from URL, preserve token
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('payment');
+      const newUrl = newParams.toString() 
+        ? `${window.location.pathname}?${newParams.toString()}`
+        : window.location.pathname;
       window.history.replaceState({}, '', newUrl);
     }
   }, [searchParams]);
@@ -328,16 +337,22 @@ const EventDetails = () => {
   const refetchData = async () => {
     if (!slug) return;
 
-    // Refetch event data
-    const { data: eventData } = await supabase
-      .from("event")
-      .select("*")
-      .eq("slug", slug)
-      .single();
+    // Récupérer le token depuis l'URL pour les événements privés
+    const currentParams = new URLSearchParams(window.location.search);
+    const privateToken = currentParams.get('token');
 
-    if (eventData) {
-      setEvent(eventData);
+    // Utiliser l'Edge Function pour respecter les RLS
+    const { data, error } = await supabase.functions.invoke('get-event-by-slug', {
+      body: { slug, token: privateToken }
+    });
+
+    if (error || !data?.event) {
+      console.error('Error refetching event:', error);
+      return;
     }
+
+    const eventData = data.event;
+    setEvent(eventData);
 
     // Fetch domains
     const { data: eventDomainsData } = await supabase

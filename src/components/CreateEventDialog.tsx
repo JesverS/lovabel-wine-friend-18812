@@ -68,6 +68,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     max_participants: '',
     confidential_address: false,
     confidential_phone: false,
+    confidential_email: false,
     confidential_participant_list: false,
     contact_phone: '',
     contact_email: '',
@@ -162,6 +163,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
           max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
           confidential_address: formData.confidential_address,
           confidential_phone: formData.confidential_phone,
+          confidential_email: formData.confidential_email,
           confidential_participant_list: formData.confidential_participant_list,
           contact_phone: formData.contact_phone || null,
           contact_email: formData.contact_email || null,
@@ -223,6 +225,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
         max_participants: '',
         confidential_address: false,
         confidential_phone: false,
+        confidential_email: false,
         confidential_participant_list: false,
         contact_phone: '',
         contact_email: '',
@@ -429,6 +432,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
             maxParticipants={formData.max_participants}
             confidentialAddress={formData.confidential_address}
             confidentialPhone={formData.confidential_phone}
+            confidentialEmail={formData.confidential_email}
             confidentialParticipantList={formData.confidential_participant_list}
             contactPhone={formData.contact_phone}
             contactEmail={formData.contact_email}
@@ -440,6 +444,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
             onMaxParticipantsChange={(value) => setFormData({ ...formData, max_participants: value })}
             onConfidentialAddressChange={(value) => setFormData({ ...formData, confidential_address: value })}
             onConfidentialPhoneChange={(value) => setFormData({ ...formData, confidential_phone: value })}
+            onConfidentialEmailChange={(value) => setFormData({ ...formData, confidential_email: value })}
             onConfidentialParticipantListChange={(value) => setFormData({ ...formData, confidential_participant_list: value })}
             onContactPhoneChange={(value) => setFormData({ ...formData, contact_phone: value })}
             onContactEmailChange={(value) => setFormData({ ...formData, contact_email: value })}

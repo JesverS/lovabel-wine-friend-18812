@@ -81,8 +81,8 @@ Deno.serve(async (req) => {
 
     // Vérifier que l'utilisateur n'a pas déjà accès
     const { data: existingMember } = await supabase
-      .from('event_member')
-      .select('id')
+      .from('user_event')
+      .select('user_id')
       .eq('event_id', event_id)
       .eq('user_id', user.id)
       .single();

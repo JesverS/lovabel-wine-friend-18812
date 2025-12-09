@@ -61,6 +61,7 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
   const [maxParticipants, setMaxParticipants] = useState('');
   const [confidentialAddress, setConfidentialAddress] = useState(false);
   const [confidentialPhone, setConfidentialPhone] = useState(false);
+  const [confidentialEmail, setConfidentialEmail] = useState(false);
   const [confidentialParticipantList, setConfidentialParticipantList] = useState(false);
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -129,6 +130,7 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
         setMaxParticipants(data.max_participants?.toString() || '');
         setConfidentialAddress(data.confidential_address || false);
         setConfidentialPhone(data.confidential_phone || false);
+        setConfidentialEmail((data as any).confidential_email || false);
         setConfidentialParticipantList(data.confidential_participant_list || false);
         setContactPhone((data as any).contact_phone || '');
         setContactEmail((data as any).contact_email || '');
@@ -216,6 +218,7 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
           max_participants: maxParticipants ? parseInt(maxParticipants, 10) : null,
           confidential_address: confidentialAddress,
           confidential_phone: confidentialPhone,
+          confidential_email: confidentialEmail,
           confidential_participant_list: confidentialParticipantList,
           contact_phone: contactPhone || null,
           contact_email: contactEmail || null,
@@ -450,6 +453,7 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
             maxParticipants={maxParticipants}
             confidentialAddress={confidentialAddress}
             confidentialPhone={confidentialPhone}
+            confidentialEmail={confidentialEmail}
             confidentialParticipantList={confidentialParticipantList}
             contactPhone={contactPhone}
             contactEmail={contactEmail}
@@ -459,6 +463,7 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
             onMaxParticipantsChange={setMaxParticipants}
             onConfidentialAddressChange={setConfidentialAddress}
             onConfidentialPhoneChange={setConfidentialPhone}
+            onConfidentialEmailChange={setConfidentialEmail}
             onConfidentialParticipantListChange={setConfidentialParticipantList}
             onContactPhoneChange={setContactPhone}
             onContactEmailChange={setContactEmail}

@@ -64,6 +64,21 @@ serve(async (req) => {
 
       console.log(`Processing payment for event ${eventId}, user ${userId}`);
 
+      // Vérification d'idempotence : vérifier si la session a déjà été traitée
+      const { data: existingPayment } = await supabaseAdmin
+        .from("event_payment")
+        .select("id, status")
+        .eq("stripe_session_id", session.id)
+        .single();
+
+      if (existingPayment?.status === "completed") {
+        console.log(`Session ${session.id} already processed, skipping`);
+        return new Response(JSON.stringify({ received: true, skipped: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Update payment record
       const { error: updateError } = await supabaseAdmin
         .from("event_payment")
@@ -108,6 +123,28 @@ serve(async (req) => {
         console.log(`User ${userId} added as paid participant to event ${eventId}`);
       } else {
         console.log(`User ${userId} already exists in event ${eventId}`);
+      }
+    }
+
+    // Gérer les sessions de checkout expirées
+    if (event.type === "checkout.session.expired") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      
+      console.log(`Checkout session expired: ${session.id}`);
+
+      // Mettre à jour le paiement comme expiré
+      const { error: updateError } = await supabaseAdmin
+        .from("event_payment")
+        .update({
+          status: "expired",
+        })
+        .eq("stripe_session_id", session.id)
+        .eq("status", "pending");
+
+      if (updateError) {
+        console.error("Error updating expired payment:", updateError);
+      } else {
+        console.log(`Payment for session ${session.id} marked as expired`);
       }
     }
 
