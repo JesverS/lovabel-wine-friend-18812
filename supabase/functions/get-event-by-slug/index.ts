@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Récupérer l'événement
+    // Récupérer l'événement avec SERVICE_ROLE_KEY (bypass RLS)
     const { data: eventData, error: eventError } = await supabase
       .from('event')
       .select('*')
@@ -37,10 +37,50 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Cas 1 : L'événement est public
+    // Cas 1 : L'événement est public - vérifier l'accès utilisateur pour les champs confidentiels
     if (eventData.is_public) {
+      // Déterminer si l'utilisateur a accès aux infos confidentielles
+      let hasConfidentialAccess = false;
+      
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        const authToken = authHeader.replace('Bearer ', '');
+        const { data: { user: authUser } } = await supabase.auth.getUser(authToken);
+        
+        if (authUser) {
+          // L'organisateur a toujours accès
+          if (eventData.organizer_id === authUser.id) {
+            hasConfidentialAccess = true;
+          } else {
+            // Vérifier si membre de l'événement
+            const { data: membership } = await supabase
+              .from('user_event')
+              .select('user_id')
+              .eq('event_id', eventData.id)
+              .eq('user_id', authUser.id)
+              .single();
+            
+            hasConfidentialAccess = !!membership;
+          }
+        }
+      }
+
+      // Masquer les champs confidentiels si pas d'accès
+      const safeEventData = { ...eventData };
+      if (!hasConfidentialAccess) {
+        if (eventData.confidential_address) {
+          safeEventData.address = null;
+        }
+        if (eventData.confidential_phone) {
+          safeEventData.contact_phone = null;
+        }
+        if (eventData.confidential_email) {
+          safeEventData.contact_email = null;
+        }
+      }
+
       return new Response(
-        JSON.stringify({ event: eventData }),
+        JSON.stringify({ event: safeEventData }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -62,9 +102,45 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Token valide
+    // Token valide pour événement privé - même logique de masquage
+    let hasConfidentialAccess = false;
+    
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      const authToken = authHeader.replace('Bearer ', '');
+      const { data: { user: authUser } } = await supabase.auth.getUser(authToken);
+      
+      if (authUser) {
+        if (eventData.organizer_id === authUser.id) {
+          hasConfidentialAccess = true;
+        } else {
+          const { data: membership } = await supabase
+            .from('user_event')
+            .select('user_id')
+            .eq('event_id', eventData.id)
+            .eq('user_id', authUser.id)
+            .single();
+          
+          hasConfidentialAccess = !!membership;
+        }
+      }
+    }
+
+    const safeEventData = { ...eventData };
+    if (!hasConfidentialAccess) {
+      if (eventData.confidential_address) {
+        safeEventData.address = null;
+      }
+      if (eventData.confidential_phone) {
+        safeEventData.contact_phone = null;
+      }
+      if (eventData.confidential_email) {
+        safeEventData.contact_email = null;
+      }
+    }
+
     return new Response(
-      JSON.stringify({ event: eventData }),
+      JSON.stringify({ event: safeEventData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

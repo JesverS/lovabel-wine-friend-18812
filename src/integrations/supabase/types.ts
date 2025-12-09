@@ -428,6 +428,7 @@ export type Database = {
           city: string | null
           confidential_address: boolean | null
           confidential_documents: string[] | null
+          confidential_email: boolean | null
           confidential_participant_list: boolean | null
           confidential_phone: boolean | null
           contact_email: string | null
@@ -460,6 +461,7 @@ export type Database = {
           city?: string | null
           confidential_address?: boolean | null
           confidential_documents?: string[] | null
+          confidential_email?: boolean | null
           confidential_participant_list?: boolean | null
           confidential_phone?: boolean | null
           contact_email?: string | null
@@ -492,6 +494,7 @@ export type Database = {
           city?: string | null
           confidential_address?: boolean | null
           confidential_documents?: string[] | null
+          confidential_email?: boolean | null
           confidential_participant_list?: boolean | null
           confidential_phone?: boolean | null
           contact_email?: string | null
@@ -585,6 +588,13 @@ export type Database = {
             referencedRelation: "event"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "event_access_request_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_public_list"
+            referencedColumns: ["id"]
+          },
         ]
       }
       event_domain: {
@@ -619,6 +629,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_domaine_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_public_list"
             referencedColumns: ["id"]
           },
         ]
@@ -664,6 +681,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_domaine_vin_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_public_list"
             referencedColumns: ["id"]
           },
           {
@@ -718,6 +742,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_invitation_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_public_list"
             referencedColumns: ["id"]
           },
           {
@@ -795,6 +826,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_payment_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_public_list"
             referencedColumns: ["id"]
           },
         ]
@@ -1418,6 +1456,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_event_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_public_list"
             referencedColumns: ["id"]
           },
           {
@@ -2060,6 +2105,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_wine_notice_event_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_public_list"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_wine_notice_event_user_wine_notice_id_fkey"
             columns: ["user_wine_notice_id"]
             isOneToOne: false
@@ -2263,6 +2315,63 @@ export type Database = {
       }
     }
     Views: {
+      event_public_list: {
+        Row: {
+          access_type: Database["public"]["Enums"]["event_access_type"] | null
+          address: string | null
+          banner_url: string | null
+          category: string | null
+          city: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          currency: string | null
+          description: string | null
+          end_date: string | null
+          id: string | null
+          max_participants: number | null
+          name: string | null
+          price: number | null
+          slug: string | null
+          start_date: string | null
+        }
+        Insert: {
+          access_type?: Database["public"]["Enums"]["event_access_type"] | null
+          address?: never
+          banner_url?: string | null
+          category?: string | null
+          city?: string | null
+          contact_email?: never
+          contact_phone?: never
+          currency?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string | null
+          max_participants?: number | null
+          name?: string | null
+          price?: number | null
+          slug?: string | null
+          start_date?: string | null
+        }
+        Update: {
+          access_type?: Database["public"]["Enums"]["event_access_type"] | null
+          address?: never
+          banner_url?: string | null
+          category?: string | null
+          city?: string | null
+          contact_email?: never
+          contact_phone?: never
+          currency?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string | null
+          max_participants?: number | null
+          name?: string | null
+          price?: number | null
+          slug?: string | null
+          start_date?: string | null
+        }
+        Relationships: []
+      }
       user_profiles_public: {
         Row: {
           address: string | null
