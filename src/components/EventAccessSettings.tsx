@@ -22,6 +22,7 @@ interface EventAccessSettingsProps {
   maxParticipants: string;
   confidentialAddress: boolean;
   confidentialPhone: boolean;
+  confidentialEmail: boolean;
   confidentialParticipantList: boolean;
   contactPhone?: string;
   contactEmail?: string;
@@ -31,6 +32,7 @@ interface EventAccessSettingsProps {
   onMaxParticipantsChange: (value: string) => void;
   onConfidentialAddressChange: (value: boolean) => void;
   onConfidentialPhoneChange: (value: boolean) => void;
+  onConfidentialEmailChange: (value: boolean) => void;
   onConfidentialParticipantListChange: (value: boolean) => void;
   onContactPhoneChange?: (value: string) => void;
   onContactEmailChange?: (value: string) => void;
@@ -46,6 +48,7 @@ export function EventAccessSettings({
   maxParticipants,
   confidentialAddress,
   confidentialPhone,
+  confidentialEmail,
   confidentialParticipantList,
   contactPhone,
   contactEmail,
@@ -55,6 +58,7 @@ export function EventAccessSettings({
   onMaxParticipantsChange,
   onConfidentialAddressChange,
   onConfidentialPhoneChange,
+  onConfidentialEmailChange,
   onConfidentialParticipantListChange,
   onContactPhoneChange,
   onContactEmailChange,
@@ -233,6 +237,20 @@ export function EventAccessSettings({
               id="confidential_phone"
               checked={confidentialPhone}
               onCheckedChange={onConfidentialPhoneChange}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="confidential_email">Email confidentiel</Label>
+              <p className="text-xs text-muted-foreground">
+                L'email de contact ne sera visible qu'après approbation
+              </p>
+            </div>
+            <Switch
+              id="confidential_email"
+              checked={confidentialEmail}
+              onCheckedChange={onConfidentialEmailChange}
             />
           </div>
 
