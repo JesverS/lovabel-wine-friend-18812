@@ -41,29 +41,115 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { payment_id, reason } = body;
+    const { payment_id, member_user_id, event_id, skip_refund, reason } = body;
 
-    if (!payment_id) {
+    // Valider qu'on a soit payment_id, soit member_user_id + event_id
+    if (!payment_id && (!member_user_id || !event_id)) {
       return new Response(
-        JSON.stringify({ error: 'payment_id requis' }),
+        JSON.stringify({ error: 'payment_id ou (member_user_id + event_id) requis' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Récupérer le paiement
-    const { data: payment, error: paymentError } = await supabaseAdmin
-      .from('event_payment')
-      .select('id, stripe_payment_intent_id, amount, currency, user_id, event_id, status')
-      .eq('id', payment_id)
+    let payment = null;
+    let targetUserId: string;
+    let targetEventId: string;
+
+    if (payment_id) {
+      // Mode 1 : récupérer le paiement par ID
+      const { data, error: paymentError } = await supabaseAdmin
+        .from('event_payment')
+        .select('id, stripe_payment_intent_id, amount, currency, user_id, event_id, status')
+        .eq('id', payment_id)
+        .single();
+
+      if (paymentError || !data) {
+        return new Response(
+          JSON.stringify({ error: 'Paiement non trouvé' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      payment = data;
+      targetUserId = payment.user_id;
+      targetEventId = payment.event_id;
+    } else {
+      // Mode 2 : chercher le paiement par member_user_id + event_id
+      const { data: payments } = await supabaseAdmin
+        .from('event_payment')
+        .select('id, stripe_payment_intent_id, amount, currency, user_id, event_id, status')
+        .eq('event_id', event_id)
+        .eq('user_id', member_user_id)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      payment = payments?.[0] || null;
+      targetUserId = member_user_id;
+      targetEventId = event_id;
+    }
+
+    // Vérifier que l'utilisateur a le droit de rembourser (organizer ou co_organizer)
+    const { data: userRole } = await supabaseAdmin
+      .from('user_event')
+      .select('role')
+      .eq('event_id', targetEventId)
+      .eq('user_id', user.id)
       .single();
 
-    if (paymentError || !payment) {
+    if (!userRole || !['organizer', 'co_organizer'].includes(userRole.role)) {
       return new Response(
-        JSON.stringify({ error: 'Paiement non trouvé' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Seuls les organisateurs peuvent effectuer cette action' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Si skip_refund = true, supprimer directement l'accès sans remboursement
+    if (skip_refund) {
+      const { error: deleteError } = await supabaseAdmin
+        .from('user_event')
+        .delete()
+        .eq('event_id', targetEventId)
+        .eq('user_id', targetUserId);
+
+      if (deleteError) {
+        console.error('User event delete error:', deleteError);
+        return new Response(
+          JSON.stringify({ error: 'Erreur lors de la suppression du membre' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Member removed without refund: user ${targetUserId} from event ${targetEventId}`);
+      return new Response(
+        JSON.stringify({ success: true, skipped_refund: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Si pas de paiement trouvé, supprimer le membre sans remboursement
+    if (!payment) {
+      const { error: deleteError } = await supabaseAdmin
+        .from('user_event')
+        .delete()
+        .eq('event_id', targetEventId)
+        .eq('user_id', targetUserId);
+
+      if (deleteError) {
+        console.error('User event delete error:', deleteError);
+        return new Response(
+          JSON.stringify({ error: 'Erreur lors de la suppression du membre' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Member removed (no payment found): user ${targetUserId} from event ${targetEventId}`);
+      return new Response(
+        JSON.stringify({ success: true, no_payment: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Vérifications du paiement pour le remboursement
     if (payment.status === 'refunded') {
       return new Response(
         JSON.stringify({ error: 'Ce paiement a déjà été remboursé' }),
@@ -75,21 +161,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Seuls les paiements complétés peuvent être remboursés' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Vérifier que l'utilisateur a le droit de rembourser (organizer ou co_organizer)
-    const { data: userRole } = await supabaseAdmin
-      .from('user_event')
-      .select('role')
-      .eq('event_id', payment.event_id)
-      .eq('user_id', user.id)
-      .single();
-
-    if (!userRole || !['organizer', 'co_organizer'].includes(userRole.role)) {
-      return new Response(
-        JSON.stringify({ error: 'Seuls les organisateurs peuvent effectuer des remboursements' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -118,7 +189,6 @@ Deno.serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-08-27.basil' });
 
     try {
-      // Rembourser depuis le compte Connect de l'organisateur
       const refund = await stripe.refunds.create({
         payment_intent: payment.stripe_payment_intent_id,
         amount: refundAmountCents,
@@ -146,7 +216,7 @@ Deno.serve(async (req) => {
           refunded_amount: organizerReceived,
         }
       })
-      .eq('id', payment_id);
+      .eq('id', payment.id);
 
     if (updateError) {
       console.error('Payment update error:', updateError);
@@ -160,14 +230,14 @@ Deno.serve(async (req) => {
     const { error: deleteError } = await supabaseAdmin
       .from('user_event')
       .delete()
-      .eq('event_id', payment.event_id)
-      .eq('user_id', payment.user_id);
+      .eq('event_id', targetEventId)
+      .eq('user_id', targetUserId);
 
     if (deleteError) {
       console.error('User event delete error:', deleteError);
     }
 
-    console.log(`Refund successful: payment ${payment_id}, user removed from event`);
+    console.log(`Refund successful: payment ${payment.id}, user removed from event`);
 
     return new Response(
       JSON.stringify({ 
