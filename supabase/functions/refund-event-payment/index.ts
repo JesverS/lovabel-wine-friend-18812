@@ -100,13 +100,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Convertir explicitement en nombre pour éviter NaN
+    const amount = parseFloat(String(payment.amount));
+    
     // Calculer les frais estimés (fourchette haute pour protéger l'organisateur)
-    const estimatedFees = (payment.amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
-    const refundAmount = Math.max(0, payment.amount - estimatedFees);
+    const estimatedFees = (amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
+    const refundAmount = Math.max(0, amount - estimatedFees);
     const refundAmountCents = Math.round(refundAmount * 100);
 
     console.log('Refund calculation:', {
-      originalAmount: payment.amount,
+      originalAmount: amount,
       estimatedFees,
       refundAmount,
       refundAmountCents
@@ -142,7 +145,7 @@ Deno.serve(async (req) => {
         status: 'refunded', 
         refunded_at: new Date().toISOString(),
         metadata: {
-          original_amount: payment.amount,
+          original_amount: amount,
           refunded_amount: refundAmount,
           fees_retained: estimatedFees,
         }
@@ -175,7 +178,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Remboursement effectué avec succès',
-        original_amount: payment.amount,
+        original_amount: amount,
         refunded_amount: refundAmount,
         fees_retained: estimatedFees
       }),

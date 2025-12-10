@@ -1200,10 +1200,7 @@ const EventDetails = () => {
                 {/* Dashboard des revenus pour événements payants */}
                 {canEdit && event.access_type === 'paid' && (
                   <div className="mt-8">
-                    <EventRevenueDashboard 
-                      eventId={event.id} 
-                      canManageMembers={canManageMembers} 
-                    />
+                    <EventRevenueDashboard eventId={event.id} />
                   </div>
                 )}
 

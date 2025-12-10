@@ -60,6 +60,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
   const [deletingItem, setDeletingItem] = useState<{ type: 'member' | 'invitation', id: string, name: string } | null>(null);
   const [memberPayment, setMemberPayment] = useState<PaymentInfo | null>(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const canManageMembers = userRole === 'organizer' || userRole === 'co_organizer';
   const isReadOnly = userRole === null;
@@ -144,16 +145,18 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteMember = async () => {
+  const handleDeleteMember = async (skipRefund: boolean = false) => {
     if (!deletingItem || deletingItem.type !== 'member') return;
 
+    setIsDeleting(true);
     try {
       const { data, error } = await supabase.functions.invoke(
         'remove-event-member',
         { 
           body: { 
             member_user_id: deletingItem.id, 
-            event_id: eventId 
+            event_id: eventId,
+            skip_refund: skipRefund
           } 
         }
       );
@@ -162,6 +165,8 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
 
       if (data?.refunded) {
         toast.success(`Membre supprimé et remboursé (${formatCurrency(data.refund_info?.refunded_amount || 0, 'EUR')})`);
+      } else if (data?.skipped_refund) {
+        toast.success('Membre supprimé sans remboursement');
       } else {
         toast.success('Membre supprimé de l\'événement');
       }
@@ -169,6 +174,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
     } catch (error: any) {
       toast.error('Impossible de supprimer le membre');
     } finally {
+      setIsDeleting(false);
       setDeleteDialogOpen(false);
       setDeletingItem(null);
       setMemberPayment(null);
@@ -421,7 +427,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                     <AlertTriangle className="w-8 h-8 text-destructive" />
                   </div>
                   <AlertDialogTitle className="text-xl">
-                    ⚠️ ATTENTION - REMBOURSEMENT
+                    ⚠️ ATTENTION - Membre payant
                   </AlertDialogTitle>
                 </div>
                 <AlertDialogDescription asChild>
@@ -430,11 +436,9 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                       Cet utilisateur a payé <strong className="text-lg">{formatCurrency(memberPayment.amount, memberPayment.currency)}</strong> pour accéder à l'événement.
                     </p>
                     
-                    <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
-                      <p className="text-destructive font-bold text-lg mb-2">
-                        CET UTILISATEUR SERA AUTOMATIQUEMENT REMBOURSÉ
-                      </p>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Choisissez comment procéder :
+                    </p>
 
                     <div className="bg-muted rounded-lg p-4 space-y-2">
                       <div className="flex items-center justify-between">
@@ -449,7 +453,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-amber-600" />
-                          Frais bancaires perdus (non récupérables) :
+                          Frais bancaires perdus :
                         </span>
                         <strong className="text-amber-600">
                           ~{formatCurrency(calculateRefundFees(memberPayment.amount), memberPayment.currency)}
@@ -457,9 +461,8 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                       </div>
                     </div>
 
-                    <p className="text-sm text-muted-foreground">
-                      Ces frais (~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€) seront déduits de vos revenus.
-                      Cette action est <strong>irréversible</strong>.
+                    <p className="text-xs text-muted-foreground">
+                      Frais estimés : ~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€
                     </p>
                   </div>
                 </AlertDialogDescription>
@@ -479,15 +482,35 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
               </>
             )}
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={deletingItem?.type === 'member' ? handleDeleteMember : handleCancelInvitation}
-              className={memberPayment ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
-              disabled={checkingPayment}
-            >
-              {memberPayment ? 'Confirmer le remboursement' : 'Confirmer'}
-            </AlertDialogAction>
+          <AlertDialogFooter className={memberPayment ? 'flex-col sm:flex-col gap-2' : ''}>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            
+            {deletingItem?.type === 'member' && memberPayment ? (
+              <>
+                <Button
+                  onClick={() => handleDeleteMember(false)}
+                  disabled={isDeleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeleting ? 'Suppression...' : 'Supprimer ET rembourser'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleDeleteMember(true)}
+                  disabled={isDeleting}
+                  className="border-amber-500 text-amber-600 hover:bg-amber-50"
+                >
+                  {isDeleting ? 'Suppression...' : 'Supprimer SANS rembourser'}
+                </Button>
+              </>
+            ) : (
+              <AlertDialogAction
+                onClick={() => deletingItem?.type === 'member' ? handleDeleteMember(false) : handleCancelInvitation()}
+                disabled={checkingPayment || isDeleting}
+              >
+                {isDeleting ? 'Suppression...' : 'Confirmer'}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
