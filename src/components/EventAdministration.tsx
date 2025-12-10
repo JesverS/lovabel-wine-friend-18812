@@ -162,6 +162,12 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       );
       
       if (error) throw error;
+      
+      // Vérifier si l'Edge Function a retourné une erreur
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
 
       if (data?.refunded) {
         toast.success(`Membre supprimé et remboursé (${formatCurrency(data.refund_info?.refunded_amount || 0, 'EUR')})`);
@@ -172,7 +178,9 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       }
       fetchData();
     } catch (error: any) {
-      toast.error('Impossible de supprimer le membre');
+      console.error('Error removing member:', error);
+      const errorMessage = error?.message || 'Impossible de supprimer le membre';
+      toast.error(errorMessage);
     } finally {
       setIsDeleting(false);
       setDeleteDialogOpen(false);

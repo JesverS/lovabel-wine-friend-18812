@@ -98,64 +98,96 @@ serve(async (req) => {
     // Si paiement trouvé et skip_refund n'est pas demandé, effectuer le remboursement via Stripe
     if (payment && payment.stripe_payment_intent_id && !skip_refund) {
       const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
-      if (stripeSecretKey) {
-        try {
-          const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
-          
-          // Convertir explicitement en nombre pour éviter NaN
-          const amount = parseFloat(String(payment.amount));
-          
-          // Calculer les frais estimés (fourchette haute pour protéger l'organisateur)
-          const estimatedFees = (amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
-          const refundAmount = Math.max(0, amount - estimatedFees);
-          const refundAmountCents = Math.round(refundAmount * 100);
+      if (!stripeSecretKey) {
+        console.error('STRIPE_SECRET_KEY not configured');
+        return new Response(
+          JSON.stringify({ error: 'Configuration Stripe manquante. Contactez l\'administrateur.' }), 
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-          console.log('Refund calculation for member removal:', {
-            originalAmount: amount,
-            estimatedFees,
-            refundAmount,
-            refundAmountCents
-          });
-          
-          // Créer le remboursement partiel avec reverse_transfer
-          // Le remboursement est débité du compte Connect de l'organisateur
-          // La différence (marge) reste sur le compte plateforme
-          const refund = await stripe.refunds.create({
-            payment_intent: payment.stripe_payment_intent_id,
-            amount: refundAmountCents, // Remboursement partiel en centimes
-            reverse_transfer: true, // Débite le compte Connect de l'organisateur
-            reason: 'requested_by_customer',
-          });
-          
-          console.log(`Refund created for payment ${payment.id}:`, refund.id);
-          
-          // Mettre à jour le statut du paiement
-          await supabase
-            .from('event_payment')
-            .update({ 
-              status: 'refunded', 
-              refunded_at: new Date().toISOString(),
-              metadata: {
-                refund_id: refund.id,
-                original_amount: amount,
-                refunded_amount: refundAmount,
-                fees_retained: estimatedFees,
-              }
-            })
-            .eq('id', payment.id);
-            
-          console.log(`Payment ${payment.id} marked as refunded`);
-
-          refundInfo = {
-            original_amount: amount,
-            refunded_amount: refundAmount,
-            fees_retained: estimatedFees,
-          };
-        } catch (stripeError) {
-          console.error('Stripe refund error:', stripeError);
-          // Continue avec la suppression même si le remboursement échoue
-          // L'organisateur pourra rembourser manuellement via Stripe Dashboard
+      try {
+        const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
+        
+        // Convertir explicitement en nombre pour éviter NaN
+        const amount = parseFloat(String(payment.amount));
+        
+        if (isNaN(amount) || amount <= 0) {
+          console.error('Invalid payment amount:', payment.amount);
+          return new Response(
+            JSON.stringify({ error: 'Montant de paiement invalide.' }), 
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
+        
+        // Calculer les frais estimés (fourchette haute pour protéger l'organisateur)
+        const estimatedFees = (amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
+        const refundAmount = Math.max(0, amount - estimatedFees);
+        const refundAmountCents = Math.round(refundAmount * 100);
+
+        console.log('Refund calculation for member removal:', {
+          paymentId: payment.id,
+          paymentIntentId: payment.stripe_payment_intent_id,
+          originalAmount: amount,
+          estimatedFees,
+          refundAmount,
+          refundAmountCents
+        });
+        
+        // Créer le remboursement partiel avec reverse_transfer
+        // Le remboursement est débité du compte Connect de l'organisateur
+        // La différence (marge) reste sur le compte plateforme
+        const refund = await stripe.refunds.create({
+          payment_intent: payment.stripe_payment_intent_id,
+          amount: refundAmountCents, // Remboursement partiel en centimes
+          reverse_transfer: true, // Débite le compte Connect de l'organisateur
+          reason: 'requested_by_customer',
+        });
+        
+        console.log(`Refund created successfully:`, {
+          refundId: refund.id,
+          status: refund.status,
+          amount: refund.amount
+        });
+        
+        // Mettre à jour le statut du paiement
+        await supabase
+          .from('event_payment')
+          .update({ 
+            status: 'refunded', 
+            refunded_at: new Date().toISOString(),
+            metadata: {
+              refund_id: refund.id,
+              original_amount: amount,
+              refunded_amount: refundAmount,
+              fees_retained: estimatedFees,
+            }
+          })
+          .eq('id', payment.id);
+          
+        console.log(`Payment ${payment.id} marked as refunded`);
+
+        refundInfo = {
+          original_amount: amount,
+          refunded_amount: refundAmount,
+          fees_retained: estimatedFees,
+        };
+      } catch (stripeError: any) {
+        console.error('Stripe refund error:', {
+          message: stripeError.message,
+          type: stripeError.type,
+          code: stripeError.code,
+          paymentIntentId: payment.stripe_payment_intent_id
+        });
+        
+        // NE PAS continuer avec la suppression - retourner une erreur
+        return new Response(
+          JSON.stringify({ 
+            error: 'Échec du remboursement Stripe. Le membre n\'a pas été supprimé.',
+            details: stripeError.message 
+          }), 
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
