@@ -135,11 +135,11 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       .limit(1);
 
     if (!data || data.length === 0) return null;
-    
+
     // Convertir amount en nombre (Supabase retourne numeric comme string)
     return {
       ...data[0],
-      amount: parseFloat(String(data[0].amount))
+      amount: parseFloat(String(data[0].amount)),
     };
   };
 
@@ -163,7 +163,7 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
 
     setIsDeleting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("remove-event-member", {
+      const { data, error } = await supabase.functions.invoke("refund-event-payment", {
         body: {
           member_user_id: deletingItem.id,
           event_id: eventId,
