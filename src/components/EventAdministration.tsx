@@ -134,7 +134,13 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       .order("created_at", { ascending: false })
       .limit(1);
 
-    return data;
+    if (!data || data.length === 0) return null;
+    
+    // Convertir amount en nombre (Supabase retourne numeric comme string)
+    return {
+      ...data[0],
+      amount: parseFloat(String(data[0].amount))
+    };
   };
 
   const openDeleteDialog = async (type: "member" | "invitation", id: string, name: string) => {
