@@ -1,24 +1,22 @@
-// Configuration des frais de remboursement
-// Ces valeurs doivent correspondre aux secrets Supabase REFUND_FEE_PERCENT et REFUND_FEE_FIXED
-export const REFUND_FEE_PERCENT = 3.5; // 3.5%
-export const REFUND_FEE_FIXED = 0.30; // 0.30€
+// Commission plateforme (même valeur que dans le checkout et l'edge function)
+export const PLATFORM_FEE_PERCENT = 10; // 10%
 
 // Prix minimum pour un événement payant
 export const MIN_EVENT_PRICE = 1.00; // 1€
 
 /**
- * Calcule les frais de remboursement estimés (fourchette haute)
+ * Calcule les frais (commission plateforme) retenus lors d'un remboursement
  */
 export function calculateRefundFees(amount: number): number {
-  return (amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
+  return amount * (PLATFORM_FEE_PERCENT / 100);
 }
 
 /**
  * Calcule le montant qui sera remboursé au participant
+ * (ce que l'organisateur a reçu = montant original - commission plateforme)
  */
 export function calculateRefundAmount(amount: number): number {
-  const fees = calculateRefundFees(amount);
-  return Math.max(0, amount - fees);
+  return amount * (1 - PLATFORM_FEE_PERCENT / 100);
 }
 
 /**
