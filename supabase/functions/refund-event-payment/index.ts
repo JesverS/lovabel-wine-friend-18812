@@ -6,9 +6,8 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 
-// Configuration des frais de remboursement (configurable via secrets)
-const DEFAULT_REFUND_FEE_PERCENT = 3.5;
-const DEFAULT_REFUND_FEE_FIXED = 0.30;
+// Commission plateforme (même valeur que dans le checkout)
+const PLATFORM_FEE_PERCENT = 10;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -16,12 +15,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Récupérer les frais configurables
-    const REFUND_FEE_PERCENT = parseFloat(Deno.env.get('REFUND_FEE_PERCENT') || String(DEFAULT_REFUND_FEE_PERCENT));
-    const REFUND_FEE_FIXED = parseFloat(Deno.env.get('REFUND_FEE_FIXED') || String(DEFAULT_REFUND_FEE_FIXED));
-    
-    console.log('Refund fee config:', { REFUND_FEE_PERCENT, REFUND_FEE_FIXED });
-
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -100,18 +93,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Convertir explicitement en nombre pour éviter NaN
-    const amount = parseFloat(String(payment.amount));
+    // Montant original payé par le client
+    const originalAmount = parseFloat(String(payment.amount));
     
-    // Calculer les frais estimés (fourchette haute pour protéger l'organisateur)
-    const estimatedFees = (amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
-    const refundAmount = Math.max(0, amount - estimatedFees);
-    const refundAmountCents = Math.round(refundAmount * 100);
+    if (isNaN(originalAmount) || originalAmount <= 0) {
+      return new Response(
+        JSON.stringify({ error: 'Montant de paiement invalide' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Rembourser uniquement ce que l'organisateur a reçu (montant - commission plateforme)
+    const organizerReceived = originalAmount * (1 - PLATFORM_FEE_PERCENT / 100);
+    const refundAmountCents = Math.round(organizerReceived * 100);
 
     console.log('Refund calculation:', {
-      originalAmount: amount,
-      estimatedFees,
-      refundAmount,
+      originalAmount,
+      platformFeePercent: PLATFORM_FEE_PERCENT,
+      organizerReceived,
       refundAmountCents
     });
 
@@ -119,17 +118,15 @@ Deno.serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-08-27.basil' });
 
     try {
-      // Créer le remboursement partiel avec reverse_transfer
-      // Le remboursement est débité du compte Connect de l'organisateur
-      // La différence (marge) reste sur le compte plateforme
+      // Rembourser depuis le compte Connect de l'organisateur
       const refund = await stripe.refunds.create({
         payment_intent: payment.stripe_payment_intent_id,
-        amount: refundAmountCents, // Remboursement partiel en centimes
-        reverse_transfer: true, // Débite le compte Connect de l'organisateur
+        amount: refundAmountCents,
+        reverse_transfer: true,
         reason: reason || 'requested_by_customer',
       });
 
-      console.log('Stripe refund created:', refund.id, 'amount:', refundAmountCents);
+      console.log('Refund created:', { refundId: refund.id, amount: refund.amount });
     } catch (stripeError: any) {
       console.error('Stripe refund error:', stripeError);
       return new Response(
@@ -138,16 +135,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Mettre à jour le statut du paiement avec les détails du remboursement
+    // Mettre à jour le statut du paiement
     const { error: updateError } = await supabaseAdmin
       .from('event_payment')
       .update({ 
         status: 'refunded', 
         refunded_at: new Date().toISOString(),
         metadata: {
-          original_amount: amount,
-          refunded_amount: refundAmount,
-          fees_retained: estimatedFees,
+          original_amount: originalAmount,
+          refunded_amount: organizerReceived,
         }
       })
       .eq('id', payment_id);
@@ -169,18 +165,16 @@ Deno.serve(async (req) => {
 
     if (deleteError) {
       console.error('User event delete error:', deleteError);
-      // Ne pas échouer car le remboursement est fait
     }
 
-    console.log(`Refund successful: payment ${payment_id}, user ${payment.user_id} removed from event ${payment.event_id}`);
+    console.log(`Refund successful: payment ${payment_id}, user removed from event`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Remboursement effectué avec succès',
-        original_amount: amount,
-        refunded_amount: refundAmount,
-        fees_retained: estimatedFees
+        original_amount: originalAmount,
+        refunded_amount: organizerReceived
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
