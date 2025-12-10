@@ -21,6 +21,7 @@ import { ImageCropDialog } from './ImageCropDialog';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { CellarAutocomplete } from './CellarAutocomplete';
 import { EventAccessSettings } from './EventAccessSettings';
+import { MIN_EVENT_PRICE } from '@/lib/refundUtils';
 
 interface CreateEventDialogProps {
   onEventCreated?: () => void;
@@ -129,10 +130,10 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
     if (!user) return;
 
     // Validation pour les événements payants
-    if (formData.access_type === 'paid' && (!formData.price || parseFloat(formData.price) <= 0)) {
+    if (formData.access_type === 'paid' && (!formData.price || parseFloat(formData.price) < MIN_EVENT_PRICE)) {
       toast({
         title: 'Prix requis',
-        description: 'Veuillez définir un prix supérieur à 0 pour un événement payant.',
+        description: `Le prix minimum pour un événement payant est de ${MIN_EVENT_PRICE.toFixed(2)} €.`,
         variant: 'destructive',
       });
       return;

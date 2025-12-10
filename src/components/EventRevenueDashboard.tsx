@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Link } from 'react-router-dom';
+import { calculateRefundAmount, calculateRefundFees, REFUND_FEE_PERCENT, REFUND_FEE_FIXED } from '@/lib/refundUtils';
 
 interface Payment {
   id: string;
@@ -95,7 +96,7 @@ export function EventRevenueDashboard({ eventId, canManageMembers }: EventRevenu
   const handleRefund = async (payment: Payment) => {
     setRefundingId(payment.id);
     
-    const { error } = await supabase.functions.invoke('refund-event-payment', {
+    const { data: refundData, error } = await supabase.functions.invoke('refund-event-payment', {
       body: { payment_id: payment.id }
     });
 
@@ -106,9 +107,10 @@ export function EventRevenueDashboard({ eventId, canManageMembers }: EventRevenu
         variant: 'destructive',
       });
     } else {
+      const refundedAmount = refundData?.refunded_amount || calculateRefundAmount(payment.amount);
       toast({
         title: 'Remboursement effectué',
-        description: `${payment.user?.full_name || 'Utilisateur'} a été remboursé et retiré de l'événement`,
+        description: `${payment.user?.full_name || 'Utilisateur'} a été remboursé de ${formatCurrency(refundedAmount, payment.currency)} et retiré de l'événement`,
       });
       fetchRevenue();
     }
@@ -279,17 +281,55 @@ export function EventRevenueDashboard({ eventId, canManageMembers }: EventRevenu
       <AlertDialog open={!!confirmRefund} onOpenChange={() => setConfirmRefund(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              Confirmer le remboursement
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Vous êtes sur le point de rembourser <strong>{confirmRefund?.user?.full_name || 'cet utilisateur'}</strong> 
-              pour un montant de <strong>{confirmRefund && formatCurrency(confirmRefund.amount, confirmRefund.currency)}</strong>.
-              <br /><br />
-              <span className="text-destructive font-medium">
-                Cette action est irréversible. L'utilisateur sera automatiquement retiré de l'événement.
-              </span>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 rounded-full bg-destructive/10">
+                <AlertTriangle className="w-8 h-8 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-xl">
+                Confirmer le remboursement
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>
+                  Vous êtes sur le point de rembourser <strong>{confirmRefund?.user?.full_name || 'cet utilisateur'}</strong>.
+                </p>
+                
+                {confirmRefund && (
+                  <div className="bg-muted rounded-lg p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span>Montant initial payé :</span>
+                      <strong>{formatCurrency(confirmRefund.amount, confirmRefund.currency)}</strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Euro className="w-4 h-4 text-green-600" />
+                        Montant remboursé au participant :
+                      </span>
+                      <strong className="text-green-600">
+                        {formatCurrency(calculateRefundAmount(confirmRefund.amount), confirmRefund.currency)}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        Frais bancaires perdus :
+                      </span>
+                      <strong className="text-amber-600">
+                        ~{formatCurrency(calculateRefundFees(confirmRefund.amount), confirmRefund.currency)}
+                      </strong>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-sm text-muted-foreground">
+                  Ces frais (~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€) seront déduits de vos revenus.
+                </p>
+                
+                <p className="text-destructive font-medium">
+                  Cette action est irréversible. L'utilisateur sera automatiquement retiré de l'événement.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -298,7 +338,7 @@ export function EventRevenueDashboard({ eventId, canManageMembers }: EventRevenu
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => confirmRefund && handleRefund(confirmRefund)}
             >
-              Rembourser
+              Confirmer le remboursement
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

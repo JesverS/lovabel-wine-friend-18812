@@ -11,6 +11,7 @@ import {
 import { Info, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { MIN_EVENT_PRICE, calculateRefundAmount, REFUND_FEE_PERCENT, REFUND_FEE_FIXED } from '@/lib/refundUtils';
 
 // Frais plateforme (inclut Stripe ~2.9% + frais plateforme)
 const PLATFORM_FEE_PERCENT = 10;
@@ -124,14 +125,14 @@ export function EventAccessSettings({
                 id="price"
                 type="number"
                 step="0.01"
-                min="0.01"
+                min={MIN_EVENT_PRICE}
                 value={price}
                 onChange={(e) => onPriceChange(e.target.value)}
                 placeholder="10.00"
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Le prix minimum est de 0.01
+                Le prix minimum est de {MIN_EVENT_PRICE.toFixed(2)} €
               </p>
             </div>
             <div className="space-y-2">
@@ -154,7 +155,7 @@ export function EventAccessSettings({
             <div className="border border-border rounded-md p-3 bg-background">
               <div className="flex items-start gap-2">
                 <Info className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <div className="space-y-1 text-sm">
+                <div className="space-y-2 text-sm">
                   <p className="text-muted-foreground">
                     Prix affiché aux participants : <strong className="text-foreground">{parseFloat(price).toFixed(2)} {currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£'}</strong>
                   </p>
@@ -162,6 +163,13 @@ export function EventAccessSettings({
                     Vous recevrez environ : <strong className="text-green-600">{(parseFloat(price) * (1 - PLATFORM_FEE_PERCENT / 100)).toFixed(2)} {currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£'}</strong>
                     <span className="text-xs ml-1">(après frais de service de {PLATFORM_FEE_PERCENT}%)</span>
                   </p>
+                  <div className="border-t pt-2 mt-2">
+                    <p className="text-muted-foreground text-xs">
+                      <AlertTriangle className="w-3 h-3 inline mr-1 text-amber-500" />
+                      En cas de remboursement, le participant recevra environ <strong>{calculateRefundAmount(parseFloat(price)).toFixed(2)} {currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£'}</strong>
+                      <span className="ml-1">(~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€ de frais bancaires déduits)</span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

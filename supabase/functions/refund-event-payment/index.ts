@@ -6,12 +6,22 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 
+// Configuration des frais de remboursement (configurable via secrets)
+const DEFAULT_REFUND_FEE_PERCENT = 3.5;
+const DEFAULT_REFUND_FEE_FIXED = 0.30;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Récupérer les frais configurables
+    const REFUND_FEE_PERCENT = parseFloat(Deno.env.get('REFUND_FEE_PERCENT') || String(DEFAULT_REFUND_FEE_PERCENT));
+    const REFUND_FEE_FIXED = parseFloat(Deno.env.get('REFUND_FEE_FIXED') || String(DEFAULT_REFUND_FEE_FIXED));
+    
+    console.log('Refund fee config:', { REFUND_FEE_PERCENT, REFUND_FEE_FIXED });
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -50,7 +60,7 @@ Deno.serve(async (req) => {
     // Récupérer le paiement
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from('event_payment')
-      .select('id, stripe_payment_intent_id, amount, user_id, event_id, status')
+      .select('id, stripe_payment_intent_id, amount, currency, user_id, event_id, status')
       .eq('id', payment_id)
       .single();
 
@@ -90,16 +100,33 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Calculer les frais estimés (fourchette haute pour protéger l'organisateur)
+    const estimatedFees = (payment.amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
+    const refundAmount = Math.max(0, payment.amount - estimatedFees);
+    const refundAmountCents = Math.round(refundAmount * 100);
+
+    console.log('Refund calculation:', {
+      originalAmount: payment.amount,
+      estimatedFees,
+      refundAmount,
+      refundAmountCents
+    });
+
     // Effectuer le remboursement Stripe
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-08-27.basil' });
 
     try {
+      // Créer le remboursement partiel avec reverse_transfer
+      // Le remboursement est débité du compte Connect de l'organisateur
+      // La différence (marge) reste sur le compte plateforme
       const refund = await stripe.refunds.create({
         payment_intent: payment.stripe_payment_intent_id,
+        amount: refundAmountCents, // Remboursement partiel en centimes
+        reverse_transfer: true, // Débite le compte Connect de l'organisateur
         reason: reason || 'requested_by_customer',
       });
 
-      console.log('Stripe refund created:', refund.id);
+      console.log('Stripe refund created:', refund.id, 'amount:', refundAmountCents);
     } catch (stripeError: any) {
       console.error('Stripe refund error:', stripeError);
       return new Response(
@@ -108,12 +135,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Mettre à jour le statut du paiement
+    // Mettre à jour le statut du paiement avec les détails du remboursement
     const { error: updateError } = await supabaseAdmin
       .from('event_payment')
       .update({ 
         status: 'refunded', 
-        refunded_at: new Date().toISOString() 
+        refunded_at: new Date().toISOString(),
+        metadata: {
+          original_amount: payment.amount,
+          refunded_amount: refundAmount,
+          fees_retained: estimatedFees,
+        }
       })
       .eq('id', payment_id);
 
@@ -140,7 +172,13 @@ Deno.serve(async (req) => {
     console.log(`Refund successful: payment ${payment_id}, user ${payment.user_id} removed from event ${payment.event_id}`);
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Remboursement effectué avec succès' }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Remboursement effectué avec succès',
+        original_amount: payment.amount,
+        refunded_amount: refundAmount,
+        fees_retained: estimatedFees
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

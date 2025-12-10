@@ -7,6 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Configuration des frais de remboursement (configurable via secrets)
+const DEFAULT_REFUND_FEE_PERCENT = 3.5;
+const DEFAULT_REFUND_FEE_FIXED = 0.30;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,6 +20,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Récupérer les frais configurables
+    const REFUND_FEE_PERCENT = parseFloat(Deno.env.get('REFUND_FEE_PERCENT') || String(DEFAULT_REFUND_FEE_PERCENT));
+    const REFUND_FEE_FIXED = parseFloat(Deno.env.get('REFUND_FEE_FIXED') || String(DEFAULT_REFUND_FEE_FIXED));
 
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '');
@@ -85,6 +93,8 @@ serve(async (req) => {
       .eq('status', 'completed')
       .single();
 
+    let refundInfo = null;
+
     // Si paiement trouvé, effectuer le remboursement via Stripe
     if (payment && payment.stripe_payment_intent_id) {
       const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
@@ -92,24 +102,52 @@ serve(async (req) => {
         try {
           const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
           
-          // Effectuer le remboursement
-          await stripe.refunds.create({
+          // Calculer les frais estimés (fourchette haute pour protéger l'organisateur)
+          const estimatedFees = (payment.amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
+          const refundAmount = Math.max(0, payment.amount - estimatedFees);
+          const refundAmountCents = Math.round(refundAmount * 100);
+
+          console.log('Refund calculation for member removal:', {
+            originalAmount: payment.amount,
+            estimatedFees,
+            refundAmount,
+            refundAmountCents
+          });
+          
+          // Créer le remboursement partiel avec reverse_transfer
+          // Le remboursement est débité du compte Connect de l'organisateur
+          // La différence (marge) reste sur le compte plateforme
+          const refund = await stripe.refunds.create({
             payment_intent: payment.stripe_payment_intent_id,
+            amount: refundAmountCents, // Remboursement partiel en centimes
+            reverse_transfer: true, // Débite le compte Connect de l'organisateur
             reason: 'requested_by_customer',
           });
           
-          console.log(`Refund created for payment ${payment.id}`);
+          console.log(`Refund created for payment ${payment.id}:`, refund.id);
           
           // Mettre à jour le statut du paiement
           await supabase
             .from('event_payment')
             .update({ 
               status: 'refunded', 
-              refunded_at: new Date().toISOString() 
+              refunded_at: new Date().toISOString(),
+              metadata: {
+                refund_id: refund.id,
+                original_amount: payment.amount,
+                refunded_amount: refundAmount,
+                fees_retained: estimatedFees,
+              }
             })
             .eq('id', payment.id);
             
           console.log(`Payment ${payment.id} marked as refunded`);
+
+          refundInfo = {
+            original_amount: payment.amount,
+            refunded_amount: refundAmount,
+            fees_retained: estimatedFees,
+          };
         } catch (stripeError) {
           console.error('Stripe refund error:', stripeError);
           // Continue avec la suppression même si le remboursement échoue
@@ -128,7 +166,11 @@ serve(async (req) => {
     if (error) throw error;
 
     return new Response(
-      JSON.stringify({ success: true, refunded: !!payment }), 
+      JSON.stringify({ 
+        success: true, 
+        refunded: !!refundInfo,
+        refund_info: refundInfo
+      }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

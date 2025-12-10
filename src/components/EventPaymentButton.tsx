@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CreditCard, Loader2 } from 'lucide-react';
+import { CreditCard, Loader2, AlertTriangle } from 'lucide-react';
+import { calculateRefundAmount, REFUND_FEE_PERCENT, REFUND_FEE_FIXED, formatCurrency } from '@/lib/refundUtils';
 
 interface EventPaymentButtonProps {
   eventId: string;
@@ -28,6 +29,8 @@ export function EventPaymentButton({
       currency: curr,
     }).format(amount);
   };
+
+  const estimatedRefund = calculateRefundAmount(price);
 
   const handlePayment = async () => {
     setLoading(true);
@@ -69,23 +72,42 @@ export function EventPaymentButton({
   };
 
   return (
-    <Button
-      onClick={handlePayment}
-      disabled={disabled || loading}
-      className="w-full"
-      size="lg"
-    >
-      {loading ? (
-        <>
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          Redirection...
-        </>
-      ) : (
-        <>
-          <CreditCard className="w-4 h-4 mr-2" />
-          Payer {formatPrice(price, currency)} pour accéder
-        </>
-      )}
-    </Button>
+    <div className="space-y-3">
+      <Button
+        onClick={handlePayment}
+        disabled={disabled || loading}
+        className="w-full"
+        size="lg"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Redirection...
+          </>
+        ) : (
+          <>
+            <CreditCard className="w-4 h-4 mr-2" />
+            Payer {formatPrice(price, currency)} pour accéder
+          </>
+        )}
+      </Button>
+      
+      {/* Avertissement sur le remboursement */}
+      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-amber-700 dark:text-amber-400">
+            <p className="font-medium mb-1">Politique de remboursement</p>
+            <p>
+              En cas d'annulation, le remboursement sera diminué des frais bancaires 
+              (~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€).
+            </p>
+            <p className="mt-1">
+              Remboursement estimé : <strong>{formatCurrency(estimatedRefund, currency)}</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
