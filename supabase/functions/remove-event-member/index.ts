@@ -36,7 +36,7 @@ serve(async (req) => {
       );
     }
 
-    const { member_user_id, event_id } = await req.json();
+    const { member_user_id, event_id, skip_refund } = await req.json();
 
     // Vérifier le rôle de l'utilisateur dans l'événement
     const { data: userRole, error: roleError } = await supabase
@@ -95,20 +95,23 @@ serve(async (req) => {
 
     let refundInfo = null;
 
-    // Si paiement trouvé, effectuer le remboursement via Stripe
-    if (payment && payment.stripe_payment_intent_id) {
+    // Si paiement trouvé et skip_refund n'est pas demandé, effectuer le remboursement via Stripe
+    if (payment && payment.stripe_payment_intent_id && !skip_refund) {
       const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
       if (stripeSecretKey) {
         try {
           const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
           
+          // Convertir explicitement en nombre pour éviter NaN
+          const amount = parseFloat(String(payment.amount));
+          
           // Calculer les frais estimés (fourchette haute pour protéger l'organisateur)
-          const estimatedFees = (payment.amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
-          const refundAmount = Math.max(0, payment.amount - estimatedFees);
+          const estimatedFees = (amount * REFUND_FEE_PERCENT / 100) + REFUND_FEE_FIXED;
+          const refundAmount = Math.max(0, amount - estimatedFees);
           const refundAmountCents = Math.round(refundAmount * 100);
 
           console.log('Refund calculation for member removal:', {
-            originalAmount: payment.amount,
+            originalAmount: amount,
             estimatedFees,
             refundAmount,
             refundAmountCents
@@ -134,7 +137,7 @@ serve(async (req) => {
               refunded_at: new Date().toISOString(),
               metadata: {
                 refund_id: refund.id,
-                original_amount: payment.amount,
+                original_amount: amount,
                 refunded_amount: refundAmount,
                 fees_retained: estimatedFees,
               }
@@ -144,7 +147,7 @@ serve(async (req) => {
           console.log(`Payment ${payment.id} marked as refunded`);
 
           refundInfo = {
-            original_amount: payment.amount,
+            original_amount: amount,
             refunded_amount: refundAmount,
             fees_retained: estimatedFees,
           };
@@ -169,6 +172,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         refunded: !!refundInfo,
+        skipped_refund: !!skip_refund,
         refund_info: refundInfo
       }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

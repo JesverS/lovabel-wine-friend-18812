@@ -11,25 +11,13 @@ import {
   Users, 
   RefreshCcw, 
   TrendingUp,
-  AlertTriangle,
   Check,
   Clock,
   Ban
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Link } from 'react-router-dom';
-import { calculateRefundAmount, calculateRefundFees, REFUND_FEE_PERCENT, REFUND_FEE_FIXED } from '@/lib/refundUtils';
 
 interface Payment {
   id: string;
@@ -59,16 +47,9 @@ interface RevenueData {
   currency: string;
 }
 
-interface EventRevenueDashboardProps {
-  eventId: string;
-  canManageMembers: boolean;
-}
-
-export function EventRevenueDashboard({ eventId, canManageMembers }: EventRevenueDashboardProps) {
+export function EventRevenueDashboard({ eventId }: { eventId: string }) {
   const [data, setData] = useState<RevenueData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refundingId, setRefundingId] = useState<string | null>(null);
-  const [confirmRefund, setConfirmRefund] = useState<Payment | null>(null);
 
   const fetchRevenue = async () => {
     setLoading(true);
@@ -92,32 +73,6 @@ export function EventRevenueDashboard({ eventId, canManageMembers }: EventRevenu
   useEffect(() => {
     fetchRevenue();
   }, [eventId]);
-
-  const handleRefund = async (payment: Payment) => {
-    setRefundingId(payment.id);
-    
-    const { data: refundData, error } = await supabase.functions.invoke('refund-event-payment', {
-      body: { payment_id: payment.id }
-    });
-
-    if (error) {
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible d\'effectuer le remboursement',
-        variant: 'destructive',
-      });
-    } else {
-      const refundedAmount = refundData?.refunded_amount || calculateRefundAmount(payment.amount);
-      toast({
-        title: 'Remboursement effectué',
-        description: `${payment.user?.full_name || 'Utilisateur'} a été remboursé de ${formatCurrency(refundedAmount, payment.currency)} et retiré de l'événement`,
-      });
-      fetchRevenue();
-    }
-    
-    setRefundingId(null);
-    setConfirmRefund(null);
-  };
 
   const formatCurrency = (amount: number, currency: string = 'EUR') => {
     return new Intl.NumberFormat('fr-FR', { 
@@ -165,184 +120,103 @@ export function EventRevenueDashboard({ eventId, canManageMembers }: EventRevenu
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Euro className="w-5 h-5" />
-            Revenus de l'événement
-          </CardTitle>
-          <Button variant="ghost" size="sm" onClick={fetchRevenue}>
-            <RefreshCcw className="w-4 h-4" />
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Stats cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-muted/30">
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="text-sm">Revenus bruts</span>
-                </div>
-                <p className="text-2xl font-bold">{formatCurrency(data.totalRevenue, data.currency)}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-green-500/10 border-green-500/30">
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2 text-green-600 mb-1">
-                  <Euro className="w-4 h-4" />
-                  <span className="text-sm">TTC (net des frais WineNote)</span>
-                </div>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(data.netRevenue, data.currency)}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-muted/30">
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Users className="w-4 h-4" />
-                  <span className="text-sm">Participants payants</span>
-                </div>
-                <p className="text-2xl font-bold">{data.participantCount}</p>
-                {data.refundedCount > 0 && (
-                  <p className="text-xs text-orange-600">{data.refundedCount} remboursé(s)</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
+          <Euro className="w-5 h-5" />
+          Revenus de l'événement
+        </CardTitle>
+        <Button variant="ghost" size="sm" onClick={fetchRevenue}>
+          <RefreshCcw className="w-4 h-4" />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Stats cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-muted/30">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <TrendingUp className="w-4 h-4" />
+                <span className="text-sm">Revenus bruts</span>
+              </div>
+              <p className="text-2xl font-bold">{formatCurrency(data.totalRevenue, data.currency)}</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-green-500/10 border-green-500/30">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-green-600 mb-1">
+                <Euro className="w-4 h-4" />
+                <span className="text-sm">TTC (net des frais WineNote)</span>
+              </div>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(data.netRevenue, data.currency)}</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-muted/30">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Users className="w-4 h-4" />
+                <span className="text-sm">Participants payants</span>
+              </div>
+              <p className="text-2xl font-bold">{data.participantCount}</p>
+              {data.refundedCount > 0 && (
+                <p className="text-xs text-orange-600">{data.refundedCount} remboursé(s)</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* VAT Notice */}
-          <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-            💡 Les montants affichés sont TTC. La déclaration et le paiement de la TVA 
-            restent à votre charge. Vous pouvez gérer cela depuis votre compte Stripe 
-            ou auprès de votre comptable.
-          </p>
+        {/* VAT Notice */}
+        <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+          💡 Les montants affichés sont TTC. La déclaration et le paiement de la TVA 
+          restent à votre charge. Vous pouvez gérer cela depuis votre compte Stripe 
+          ou auprès de votre comptable.
+        </p>
 
-          {/* Payments list */}
-          {data.payments.length > 0 ? (
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm text-muted-foreground">Historique des paiements</h4>
-              <div className="divide-y rounded-lg border">
-                {data.payments.map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between p-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={payment.user?.logo_adress || undefined} />
-                        <AvatarFallback className="text-xs">
-                          {payment.user?.full_name?.[0] || '?'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        {payment.user?.slug ? (
-                          <Link to={`/user/${payment.user.slug}`} className="font-medium text-sm hover:underline">
-                            {payment.user.full_name || 'Utilisateur'}
-                          </Link>
-                        ) : (
-                          <p className="font-medium text-sm">{payment.user?.full_name || 'Utilisateur'}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(payment.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium">{formatCurrency(payment.amount, payment.currency)}</span>
-                      {getStatusBadge(payment.status)}
-                      
-                      {canManageMembers && payment.status === 'completed' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setConfirmRefund(payment)}
-                          disabled={refundingId === payment.id}
-                        >
-                          <RefreshCcw className={`w-4 h-4 ${refundingId === payment.id ? 'animate-spin' : ''}`} />
-                        </Button>
+        {/* Payments list */}
+        {data.payments.length > 0 ? (
+          <div className="space-y-2">
+            <h4 className="font-medium text-sm text-muted-foreground">Historique des paiements</h4>
+            <div className="divide-y rounded-lg border">
+              {data.payments.map((payment) => (
+                <div key={payment.id} className="flex items-center justify-between p-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={payment.user?.logo_adress || undefined} />
+                      <AvatarFallback className="text-xs">
+                        {payment.user?.full_name?.[0] || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      {payment.user?.slug ? (
+                        <Link to={`/user/${payment.user.slug}`} className="font-medium text-sm hover:underline">
+                          {payment.user.full_name || 'Utilisateur'}
+                        </Link>
+                      ) : (
+                        <p className="font-medium text-sm">{payment.user?.full_name || 'Utilisateur'}</p>
                       )}
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(payment.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Euro className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              <p>Aucun paiement pour le moment</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Refund confirmation dialog */}
-      <AlertDialog open={!!confirmRefund} onOpenChange={() => setConfirmRefund(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 rounded-full bg-destructive/10">
-                <AlertTriangle className="w-8 h-8 text-destructive" />
-              </div>
-              <AlertDialogTitle className="text-xl">
-                Confirmer le remboursement
-              </AlertDialogTitle>
-            </div>
-            <AlertDialogDescription asChild>
-              <div className="space-y-4">
-                <p>
-                  Vous êtes sur le point de rembourser <strong>{confirmRefund?.user?.full_name || 'cet utilisateur'}</strong>.
-                </p>
-                
-                {confirmRefund && (
-                  <div className="bg-muted rounded-lg p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span>Montant initial payé :</span>
-                      <strong>{formatCurrency(confirmRefund.amount, confirmRefund.currency)}</strong>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Euro className="w-4 h-4 text-green-600" />
-                        Montant remboursé au participant :
-                      </span>
-                      <strong className="text-green-600">
-                        {formatCurrency(calculateRefundAmount(confirmRefund.amount), confirmRefund.currency)}
-                      </strong>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-600" />
-                        Frais bancaires perdus :
-                      </span>
-                      <strong className="text-amber-600">
-                        ~{formatCurrency(calculateRefundFees(confirmRefund.amount), confirmRefund.currency)}
-                      </strong>
-                    </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">{formatCurrency(payment.amount, payment.currency)}</span>
+                    {getStatusBadge(payment.status)}
                   </div>
-                )}
-
-                <p className="text-sm text-muted-foreground">
-                  Ces frais (~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€) seront déduits de vos revenus.
-                </p>
-                
-                <p className="text-destructive font-medium">
-                  Cette action est irréversible. L'utilisateur sera automatiquement retiré de l'événement.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => confirmRefund && handleRefund(confirmRefund)}
-            >
-              Confirmer le remboursement
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <Euro className="w-12 h-12 mx-auto mb-2 opacity-30" />
+            <p>Aucun paiement pour le moment</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
