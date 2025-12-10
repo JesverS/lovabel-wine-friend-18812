@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Trash2, Mail, UserCircle, Users } from 'lucide-react';
+import { Trash2, Mail, UserCircle, Users, AlertTriangle, Euro } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import {
@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { calculateRefundAmount, calculateRefundFees, formatCurrency, REFUND_FEE_PERCENT, REFUND_FEE_FIXED } from '@/lib/refundUtils';
 
 interface EventAdministrationProps {
   eventId: string;
@@ -42,6 +43,13 @@ interface Invitation {
   created_at: string;
 }
 
+interface PaymentInfo {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+}
+
 export function EventAdministration({ eventId, userRole }: EventAdministrationProps) {
   const { user } = useAuth();
   const [teamMembers, setTeamMembers] = useState<Member[]>([]);
@@ -50,6 +58,8 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ type: 'member' | 'invitation', id: string, name: string } | null>(null);
+  const [memberPayment, setMemberPayment] = useState<PaymentInfo | null>(null);
+  const [checkingPayment, setCheckingPayment] = useState(false);
 
   const canManageMembers = userRole === 'organizer' || userRole === 'co_organizer';
   const isReadOnly = userRole === null;
@@ -107,6 +117,33 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
     setLoading(false);
   };
 
+  const checkMemberPayment = async (userId: string): Promise<PaymentInfo | null> => {
+    const { data } = await supabase
+      .from('event_payment')
+      .select('id, amount, currency, status')
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .single();
+    
+    return data;
+  };
+
+  const openDeleteDialog = async (type: 'member' | 'invitation', id: string, name: string) => {
+    setDeletingItem({ type, id, name });
+    setMemberPayment(null);
+    
+    // Si c'est un membre, vérifier s'il a un paiement
+    if (type === 'member') {
+      setCheckingPayment(true);
+      const payment = await checkMemberPayment(id);
+      setMemberPayment(payment);
+      setCheckingPayment(false);
+    }
+    
+    setDeleteDialogOpen(true);
+  };
+
   const handleDeleteMember = async () => {
     if (!deletingItem || deletingItem.type !== 'member') return;
 
@@ -123,13 +160,18 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       
       if (error) throw error;
 
-      toast.success('Membre supprimé de l\'événement');
+      if (data?.refunded) {
+        toast.success(`Membre supprimé et remboursé (${formatCurrency(data.refund_info?.refunded_amount || 0, 'EUR')})`);
+      } else {
+        toast.success('Membre supprimé de l\'événement');
+      }
       fetchData();
     } catch (error: any) {
       toast.error('Impossible de supprimer le membre');
     } finally {
       setDeleteDialogOpen(false);
       setDeletingItem(null);
+      setMemberPayment(null);
     }
   };
 
@@ -156,11 +198,6 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       setDeleteDialogOpen(false);
       setDeletingItem(null);
     }
-  };
-
-  const openDeleteDialog = (type: 'member' | 'invitation', id: string, name: string) => {
-    setDeletingItem({ type, id, name });
-    setDeleteDialogOpen(true);
   };
 
   const getRoleLabel = (role: string) => {
@@ -376,19 +413,80 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deletingItem?.type === 'member'
-                ? `Voulez-vous vraiment retirer ${deletingItem.name} de l'événement ?`
-                : `Voulez-vous vraiment annuler l'invitation de ${deletingItem?.name} ?`}
-            </AlertDialogDescription>
+            {/* Dialog spécifique pour les membres payants */}
+            {deletingItem?.type === 'member' && memberPayment ? (
+              <>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 rounded-full bg-destructive/10">
+                    <AlertTriangle className="w-8 h-8 text-destructive" />
+                  </div>
+                  <AlertDialogTitle className="text-xl">
+                    ⚠️ ATTENTION - REMBOURSEMENT
+                  </AlertDialogTitle>
+                </div>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-4">
+                    <p className="text-foreground font-medium">
+                      Cet utilisateur a payé <strong className="text-lg">{formatCurrency(memberPayment.amount, memberPayment.currency)}</strong> pour accéder à l'événement.
+                    </p>
+                    
+                    <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
+                      <p className="text-destructive font-bold text-lg mb-2">
+                        CET UTILISATEUR SERA AUTOMATIQUEMENT REMBOURSÉ
+                      </p>
+                    </div>
+
+                    <div className="bg-muted rounded-lg p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <Euro className="w-4 h-4 text-green-600" />
+                          Montant remboursé au participant :
+                        </span>
+                        <strong className="text-green-600">
+                          {formatCurrency(calculateRefundAmount(memberPayment.amount), memberPayment.currency)}
+                        </strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600" />
+                          Frais bancaires perdus (non récupérables) :
+                        </span>
+                        <strong className="text-amber-600">
+                          ~{formatCurrency(calculateRefundFees(memberPayment.amount), memberPayment.currency)}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">
+                      Ces frais (~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€) seront déduits de vos revenus.
+                      Cette action est <strong>irréversible</strong>.
+                    </p>
+                  </div>
+                </AlertDialogDescription>
+              </>
+            ) : (
+              <>
+                <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {checkingPayment ? (
+                    'Vérification du paiement...'
+                  ) : deletingItem?.type === 'member' ? (
+                    `Voulez-vous vraiment retirer ${deletingItem?.name} de l'événement ?`
+                  ) : (
+                    `Voulez-vous vraiment annuler l'invitation de ${deletingItem?.name} ?`
+                  )}
+                </AlertDialogDescription>
+              </>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={deletingItem?.type === 'member' ? handleDeleteMember : handleCancelInvitation}
+              className={memberPayment ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+              disabled={checkingPayment}
             >
-              Confirmer
+              {memberPayment ? 'Confirmer le remboursement' : 'Confirmer'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

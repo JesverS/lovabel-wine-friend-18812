@@ -82,6 +82,15 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validation du prix minimum pour les événements payants
+    const MIN_EVENT_PRICE = 1.00;
+    if (access_type === 'paid' && (!price || price < MIN_EVENT_PRICE)) {
+      return new Response(
+        JSON.stringify({ error: `Le prix minimum pour un événement payant est de ${MIN_EVENT_PRICE.toFixed(2)} €` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Validation pour les événements payants : vérifier que l'organisateur a un compte Stripe actif
     if (access_type === 'paid') {
       const { data: stripeAccount } = await supabase
