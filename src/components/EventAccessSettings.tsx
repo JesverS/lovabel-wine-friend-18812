@@ -11,10 +11,7 @@ import {
 import { Info, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MIN_EVENT_PRICE, calculateRefundAmount, REFUND_FEE_PERCENT, REFUND_FEE_FIXED } from '@/lib/refundUtils';
-
-// Frais plateforme (inclut Stripe ~2.9% + frais plateforme)
-const PLATFORM_FEE_PERCENT = 10;
+import { MIN_EVENT_PRICE, calculateRefundAmount, PLATFORM_FEE_PERCENT } from '@/lib/refundUtils';
 
 interface EventAccessSettingsProps {
   accessType: 'public' | 'paid' | 'request_based' | 'invite_only';
@@ -167,7 +164,7 @@ export function EventAccessSettings({
                     <p className="text-muted-foreground text-xs">
                       <AlertTriangle className="w-3 h-3 inline mr-1 text-amber-500" />
                       En cas de remboursement, le participant recevra environ <strong>{calculateRefundAmount(parseFloat(price)).toFixed(2)} {currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£'}</strong>
-                      <span className="ml-1">(~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€ de frais bancaires déduits)</span>
+                      <span className="ml-1">({PLATFORM_FEE_PERCENT}% de commission plateforme conservée)</span>
                     </p>
                   </div>
                 </div>

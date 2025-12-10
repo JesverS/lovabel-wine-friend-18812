@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CreditCard, Loader2, AlertTriangle } from 'lucide-react';
-import { calculateRefundAmount, REFUND_FEE_PERCENT, REFUND_FEE_FIXED, formatCurrency } from '@/lib/refundUtils';
+import { calculateRefundAmount, PLATFORM_FEE_PERCENT, formatCurrency } from '@/lib/refundUtils';
 
 interface EventPaymentButtonProps {
   eventId: string;
@@ -99,8 +99,7 @@ export function EventPaymentButton({
           <div className="text-xs text-amber-700 dark:text-amber-400">
             <p className="font-medium mb-1">Politique de remboursement</p>
             <p>
-              En cas d'annulation, le remboursement sera diminué des frais bancaires 
-              (~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€).
+              En cas d'annulation, le remboursement sera diminué de la commission plateforme ({PLATFORM_FEE_PERCENT}%).
             </p>
             <p className="mt-1">
               Remboursement estimé : <strong>{formatCurrency(estimatedRefund, currency)}</strong>

@@ -22,8 +22,7 @@ import {
   calculateRefundAmount,
   calculateRefundFees,
   formatCurrency,
-  REFUND_FEE_PERCENT,
-  REFUND_FEE_FIXED,
+  PLATFORM_FEE_PERCENT,
 } from "@/lib/refundUtils";
 
 interface EventAdministrationProps {
@@ -451,16 +450,16 @@ export function EventAdministration({ eventId, userRole }: EventAdministrationPr
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-amber-600" />
-                          Frais bancaires perdus :
+                          Commission plateforme conservée :
                         </span>
                         <strong className="text-amber-600">
-                          ~{formatCurrency(calculateRefundFees(memberPayment.amount), memberPayment.currency)}
+                          {formatCurrency(calculateRefundFees(memberPayment.amount), memberPayment.currency)}
                         </strong>
                       </div>
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                      Frais estimés : ~{REFUND_FEE_PERCENT}% + {REFUND_FEE_FIXED.toFixed(2)}€
+                      Commission plateforme : {PLATFORM_FEE_PERCENT}%
                     </p>
                   </div>
                 </AlertDialogDescription>
