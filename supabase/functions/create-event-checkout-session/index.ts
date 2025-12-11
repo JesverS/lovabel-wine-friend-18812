@@ -109,35 +109,48 @@ serve(async (req) => {
       });
     }
 
-    // Check max participants
+    // Check for existing pending payment for this user
+    const { data: pendingPayment } = await supabaseAdmin
+      .from("event_payment")
+      .select("id, expires_at")
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .single();
+
+    if (pendingPayment) {
+      return new Response(JSON.stringify({ error: "Vous avez déjà un paiement en cours. Veuillez attendre 30 minutes ou finaliser votre paiement." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check max participants (count confirmed + pending reservations to prevent race conditions)
     if (event.max_participants) {
-      const { count } = await supabaseAdmin
+      // Count confirmed participants
+      const { count: confirmedCount } = await supabaseAdmin
         .from("user_event")
         .select("*", { count: "exact", head: true })
         .eq("event_id", eventId);
 
-      if (count && count >= event.max_participants) {
-        return new Response(JSON.stringify({ error: "L'événement est complet" }), {
+      // Count pending payments (temporary reservations) that are not expired
+      const { count: pendingCount } = await supabaseAdmin
+        .from("event_payment")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString());
+
+      const totalReserved = (confirmedCount || 0) + (pendingCount || 0);
+      logStep("Checking availability", { confirmedCount, pendingCount, totalReserved, maxParticipants: event.max_participants });
+
+      if (totalReserved >= event.max_participants) {
+        return new Response(JSON.stringify({ error: "L'événement est complet ou toutes les places sont en cours de réservation" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-    }
-
-    // Check for pending payment
-    const { data: pendingPayment } = await supabaseClient
-      .from("event_payment")
-      .select("id")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .eq("status", "pending")
-      .single();
-
-    if (pendingPayment) {
-      return new Response(JSON.stringify({ error: "Vous avez déjà un paiement en cours" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -161,6 +174,9 @@ serve(async (req) => {
       hasConnectAccount: !!organizerAccount?.stripe_account_id,
     });
 
+    // Session expires in 30 minutes
+    const expiresAt = Math.floor(Date.now() / 1000) + 30 * 60;
+
     // Build checkout session options
     const sessionOptions: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
@@ -181,6 +197,7 @@ serve(async (req) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: user.email,
+      expires_at: expiresAt,
       metadata: {
         event_id: eventId,
         user_id: user.id,
@@ -204,7 +221,8 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create(sessionOptions);
     logStep("Checkout session created", { sessionId: session.id });
 
-    // Create payment record
+    // Create payment record with 30 minute expiration
+    const paymentExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     const { error: paymentError } = await supabaseAdmin
       .from("event_payment")
       .insert({
@@ -214,7 +232,10 @@ serve(async (req) => {
         currency: event.currency || "EUR",
         status: "pending",
         stripe_session_id: session.id,
+        expires_at: paymentExpiresAt,
       });
+    
+    logStep("Payment record created", { expiresAt: paymentExpiresAt });
 
     if (paymentError) {
       logStep("Error creating payment record", { error: paymentError.message });
