@@ -4,6 +4,9 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CreditCard, Loader2, AlertTriangle } from 'lucide-react';
 import { calculateRefundAmount, PLATFORM_FEE_PERCENT, formatCurrency } from '@/lib/refundUtils';
+import { usePendingPayment } from '@/hooks/usePendingPayment';
+import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface EventPaymentButtonProps {
   eventId: string;
@@ -22,6 +25,17 @@ export function EventPaymentButton({
 }: EventPaymentButtonProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  
+  const {
+    hasPendingPayment,
+    pendingData,
+    timeRemaining,
+    isLoading: isPendingLoading,
+    resumePayment,
+    cancelPayment,
+    isCanceling,
+    refetch: refetchPending,
+  } = usePendingPayment(eventId);
 
   const formatPrice = (amount: number, curr: string) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -37,7 +51,6 @@ export function EventPaymentButton({
 
     try {
       const currentUrl = window.location.href;
-      // Utiliser & si l'URL contient déjà des paramètres (ex: ?token=xxx)
       const separator = currentUrl.includes('?') ? '&' : '?';
       const successUrl = `${currentUrl}${separator}payment=success`;
       const cancelUrl = `${currentUrl}${separator}payment=cancelled`;
@@ -66,11 +79,38 @@ export function EventPaymentButton({
         description: error.message || 'Une erreur est survenue lors du paiement.',
         variant: 'destructive',
       });
+      // Refetch pending status in case something changed
+      refetchPending();
     } finally {
       setLoading(false);
     }
   };
 
+  // Loading state
+  if (isPendingLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
+
+  // Show pending payment banner if exists
+  if (hasPendingPayment && pendingData) {
+    return (
+      <PendingPaymentBanner
+        timeRemaining={timeRemaining}
+        amount={pendingData.amount}
+        currency={pendingData.currency}
+        onResume={resumePayment}
+        onCancel={cancelPayment}
+        isCanceling={isCanceling}
+      />
+    );
+  }
+
+  // Normal payment button
   return (
     <div className="space-y-3">
       <Button

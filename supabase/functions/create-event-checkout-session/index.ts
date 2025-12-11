@@ -112,18 +112,45 @@ serve(async (req) => {
     // Check for existing pending payment for this user
     const { data: pendingPayment } = await supabaseAdmin
       .from("event_payment")
-      .select("id, expires_at")
+      .select("id, expires_at, stripe_session_id")
       .eq("event_id", eventId)
       .eq("user_id", user.id)
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString())
       .single();
 
+    // If there's a pending payment, try to return the existing Stripe session URL
     if (pendingPayment) {
-      return new Response(JSON.stringify({ error: "Vous avez déjà un paiement en cours. Veuillez attendre 30 minutes ou finaliser votre paiement." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+        apiVersion: "2025-08-27.basil",
       });
+
+      try {
+        const existingSession = await stripe.checkout.sessions.retrieve(pendingPayment.stripe_session_id);
+        
+        // If session is still open, return its URL
+        if (existingSession.status === 'open' && existingSession.url) {
+          logStep("Returning existing session URL", { sessionId: existingSession.id });
+          return new Response(JSON.stringify({ url: existingSession.url }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        // Session is expired or completed, clean it up
+        logStep("Existing session no longer valid, cleaning up", { status: existingSession.status });
+        await supabaseAdmin
+          .from("event_payment")
+          .delete()
+          .eq("id", pendingPayment.id);
+          
+      } catch (stripeError) {
+        logStep("Error retrieving existing session, cleaning up", { error: stripeError });
+        await supabaseAdmin
+          .from("event_payment")
+          .delete()
+          .eq("id", pendingPayment.id);
+      }
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
