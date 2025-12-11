@@ -126,38 +126,11 @@ serve(async (req) => {
       });
     }
 
-    // Check max participants (count confirmed + pending reservations to prevent race conditions)
-    if (event.max_participants) {
-      // Count confirmed participants
-      const { count: confirmedCount } = await supabaseAdmin
-        .from("user_event")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", eventId);
-
-      // Count pending payments (temporary reservations) that are not expired
-      const { count: pendingCount } = await supabaseAdmin
-        .from("event_payment")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", eventId)
-        .eq("status", "pending")
-        .gt("expires_at", new Date().toISOString());
-
-      const totalReserved = (confirmedCount || 0) + (pendingCount || 0);
-      logStep("Checking availability", { confirmedCount, pendingCount, totalReserved, maxParticipants: event.max_participants });
-
-      if (totalReserved >= event.max_participants) {
-        return new Response(JSON.stringify({ error: "L'événement est complet ou toutes les places sont en cours de réservation" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Get organizer's Stripe Connect account (supabaseAdmin already created above)
+    // Get organizer's Stripe Connect account
     const { data: organizerAccount } = await supabaseAdmin
       .from("organizer_stripe_account")
       .select("stripe_account_id, charges_enabled")
@@ -217,29 +190,56 @@ serve(async (req) => {
       logStep("No Connect account, payment goes to platform");
     }
 
-    // Create Stripe checkout session
+    // Create Stripe checkout session FIRST
     const session = await stripe.checkout.sessions.create(sessionOptions);
     logStep("Checkout session created", { sessionId: session.id });
 
-    // Create payment record with 30 minute expiration
-    const paymentExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-    const { error: paymentError } = await supabaseAdmin
-      .from("event_payment")
-      .insert({
-        event_id: eventId,
-        user_id: user.id,
-        amount: event.price,
-        currency: event.currency || "EUR",
-        status: "pending",
-        stripe_session_id: session.id,
-        expires_at: paymentExpiresAt,
+    // ATOMIC RESERVATION: Use RPC function to reserve spot with FOR UPDATE lock
+    // This prevents race conditions when multiple users try to book the last spot
+    const { data: reservation, error: reservationError } = await supabaseAdmin
+      .rpc('reserve_event_spot', {
+        p_event_id: eventId,
+        p_user_id: user.id,
+        p_stripe_session_id: session.id,
+        p_amount: event.price,
+        p_currency: event.currency || 'EUR'
       });
-    
-    logStep("Payment record created", { expiresAt: paymentExpiresAt });
 
-    if (paymentError) {
-      logStep("Error creating payment record", { error: paymentError.message });
+    // Check if reservation failed
+    if (reservationError) {
+      logStep("Reservation RPC error", { error: reservationError.message });
+      // Expire the Stripe session since we couldn't reserve the spot
+      try {
+        await stripe.checkout.sessions.expire(session.id);
+        logStep("Stripe session expired due to reservation failure");
+      } catch (expireError) {
+        logStep("Failed to expire Stripe session", { error: expireError });
+      }
+      return new Response(JSON.stringify({ error: "Erreur lors de la réservation" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    const reservationResult = reservation?.[0];
+    if (!reservationResult?.success) {
+      logStep("Reservation failed - event full", { result: reservationResult });
+      // Expire the Stripe session since we couldn't reserve the spot
+      try {
+        await stripe.checkout.sessions.expire(session.id);
+        logStep("Stripe session expired - event full");
+      } catch (expireError) {
+        logStep("Failed to expire Stripe session", { error: expireError });
+      }
+      return new Response(JSON.stringify({ 
+        error: reservationResult?.error_message || "L'événement est complet" 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    logStep("Spot reserved atomically", { paymentId: reservationResult.payment_id });
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,

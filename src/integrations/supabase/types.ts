@@ -2504,6 +2504,20 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      reserve_event_spot: {
+        Args: {
+          p_amount: number
+          p_currency?: string
+          p_event_id: string
+          p_stripe_session_id: string
+          p_user_id: string
+        }
+        Returns: {
+          error_message: string
+          payment_id: string
+          success: boolean
+        }[]
+      }
       search_cellar_wines: {
         Args: {
           p_cellar_id: string
