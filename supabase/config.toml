@@ -51,8 +51,8 @@ verify_jwt = true
 [functions.cancel-event-invitation]
 verify_jwt = true
 
-[functions.remove-event-member]
-verify_jwt = true
+[functions.cleanup-expired-payments]
+verify_jwt = false
 
 [functions.setup-stripe-connect-account]
 verify_jwt = true
