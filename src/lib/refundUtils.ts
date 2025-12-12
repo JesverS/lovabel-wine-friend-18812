@@ -1,8 +1,8 @@
 // Commission plateforme (même valeur que dans le checkout et l'edge function)
 export const PLATFORM_FEE_PERCENT = 10; // 10%
 
-// Prix minimum pour un événement payant
-export const MIN_EVENT_PRICE = 1.00; // 1€
+// Prix minimum pour un événement payant (doit couvrir les frais Stripe)
+export const MIN_EVENT_PRICE = 3.00; // 3€
 
 /**
  * Calcule les frais (commission plateforme) retenus lors d'un remboursement

@@ -253,7 +253,16 @@ const EventDetails = () => {
             }
           }
         } else {
-          setHasAccess(true);
+          // Pour les événements publics, vérifier si l'utilisateur a rejoint
+          const { data: memberData } = await supabase
+            .from('user_event')
+            .select('user_id')
+            .eq('event_id', eventData.id)
+            .eq('user_id', user.id)
+            .single();
+
+          // L'utilisateur a accès s'il est organisateur/admin OU s'il a rejoint l'événement
+          setHasAccess(!!memberData || !!role);
         }
       }
 
