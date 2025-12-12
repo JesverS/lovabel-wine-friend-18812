@@ -275,6 +275,7 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
         p_wine_id: wine.id,
         p_event_id: eventId,
         p_liked: newLiked,
+        p_rating: 0,
         p_details: roundedDetails as any,
       });
 
@@ -366,6 +367,7 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
         p_wine_id: wine.id,
         p_event_id: eventId,
         p_liked: liked,
+        p_rating: 0,
         p_details: roundedDetails as any,
       });
 
