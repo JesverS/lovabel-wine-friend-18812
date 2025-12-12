@@ -2595,6 +2595,7 @@ export type Database = {
           p_details: Json
           p_event_id: string
           p_liked: number
+          p_rating: number
           p_user_id: string
           p_wine_id: string
         }
