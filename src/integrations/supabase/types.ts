@@ -899,6 +899,27 @@ export type Database = {
             referencedRelation: "event_payment"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "event_refund_request_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_refund_request_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_refund_request_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
         ]
       }
       game_question: {
