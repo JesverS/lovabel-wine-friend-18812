@@ -20,6 +20,10 @@ import { EventAdministration } from "@/components/EventAdministration";
 import { EventAccessRequestDialog } from "@/components/EventAccessRequestDialog";
 import { EventAccessRequestsManagement } from "@/components/EventAccessRequestsManagement";
 import { EventPaymentButton } from "@/components/EventPaymentButton";
+import { EventJoinButton } from "@/components/EventJoinButton";
+import { LeaveEventSection } from "@/components/LeaveEventSection";
+import { LeaveEventPaidSection } from "@/components/LeaveEventPaidSection";
+import { EventRefundRequestsManagement } from "@/components/EventRefundRequestsManagement";
 import { OrganizerStripeSetup } from "@/components/OrganizerStripeSetup";
 import { EventRevenueDashboard } from "@/components/EventRevenueDashboard";
 import { toast } from "@/hooks/use-toast";
@@ -118,6 +122,9 @@ const EventDetails = () => {
   const [hasAccessRequest, setHasAccessRequest] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
   const [hasPendingPayment, setHasPendingPayment] = useState(false);
+  const [hasPendingRefundRequest, setHasPendingRefundRequest] = useState(false);
+  const [userPaymentAmount, setUserPaymentAmount] = useState<number | null>(null);
+  const [participantsCount, setParticipantsCount] = useState(0);
   const [errorState, setErrorState] = useState<{
     type: 'not_found' | 'access_denied' | null;
     message: string;
@@ -220,11 +227,43 @@ const EventDetails = () => {
               .single();
 
             setHasPendingPayment(!!paymentData);
+
+            // Check for completed payment amount (for leave section)
+            const { data: completedPayment } = await supabase
+              .from('event_payment')
+              .select('amount')
+              .eq('event_id', eventData.id)
+              .eq('user_id', user.id)
+              .eq('status', 'completed')
+              .single();
+
+            if (completedPayment) {
+              setUserPaymentAmount(Number(completedPayment.amount));
+
+              // Check for pending refund request
+              const { data: refundRequest } = await supabase
+                .from('event_refund_request')
+                .select('id')
+                .eq('event_id', eventData.id)
+                .eq('user_id', user.id)
+                .eq('status', 'pending')
+                .single();
+
+              setHasPendingRefundRequest(!!refundRequest);
+            }
           }
         } else {
           setHasAccess(true);
         }
       }
+
+      // Fetch participants count
+      const { count: participantsCount } = await supabase
+        .from('user_event')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', eventData.id);
+
+      setParticipantsCount(participantsCount || 0);
 
       // Fetch domains
       const { data: eventDomainsData } = await supabase
@@ -894,6 +933,30 @@ const EventDetails = () => {
                   <p className="text-lg">{event.description}</p>
                 )}
 
+                {/* Bouton "Je participe" pour les événements publics */}
+                {event.access_type === 'public' && !canEdit && user && !hasAccess && (
+                  <Card className="p-6 bg-primary/5 border-primary/20">
+                    <EventJoinButton
+                      eventId={event.id}
+                      maxParticipants={event.max_participants}
+                      currentParticipants={participantsCount}
+                      onJoined={() => {
+                        setHasAccess(true);
+                        setParticipantsCount(prev => prev + 1);
+                      }}
+                    />
+                  </Card>
+                )}
+
+                {/* Message pour événements publics - utilisateur déjà inscrit */}
+                {event.access_type === 'public' && !canEdit && hasAccess && userRole === 'participant' && (
+                  <Card className="p-6 bg-green-500/10 border-green-500/20">
+                    <p className="text-green-700 dark:text-green-400 font-medium">
+                      ✓ Vous participez à cet événement
+                    </p>
+                  </Card>
+                )}
+
                 {event.access_type === 'request_based' && !canEdit && (
                   <Card className="p-6 bg-primary/5 border-primary/20">
                     <div className="space-y-4">
@@ -1179,6 +1242,16 @@ const EventDetails = () => {
                   </div>
                 )}
 
+                {/* Gestion des demandes de remboursement pour événements payants */}
+                {canManageMembers && event.access_type === 'paid' && (
+                  <div className="mb-8">
+                    <EventRefundRequestsManagement 
+                      eventId={event.id} 
+                      currency={event.currency || 'EUR'} 
+                    />
+                  </div>
+                )}
+
                 {canManageMembers && userRole && (
                   <div className="mb-6">
                     <InviteMemberToEventDialog
@@ -1230,6 +1303,26 @@ const EventDetails = () => {
                       </Button>
                     </div>
                   </Card>
+                )}
+
+                {/* Section quitter pour participants (événements gratuits) */}
+                {userRole === 'participant' && event.access_type !== 'paid' && (
+                  <div className="mt-8">
+                    <LeaveEventSection eventId={event.id} eventName={event.name} />
+                  </div>
+                )}
+
+                {/* Section quitter pour participants (événements payants) */}
+                {userRole === 'participant' && event.access_type === 'paid' && userPaymentAmount && (
+                  <div className="mt-8">
+                    <LeaveEventPaidSection
+                      eventId={event.id}
+                      eventName={event.name}
+                      paidAmount={userPaymentAmount}
+                      currency={event.currency || 'EUR'}
+                      hasPendingRefundRequest={hasPendingRefundRequest}
+                    />
+                  </div>
                 )}
 
                 {canDeleteEvent && (

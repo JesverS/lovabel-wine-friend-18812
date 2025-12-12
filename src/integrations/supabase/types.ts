@@ -837,6 +837,70 @@ export type Database = {
           },
         ]
       }
+      event_refund_request: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          id: string
+          message: string | null
+          payment_id: string
+          processed_at: string | null
+          processed_by: string | null
+          refund_amount: number
+          rejection_reason: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          id?: string
+          message?: string | null
+          payment_id: string
+          processed_at?: string | null
+          processed_by?: string | null
+          refund_amount: number
+          rejection_reason?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          message?: string | null
+          payment_id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          refund_amount?: number
+          rejection_reason?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_refund_request_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_refund_request_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_public_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_refund_request_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: true
+            referencedRelation: "event_payment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_question: {
         Row: {
           answer_type: number
@@ -2504,6 +2568,13 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      join_public_event: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: {
+          error_message: string
+          success: boolean
+        }[]
+      }
       reserve_event_spot: {
         Args: {
           p_amount: number
