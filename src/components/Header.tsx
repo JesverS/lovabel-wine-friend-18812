@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Wine, User, Heart, Menu, LogOut } from "lucide-react";
+import { Wine, User, Heart, Menu, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { GlobalSearchBar } from "@/components/GlobalSearchBar";
 import {
   Sheet,
   SheetContent,
@@ -61,6 +62,7 @@ export const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
+          <GlobalSearchBar />
           <Button variant="ghost" size="icon" className="hidden md:inline-flex">
             <Heart className="h-5 w-5" />
           </Button>

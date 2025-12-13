@@ -309,7 +309,7 @@ export const PostCard = ({ post }: PostCardProps) => {
               </p>
             </div>
             {user?.id === post.user_id && !isEditing && (
-              <>
+              <div className="flex gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -327,7 +327,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                 >
                   <Trash2 className="w-4 h-4 text-destructive" />
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </div>
