@@ -1204,27 +1204,33 @@ export type Database = {
           created_at: string | null
           id: string
           image_url: string | null
+          is_wine_notice: boolean
           updated_at: string | null
           user_id: string
           wine_id: string | null
+          wine_notice: Json | null
         }
         Insert: {
           content?: string | null
           created_at?: string | null
           id?: string
           image_url?: string | null
+          is_wine_notice?: boolean
           updated_at?: string | null
           user_id: string
           wine_id?: string | null
+          wine_notice?: Json | null
         }
         Update: {
           content?: string | null
           created_at?: string | null
           id?: string
           image_url?: string | null
+          is_wine_notice?: boolean
           updated_at?: string | null
           user_id?: string
           wine_id?: string | null
+          wine_notice?: Json | null
         }
         Relationships: [
           {
