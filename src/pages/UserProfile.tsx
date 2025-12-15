@@ -10,7 +10,7 @@ import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock } from 'lucide-react';
+import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,6 +25,7 @@ import { OrganizerStripeSetup } from '@/components/OrganizerStripeSetup';
 import { OrganizerRevenueDashboard } from '@/components/OrganizerRevenueDashboard';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTabsList, TabsTrigger as InnerTabsTrigger } from '@/components/ui/tabs';
+import { FollowDialogs } from '@/components/FollowDialogs';
 
 export default function UserProfile() {
   const { slug } = useParams<{ slug: string }>();
@@ -39,6 +40,11 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [followersDialogOpen, setFollowersDialogOpen] = useState(false);
+  const [followingDialogOpen, setFollowingDialogOpen] = useState(false);
+  const [requestsDialogOpen, setRequestsDialogOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
 
@@ -89,12 +95,24 @@ export default function UserProfile() {
       setCellars(filteredCellars);
     }
 
-    // Fetch followers count
-    const { count } = await supabase
-      .from('user_follow')
-      .select('*', { count: 'exact', head: true })
-      .eq('following_id', userId);
-    setFollowersCount(count || 0);
+    // Fetch follow counts from optimized table
+    const { data: followCounts } = await supabase
+      .from('user_follow_counts')
+      .select('followers_count, following_count')
+      .eq('user_id', userId)
+      .single();
+    setFollowersCount(followCounts?.followers_count || 0);
+    setFollowingCount(followCounts?.following_count || 0);
+
+    // Fetch pending requests count (only for own profile)
+    if (user && user.id === userId) {
+      const { count: pendingCount } = await supabase
+        .from('user_follow')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', userId)
+        .eq('status', 'pending');
+      setPendingRequestsCount(pendingCount || 0);
+    }
 
     // Fetch events (created or participating) WITH roles
     const { data: userEvents } = await supabase
@@ -234,7 +252,35 @@ export default function UserProfile() {
                 </div>
               </div>
               
-              <p className="text-muted-foreground mb-2">{followersCount} abonné(s)</p>
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <button 
+                  onClick={() => setFollowersDialogOpen(true)}
+                  className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                >
+                  <span className="font-semibold text-foreground">{followersCount}</span> abonné(s)
+                </button>
+                <span className="text-muted-foreground">·</span>
+                <button 
+                  onClick={() => setFollowingDialogOpen(true)}
+                  className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                >
+                  <span className="font-semibold text-foreground">{followingCount}</span> abonnement(s)
+                </button>
+                {isOwnProfile && pendingRequestsCount > 0 && (
+                  <>
+                    <span className="text-muted-foreground">·</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setRequestsDialogOpen(true)}
+                      className="h-7 px-2 gap-1"
+                    >
+                      <Users className="w-3 h-3" />
+                      {pendingRequestsCount} demande(s)
+                    </Button>
+                  </>
+                )}
+              </div>
               
               {profile.description && (
                 <p className="text-foreground mb-4 break-words">{profile.description}</p>
@@ -629,6 +675,19 @@ export default function UserProfile() {
       </main>
 
       <Footer />
+      
+      {/* Follow Dialogs */}
+      <FollowDialogs
+        profileId={profile.id}
+        isOwnProfile={isOwnProfile}
+        followersDialogOpen={followersDialogOpen}
+        setFollowersDialogOpen={setFollowersDialogOpen}
+        followingDialogOpen={followingDialogOpen}
+        setFollowingDialogOpen={setFollowingDialogOpen}
+        requestsDialogOpen={requestsDialogOpen}
+        setRequestsDialogOpen={setRequestsDialogOpen}
+        onRequestsUpdated={fetchProfileData}
+      />
     </div>
   );
 }
