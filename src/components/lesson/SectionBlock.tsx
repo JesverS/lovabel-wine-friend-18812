@@ -2,6 +2,8 @@ import TextBlock from "./TextBlock";
 import SubsectionBlock from "./SubsectionBlock";
 import HighlightBlock from "./HighlightBlock";
 import ListBlock from "./ListBlock";
+import TrueFalseGameBlock from "./TrueFalseGameBlock";
+import MapGameBlock from "./MapGameBlock";
 
 interface SectionBlockProps {
   data: {
@@ -44,6 +46,29 @@ export default function SectionBlock({ data }: SectionBlockProps) {
 
             case "list":
               return <ListBlock key={i} items={block.items!} />;
+
+            case "true_false_game":
+              return (
+                <TrueFalseGameBlock
+                  key={i}
+                  title={block.title}
+                  description={block.description}
+                  questions={block.questions}
+                />
+              );
+
+            case "map_game":
+              return (
+                <MapGameBlock
+                  key={i}
+                  title={block.title}
+                  instruction={block.instruction}
+                  map_config={block.map_config}
+                  target={block.target}
+                  feedback={block.feedback}
+                  show_answer_on_fail={block.show_answer_on_fail}
+                />
+              );
 
             default:
               return null;
