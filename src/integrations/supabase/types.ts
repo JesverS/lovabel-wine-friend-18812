@@ -1162,6 +1162,61 @@ export type Database = {
         }
         Relationships: []
       }
+      notification: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: string
+          message: string | null
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message?: string | null
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message?: string | null
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizer_stripe_account: {
         Row: {
           account_status: string
@@ -2529,6 +2584,16 @@ export type Database = {
           p_logo_url: string
           p_longitude: number
           p_name: string
+        }
+        Returns: string
+      }
+      create_notification: {
+        Args: {
+          p_data?: Json
+          p_message?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
         }
         Returns: string
       }

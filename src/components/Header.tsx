@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalSearchBar } from "@/components/GlobalSearchBar";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import {
   Sheet,
   SheetContent,
@@ -63,6 +64,11 @@ export const Header = () => {
 
         <div className="flex items-center gap-3">
           <GlobalSearchBar />
+          {user && (
+            <div className="hidden md:block">
+              <NotificationCenter />
+            </div>
+          )}
           <Button variant="ghost" size="icon" className="hidden md:inline-flex">
             <Heart className="h-5 w-5" />
           </Button>
