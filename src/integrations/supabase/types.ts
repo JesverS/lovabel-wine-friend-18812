@@ -1297,6 +1297,7 @@ export type Database = {
       }
       post: {
         Row: {
+          comment_count: number
           content: string | null
           created_at: string | null
           id: string
@@ -1308,6 +1309,7 @@ export type Database = {
           wine_notice: Json | null
         }
         Insert: {
+          comment_count?: number
           content?: string | null
           created_at?: string | null
           id?: string
@@ -1319,6 +1321,7 @@ export type Database = {
           wine_notice?: Json | null
         }
         Update: {
+          comment_count?: number
           content?: string | null
           created_at?: string | null
           id?: string
