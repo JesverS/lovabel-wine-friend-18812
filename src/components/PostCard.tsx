@@ -38,7 +38,7 @@ export const PostCard = ({ post }: PostCardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [likesCount, setLikesCount] = useState(0);
-  const [commentsCount, setCommentsCount] = useState(0);
+  const [commentsCount, setCommentsCount] = useState(post.comment_count || 0);
   const [isLiked, setIsLiked] = useState(false);
   const [wine, setWine] = useState<any>(null);
   const [author, setAuthor] = useState<any>(null);
@@ -77,12 +77,8 @@ export const PostCard = ({ post }: PostCardProps) => {
       setIsLiked(!!data);
     }
 
-    // Fetch comments count
-    const { count: comments } = await supabase
-      .from('post_comment')
-      .select('*', { count: 'exact', head: true })
-      .eq('post_id', post.id);
-    setCommentsCount(comments || 0);
+    // Comment count is managed by trigger on post.comment_count
+    setCommentsCount(post.comment_count || 0);
 
     // Fetch wine if referenced
     if ((post as any).wine_id) {
