@@ -26,6 +26,7 @@ import { OrganizerRevenueDashboard } from '@/components/OrganizerRevenueDashboar
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTabsList, TabsTrigger as InnerTabsTrigger } from '@/components/ui/tabs';
 import { FollowDialogs } from '@/components/FollowDialogs';
+import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 
 export default function UserProfile() {
   const { slug } = useParams<{ slug: string }>();
@@ -308,6 +309,11 @@ export default function UserProfile() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Section Badges */}
+        <div className="mb-8">
+          <UserBadgesSection userId={profile.id} maxDisplay={8} showViewAll={true} />
         </div>
 
         {/* Navigation mobile et desktop */}
