@@ -13,7 +13,7 @@ interface UserBadgesSectionProps {
 }
 
 export function UserBadgesSection({ userId, maxDisplay = 8, showViewAll = true }: UserBadgesSectionProps) {
-  const { userBadges, loading, stats, newBadges } = useBadges(userId);
+  const { userBadges, loading, stats, newBadges, markBadgeAsNotified } = useBadges(userId);
 
   if (loading) {
     return (
@@ -97,6 +97,7 @@ export function UserBadgesSection({ userId, maxDisplay = 8, showViewAll = true }
               unlockedDate={new Date(ub.unlocked_at)}
               isNew={isNewBadge(ub.badge.id)}
               size="sm"
+              onBadgeSeen={markBadgeAsNotified}
             />
           ))}
           {hasMore && (

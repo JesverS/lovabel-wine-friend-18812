@@ -119,11 +119,7 @@ export function useBadges(userId?: string) {
             .single();
 
           if (badge) {
-            toast.success(`Nouveau badge débloqué : ${badge.name}`, {
-              description: badge.description,
-              icon: badge.icon,
-              duration: 5000,
-            });
+            // La notification système suffit, pas besoin de toast redondant
             fetchBadges();
           }
         }
