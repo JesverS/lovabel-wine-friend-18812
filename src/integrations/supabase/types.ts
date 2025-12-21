@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      badge_definition: {
+        Row: {
+          category: string
+          code: string
+          created_at: string | null
+          criteria: Json
+          description: string
+          icon: string
+          id: string
+          name: string
+          sort_order: number | null
+          tier: string
+          xp_reward: number | null
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string | null
+          criteria: Json
+          description: string
+          icon: string
+          id?: string
+          name: string
+          sort_order?: number | null
+          tier?: string
+          xp_reward?: number | null
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string | null
+          criteria?: Json
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          sort_order?: number | null
+          tier?: string
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
       cellar: {
         Row: {
           banner_url: string | null
@@ -1421,6 +1463,59 @@ export type Database = {
           },
         ]
       }
+      user_badge: {
+        Row: {
+          badge_id: string
+          id: string
+          notified: boolean | null
+          unlocked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          id?: string
+          notified?: boolean | null
+          unlocked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          id?: string
+          notified?: boolean | null
+          unlocked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badge_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badge_definition"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badge_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badge_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badge_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_cellar: {
         Row: {
           created_at: string | null
@@ -2571,6 +2666,15 @@ export type Database = {
     }
     Functions: {
       can_user_unlock_lesson: { Args: { p_user_id: string }; Returns: boolean }
+      check_and_award_badges: {
+        Args: { p_user_id: string }
+        Returns: {
+          badge_code: string
+          badge_icon: string
+          badge_name: string
+          xp_earned: number
+        }[]
+      }
       cleanup_expired_event_invitations: { Args: never; Returns: undefined }
       cleanup_expired_invitations: { Args: never; Returns: undefined }
       create_cellar_with_owner: {
