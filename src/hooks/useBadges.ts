@@ -134,6 +134,10 @@ export function useBadges(userId?: string) {
   const markBadgeAsNotified = async (badgeId: string) => {
     if (!user?.id) return;
     
+    // Optimistic update: retirer immédiatement du state local
+    setNewBadges(prev => prev.filter(b => b.id !== badgeId));
+    
+    // Puis mettre à jour la BDD
     await supabase
       .from('user_badge')
       .update({ notified: true })
