@@ -12,6 +12,7 @@ interface BadgeCardProps {
   isNew?: boolean;
   size?: 'sm' | 'md' | 'lg';
   showTooltip?: boolean;
+  onBadgeSeen?: (badgeId: string) => void;
 }
 
 type TierKey = 'bronze' | 'silver' | 'gold' | 'platinum';
@@ -68,10 +69,17 @@ export function BadgeCard({
   isNew = false,
   size = 'md',
   showTooltip = true,
+  onBadgeSeen,
 }: BadgeCardProps) {
   const tier = (badge.tier || 'bronze') as TierKey;
   const tierStyle = tierColors[tier];
   const sizeStyle = sizeClasses[size];
+
+  const handleBadgeClick = () => {
+    if (isNew && onBadgeSeen) {
+      onBadgeSeen(badge.id);
+    }
+  };
 
   const BadgeContent = (
     <div
@@ -91,7 +99,7 @@ export function BadgeCard({
           isUnlocked ? [tierStyle.border, tierStyle.bg] : 'border-muted bg-muted/50',
           isUnlocked && 'hover:scale-110 hover:shadow-lg',
           isUnlocked && tierStyle.glow,
-          isNew && 'animate-pulse ring-2 ring-primary ring-offset-2'
+          isNew && 'ring-1 ring-primary/50 shadow-md shadow-primary/20'
         )}
       >
         {isUnlocked ? (
@@ -125,7 +133,7 @@ export function BadgeCard({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="cursor-pointer">{BadgeContent}</div>
+        <div className="cursor-pointer" onClick={handleBadgeClick}>{BadgeContent}</div>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-xs">
         <div className="space-y-1">
