@@ -37,7 +37,7 @@ interface PostCardProps {
 export const PostCard = ({ post }: PostCardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [likesCount, setLikesCount] = useState(0);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comment_count || 0);
   const [isLiked, setIsLiked] = useState(false);
   const [wine, setWine] = useState<any>(null);
@@ -59,12 +59,8 @@ export const PostCard = ({ post }: PostCardProps) => {
   }, [post.id, user]);
 
   const fetchPostData = async () => {
-    // Fetch likes count
-    const { count: likes } = await supabase
-      .from('post_like')
-      .select('*', { count: 'exact', head: true })
-      .eq('post_id', post.id);
-    setLikesCount(likes || 0);
+    // Likes count is managed by trigger on post.likes_count
+    setLikesCount(post.likes_count || 0);
 
     // Check if user liked
     if (user) {
