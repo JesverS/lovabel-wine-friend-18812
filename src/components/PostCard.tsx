@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Send, Loader2, Trash2, Wine, Edit2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Loader2, Trash2, Wine, Edit2, ThumbsUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -44,6 +44,7 @@ export const PostCard = ({ post }: PostCardProps) => {
   const [author, setAuthor] = useState<any>(null);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
+  const [commentLikes, setCommentLikes] = useState<Record<string, { liked: boolean; count: number }>>({});
   const [newComment, setNewComment] = useState('');
   const [loadingComment, setLoadingComment] = useState(false);
   const [displayedCommentsCount, setDisplayedCommentsCount] = useState(8);
@@ -119,6 +120,78 @@ export const PostCard = ({ post }: PostCardProps) => {
       .eq('post_id', post.id)
       .order('created_at', { ascending: false }) as any;
     setComments(data || []);
+
+    // Fetch user likes for comments
+    if (user && data && data.length > 0) {
+      const commentIds = data.map((c: any) => c.id);
+      const { data: userLikes } = await supabase
+        .from('post_comment_like')
+        .select('comment_id')
+        .eq('user_id', user.id)
+        .in('comment_id', commentIds) as any;
+
+      const likesMap: Record<string, { liked: boolean; count: number }> = {};
+      data.forEach((comment: any) => {
+        likesMap[comment.id] = {
+          liked: userLikes?.some((l: any) => l.comment_id === comment.id) || false,
+          count: comment.likes_count || 0,
+        };
+      });
+      setCommentLikes(likesMap);
+    } else if (data) {
+      const likesMap: Record<string, { liked: boolean; count: number }> = {};
+      data.forEach((comment: any) => {
+        likesMap[comment.id] = {
+          liked: false,
+          count: comment.likes_count || 0,
+        };
+      });
+      setCommentLikes(likesMap);
+    }
+  };
+
+  const handleCommentLike = async (commentId: string) => {
+    if (!user) return;
+
+    const current = commentLikes[commentId];
+    const isLiked = current?.liked || false;
+
+    // Optimistic update
+    setCommentLikes((prev) => ({
+      ...prev,
+      [commentId]: {
+        liked: !isLiked,
+        count: isLiked ? Math.max(0, (prev[commentId]?.count || 0) - 1) : (prev[commentId]?.count || 0) + 1,
+      },
+    }));
+
+    if (isLiked) {
+      const { error } = await supabase
+        .from('post_comment_like')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('comment_id', commentId);
+
+      if (error) {
+        // Revert on error
+        setCommentLikes((prev) => ({
+          ...prev,
+          [commentId]: current,
+        }));
+      }
+    } else {
+      const { error } = await supabase
+        .from('post_comment_like')
+        .insert({ user_id: user.id, comment_id: commentId });
+
+      if (error) {
+        // Revert on error
+        setCommentLikes((prev) => ({
+          ...prev,
+          [commentId]: current,
+        }));
+      }
+    }
   };
 
   const handleLike = async () => {
@@ -457,53 +530,73 @@ export const PostCard = ({ post }: PostCardProps) => {
                         {comment.user_profiles_public?.full_name?.[0] || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 bg-muted rounded-lg p-3">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            to={`/user/${comment.user_profiles_public?.slug}`}
-                            className="font-semibold text-sm hover:underline"
-                          >
-                            {comment.user_profiles_public?.full_name || 'Utilisateur'}
-                          </Link>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(comment.created_at), {
-                              addSuffix: true,
-                              locale: fr,
-                            })}
-                          </span>
+                    <div className="flex-1">
+                      <div className="bg-muted rounded-lg p-3">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              to={`/user/${comment.user_profiles_public?.slug}`}
+                              className="font-semibold text-sm hover:underline"
+                            >
+                              {comment.user_profiles_public?.full_name || 'Utilisateur'}
+                            </Link>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(comment.created_at), {
+                                addSuffix: true,
+                                locale: fr,
+                              })}
+                            </span>
+                          </div>
+                          {user?.id === comment.user_id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={async () => {
+                                const { error } = await supabase
+                                  .from('post_comment')
+                                  .delete()
+                                  .eq('id', comment.id);
+                                
+                                if (error) {
+                                  toast({
+                                    variant: 'destructive',
+                                    title: 'Erreur',
+                                    description: 'Impossible de supprimer le commentaire',
+                                  });
+                                } else {
+                                  toast({
+                                    title: 'Succès',
+                                    description: 'Commentaire supprimé',
+                                  });
+                                  fetchComments();
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
                         </div>
-                        {user?.id === comment.user_id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={async () => {
-                              const { error } = await supabase
-                                .from('post_comment')
-                                .delete()
-                                .eq('id', comment.id);
-                              
-                              if (error) {
-                                toast({
-                                  variant: 'destructive',
-                                  title: 'Erreur',
-                                  description: 'Impossible de supprimer le commentaire',
-                                });
-                              } else {
-                                toast({
-                                  title: 'Succès',
-                                  description: 'Commentaire supprimé',
-                                });
-                                fetchComments();
-                              }
-                            }}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        )}
+                        <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
                       </div>
-                      <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground mt-1"
+                        onClick={() => handleCommentLike(comment.id)}
+                        disabled={!user}
+                      >
+                        <ThumbsUp
+                          className={`w-3 h-3 ${
+                            commentLikes[comment.id]?.liked
+                              ? 'fill-primary text-primary'
+                              : ''
+                          }`}
+                        />
+                        {commentLikes[comment.id]?.count > 0 && (
+                          <span>{commentLikes[comment.id].count}</span>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 ))}

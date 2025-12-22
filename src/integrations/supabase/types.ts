@@ -1374,6 +1374,7 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          likes_count: number
           post_id: string | null
           updated_at: string | null
           user_id: string | null
@@ -1382,6 +1383,7 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          likes_count?: number
           post_id?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -1390,6 +1392,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          likes_count?: number
           post_id?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -1421,6 +1424,32 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_comment_like: {
+        Row: {
+          comment_id: string
+          liked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          liked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          liked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comment_like_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comment"
             referencedColumns: ["id"]
           },
         ]
