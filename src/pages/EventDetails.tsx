@@ -266,13 +266,8 @@ const EventDetails = () => {
         }
       }
 
-      // Fetch participants count
-      const { count: participantsCount } = await supabase
-        .from('user_event')
-        .select('*', { count: 'exact', head: true })
-        .eq('event_id', eventData.id);
-
-      setParticipantsCount(participantsCount || 0);
+      // Participants count is managed by trigger on event.participants_count
+      setParticipantsCount(eventData.participants_count || 0);
 
       // Fetch domains
       const { data: eventDomainsData } = await supabase

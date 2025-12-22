@@ -79,23 +79,26 @@ export const UserFavorites = () => {
       .order('created_at', { ascending: false })
       .range(from, to);
 
-    if (!error && data) {
-      const enrichedData = await Promise.all(
-        (data as any[]).map(async (fav: any) => {
-          const [wineRes, domainRes] = await Promise.all([
-            supabase.from('wine').select('*').eq('id', fav.wine_id).single(),
-            supabase.from('domain').select('name, logo_url').eq('id', fav.domain_id).single()
-          ]);
-          
-          return {
-            wine_id: fav.wine_id,
-            domain_id: fav.domain_id,
-            created_at: fav.created_at,
-            wine: wineRes.data || { id: fav.wine_id, name: '', year: null, price: null, label_url: null, description: null, domain_id: fav.domain_id, volume_ml: null, alcohol_percentage: null, characteristics: null },
-            domain: domainRes.data || { name: '', logo_url: null }
-          };
-        })
-      );
+    if (!error && data && data.length > 0) {
+      // Batch fetch wines and domains instead of N+1 queries
+      const wineIds = [...new Set((data as any[]).map(fav => fav.wine_id))];
+      const domainIds = [...new Set((data as any[]).map(fav => fav.domain_id))];
+
+      const [winesRes, domainsRes] = await Promise.all([
+        supabase.from('wine').select('*').in('id', wineIds),
+        supabase.from('domain').select('id, name, logo_url').in('id', domainIds)
+      ]);
+
+      const winesMap = new Map((winesRes.data || []).map(w => [w.id, w]));
+      const domainsMap = new Map((domainsRes.data || []).map(d => [d.id, d]));
+
+      const enrichedData = (data as any[]).map((fav: any) => ({
+        wine_id: fav.wine_id,
+        domain_id: fav.domain_id,
+        created_at: fav.created_at,
+        wine: winesMap.get(fav.wine_id) || { id: fav.wine_id, name: '', year: null, price: null, label_url: null, description: null, domain_id: fav.domain_id, volume_ml: null, alcohol_percentage: null, characteristics: null },
+        domain: domainsMap.get(fav.domain_id) || { name: '', logo_url: null }
+      }));
 
       if (pageNum === 0) {
         setFavorites(enrichedData);
@@ -103,6 +106,9 @@ export const UserFavorites = () => {
         setFavorites(prev => [...prev, ...enrichedData]);
       }
       setHasMore(data.length === WINES_PER_PAGE);
+    } else {
+      if (pageNum === 0) setFavorites([]);
+      setHasMore(false);
     }
 
     setLoading(false);
@@ -120,31 +126,28 @@ export const UserFavorites = () => {
       .select('domain_id')
       .eq('user_id', user.id);
 
-    if (!error && data) {
+    if (!error && data && data.length > 0) {
       const domainCounts = (data as any[]).reduce((acc: Record<string, number>, item: any) => {
         acc[item.domain_id] = (acc[item.domain_id] || 0) + 1;
         return acc;
       }, {});
 
       const uniqueDomainIds = Object.keys(domainCounts);
-      const domainsData = await Promise.all(
-        uniqueDomainIds.map(async (domainId) => {
-          const { data: domain } = await supabase
-            .from('domain')
-            .select('name, logo_url')
-            .eq('id', domainId)
-            .single();
-          
-          return {
-            domain_id: domainId,
-            domain_name: domain?.name || 'Domaine inconnu',
-            domain_logo: domain?.logo_url || null,
-            wine_count: domainCounts[domainId]
-          };
-        })
-      );
+      
+      // Batch fetch domains instead of N+1 queries
+      const { data: domainsData } = await supabase
+        .from('domain')
+        .select('id, name, logo_url')
+        .in('id', uniqueDomainIds);
 
-      const paginatedDomains = domainsData.slice(from, to + 1);
+      const domainsWithCounts = (domainsData || []).map(domain => ({
+        domain_id: domain.id,
+        domain_name: domain.name || 'Domaine inconnu',
+        domain_logo: domain.logo_url || null,
+        wine_count: domainCounts[domain.id] || 0
+      }));
+
+      const paginatedDomains = domainsWithCounts.slice(from, to + 1);
       
       if (pageNum === 0) {
         setDomains(paginatedDomains);
@@ -152,6 +155,9 @@ export const UserFavorites = () => {
         setDomains(prev => [...prev, ...paginatedDomains]);
       }
       setHasMore(paginatedDomains.length === DOMAINS_PER_PAGE);
+    } else {
+      if (pageNum === 0) setDomains([]);
+      setHasMore(false);
     }
 
     setLoading(false);
@@ -172,23 +178,25 @@ export const UserFavorites = () => {
       .order('created_at', { ascending: false })
       .range(from, to);
 
-    if (!error && data) {
-      const enrichedData = await Promise.all(
-        (data as any[]).map(async (fav: any) => {
-          const [wineRes, domainRes] = await Promise.all([
-            supabase.from('wine').select('*').eq('id', fav.wine_id).single(),
-            supabase.from('domain').select('name, logo_url').eq('id', fav.domain_id).single()
-          ]);
-          
-          return {
-            wine_id: fav.wine_id,
-            domain_id: fav.domain_id,
-            created_at: fav.created_at,
-            wine: wineRes.data || { id: fav.wine_id, name: '', year: null, price: null, label_url: null, description: null, domain_id: fav.domain_id, volume_ml: null, alcohol_percentage: null, characteristics: null },
-            domain: domainRes.data || { name: '', logo_url: null }
-          };
-        })
-      );
+    if (!error && data && data.length > 0) {
+      // Batch fetch wines and domain
+      const wineIds = [...new Set((data as any[]).map(fav => fav.wine_id))];
+
+      const [winesRes, domainRes] = await Promise.all([
+        supabase.from('wine').select('*').in('id', wineIds),
+        supabase.from('domain').select('id, name, logo_url').eq('id', domainId).single()
+      ]);
+
+      const winesMap = new Map((winesRes.data || []).map(w => [w.id, w]));
+      const domain = domainRes.data || { name: '', logo_url: null };
+
+      const enrichedData = (data as any[]).map((fav: any) => ({
+        wine_id: fav.wine_id,
+        domain_id: fav.domain_id,
+        created_at: fav.created_at,
+        wine: winesMap.get(fav.wine_id) || { id: fav.wine_id, name: '', year: null, price: null, label_url: null, description: null, domain_id: fav.domain_id, volume_ml: null, alcohol_percentage: null, characteristics: null },
+        domain
+      }));
 
       if (pageNum === 0) {
         setFavorites(enrichedData);
@@ -196,6 +204,9 @@ export const UserFavorites = () => {
         setFavorites(prev => [...prev, ...enrichedData]);
       }
       setHasMore(data.length === WINES_PER_PAGE);
+    } else {
+      if (pageNum === 0) setFavorites([]);
+      setHasMore(false);
     }
 
     setLoading(false);

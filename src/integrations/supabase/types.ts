@@ -487,6 +487,7 @@ export type Database = {
           max_participants: number | null
           name: string
           organizer_id: string | null
+          participants_count: number
           price: number | null
           private_token: string | null
           registration_link: string | null
@@ -520,6 +521,7 @@ export type Database = {
           max_participants?: number | null
           name: string
           organizer_id?: string | null
+          participants_count?: number
           price?: number | null
           private_token?: string | null
           registration_link?: string | null
@@ -553,6 +555,7 @@ export type Database = {
           max_participants?: number | null
           name?: string
           organizer_id?: string | null
+          participants_count?: number
           price?: number | null
           private_token?: string | null
           registration_link?: string | null
@@ -1303,6 +1306,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_wine_notice: boolean
+          likes_count: number
           updated_at: string | null
           user_id: string
           wine_id: string | null
@@ -1315,6 +1319,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_wine_notice?: boolean
+          likes_count?: number
           updated_at?: string | null
           user_id: string
           wine_id?: string | null
@@ -1327,6 +1332,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_wine_notice?: boolean
+          likes_count?: number
           updated_at?: string | null
           user_id?: string
           wine_id?: string | null
