@@ -6,11 +6,12 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Send, Loader2, Trash2, Wine, Edit2, ThumbsUp } from 'lucide-react';
+import { Heart, MessageCircle, Send, Loader2, Trash2, Edit2, ThumbsUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { z } from 'zod';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,16 +33,19 @@ const postEditSchema = z.object({
 
 interface PostCardProps {
   post: any;
+  preloadedData?: boolean;
 }
 
-export const PostCard = ({ post }: PostCardProps) => {
+export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comment_count || 0);
-  const [isLiked, setIsLiked] = useState(false);
-  const [wine, setWine] = useState<any>(null);
-  const [author, setAuthor] = useState<any>(null);
+  const [isLiked, setIsLiked] = useState(preloadedData ? post.isLiked : false);
+  const [wine, setWine] = useState<any>(preloadedData ? post.wine : null);
+  const [author, setAuthor] = useState<any>(preloadedData ? post.author : null);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [commentLikes, setCommentLikes] = useState<Record<string, { liked: boolean; count: number }>>({});
@@ -55,15 +59,29 @@ export const PostCard = ({ post }: PostCardProps) => {
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  // Seulement charger les données si pas pré-chargées
   useEffect(() => {
-    fetchPostData();
-  }, [post.id, user]);
+    if (!preloadedData) {
+      fetchPostData();
+    } else if (user) {
+      // Charger uniquement le profil de l'utilisateur courant pour les commentaires
+      fetchCurrentUserProfile();
+    }
+  }, [post.id, user, preloadedData]);
+
+  const fetchCurrentUserProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('user_profiles_public' as any)
+      .select('id, full_name, logo_adress')
+      .eq('id', user.id)
+      .maybeSingle();
+    setCurrentUserProfile(data);
+  };
 
   const fetchPostData = async () => {
-    // Likes count is managed by trigger on post.likes_count
     setLikesCount(post.likes_count || 0);
 
-    // Check if user liked
     if (user) {
       const { data } = await supabase
         .from('post_like')
@@ -74,27 +92,17 @@ export const PostCard = ({ post }: PostCardProps) => {
       setIsLiked(!!data);
     }
 
-    // Comment count is managed by trigger on post.comment_count
     setCommentsCount(post.comment_count || 0);
 
-    // Fetch wine if referenced
     if ((post as any).wine_id) {
-      console.log('Fetching wine with ID:', (post as any).wine_id);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('wine' as any)
         .select('*, domain!wine_domain_id_fkey(*)')
         .eq('id', (post as any).wine_id)
         .maybeSingle();
-      
-      if (error) {
-        console.error('Error fetching wine:', error);
-      } else {
-        console.log('Wine data:', data);
-        setWine(data);
-      }
+      setWine(data);
     }
 
-    // Fetch author
     const { data: authorData } = await supabase
       .from('user_profiles_public' as any)
       .select('id, slug, full_name, logo_adress, description, city, level')
@@ -102,7 +110,6 @@ export const PostCard = ({ post }: PostCardProps) => {
       .maybeSingle();
     setAuthor(authorData);
 
-    // Fetch current user profile if logged in
     if (user) {
       const { data: currentProfile } = await supabase
         .from('user_profiles_public' as any)
@@ -121,7 +128,6 @@ export const PostCard = ({ post }: PostCardProps) => {
       .order('created_at', { ascending: false }) as any;
     setComments(data || []);
 
-    // Fetch user likes for comments
     if (user && data && data.length > 0) {
       const commentIds = data.map((c: any) => c.id);
       const { data: userLikes } = await supabase
@@ -154,18 +160,18 @@ export const PostCard = ({ post }: PostCardProps) => {
     if (!user) return;
 
     const current = commentLikes[commentId];
-    const isLiked = current?.liked || false;
+    const isLikedComment = current?.liked || false;
 
     // Optimistic update
     setCommentLikes((prev) => ({
       ...prev,
       [commentId]: {
-        liked: !isLiked,
-        count: isLiked ? Math.max(0, (prev[commentId]?.count || 0) - 1) : (prev[commentId]?.count || 0) + 1,
+        liked: !isLikedComment,
+        count: isLikedComment ? Math.max(0, (prev[commentId]?.count || 0) - 1) : (prev[commentId]?.count || 0) + 1,
       },
     }));
 
-    if (isLiked) {
+    if (isLikedComment) {
       const { error } = await supabase
         .from('post_comment_like')
         .delete()
@@ -173,7 +179,6 @@ export const PostCard = ({ post }: PostCardProps) => {
         .eq('comment_id', commentId);
 
       if (error) {
-        // Revert on error
         setCommentLikes((prev) => ({
           ...prev,
           [commentId]: current,
@@ -185,7 +190,6 @@ export const PostCard = ({ post }: PostCardProps) => {
         .insert({ user_id: user.id, comment_id: commentId });
 
       if (error) {
-        // Revert on error
         setCommentLikes((prev) => ({
           ...prev,
           [commentId]: current,
@@ -197,25 +201,32 @@ export const PostCard = ({ post }: PostCardProps) => {
   const handleLike = async () => {
     if (!user) return;
 
-    if (isLiked) {
+    // Optimistic update
+    const previousLiked = isLiked;
+    const previousCount = likesCount;
+    
+    setIsLiked(!isLiked);
+    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
+
+    if (previousLiked) {
       const { error } = await supabase
         .from('post_like')
         .delete()
         .eq('post_id', post.id)
         .eq('user_id', user.id);
       
-      if (!error) {
-        setIsLiked(false);
-        setLikesCount((prev) => prev - 1);
+      if (error) {
+        setIsLiked(previousLiked);
+        setLikesCount(previousCount);
       }
     } else {
       const { error } = await supabase
         .from('post_like')
         .insert({ post_id: post.id, user_id: user.id });
       
-      if (!error) {
-        setIsLiked(true);
-        setLikesCount((prev) => prev + 1);
+      if (error) {
+        setIsLiked(previousLiked);
+        setLikesCount(previousCount);
       }
     }
   };
@@ -320,7 +331,6 @@ export const PostCard = ({ post }: PostCardProps) => {
     
     setLoadingDelete(true);
     try {
-      // 1. Supprimer l'image si elle existe
       if (post.image_url) {
         try {
           const urlParts = post.image_url.split('/post/');
@@ -333,7 +343,6 @@ export const PostCard = ({ post }: PostCardProps) => {
         }
       }
       
-      // 2. Supprimer le post (cascade automatique pour likes et commentaires)
       const { error } = await supabase
         .from('post')
         .delete()
@@ -346,8 +355,8 @@ export const PostCard = ({ post }: PostCardProps) => {
         description: 'Post supprimé',
       });
       
-      // 3. Recharger le feed
-      window.location.reload();
+      // Invalider le cache React Query au lieu de recharger la page
+      queryClient.invalidateQueries({ queryKey: ['social-feed'] });
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -443,6 +452,7 @@ export const PostCard = ({ post }: PostCardProps) => {
         <img
           src={post.image_url}
           alt="Post"
+          loading="lazy"
           className="w-full rounded-lg object-cover max-h-96"
         />
       )}
@@ -453,7 +463,12 @@ export const PostCard = ({ post }: PostCardProps) => {
           className="flex items-center gap-3 p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
         >
           {wine.label_url && (
-            <img src={wine.label_url} alt={wine.name} className="w-12 h-16 object-cover rounded" />
+            <img 
+              src={wine.label_url} 
+              alt={wine.name} 
+              loading="lazy"
+              className="w-12 h-16 object-cover rounded" 
+            />
           )}
           <div>
             <p className="font-semibold">{wine.name}</p>
