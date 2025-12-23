@@ -10,7 +10,7 @@ import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users } from 'lucide-react';
+import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,7 +39,8 @@ export default function UserProfile() {
   const [eventRoles, setEventRoles] = useState<Record<string, string>>({});
   const [eventFilter, setEventFilter] = useState<'all' | 'organizing' | 'participating'>('all');
   const [loading, setLoading] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [followStatus, setFollowStatus] = useState<'none' | 'pending' | 'accepted'>('none');
+  const [isProfilePublic, setIsProfilePublic] = useState(true);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
@@ -61,10 +62,11 @@ export default function UserProfile() {
     // Fetch profile - always use public view
     const { data: profileData } = await supabase
       .from('user_profiles_public' as any)
-      .select('id, slug, full_name, logo_adress, description, city, address, level, phone_number, email')
+      .select('id, slug, full_name, logo_adress, description, city, address, level, phone_number, email, is_public')
       .eq('slug', slug)
       .single();
     setProfile(profileData);
+    setIsProfilePublic((profileData as any)?.is_public !== false);
 
     if (!profileData) {
       setLoading(false);
@@ -137,15 +139,20 @@ export default function UserProfile() {
       setEvents(eventsData || []);
     }
 
-    // Check if following
+    // Check if following and get status
     if (user && user.id !== userId) {
       const { data } = await supabase
         .from('user_follow')
-        .select('*')
+        .select('status')
         .eq('follower_id', user.id)
         .eq('following_id', userId)
         .single();
-      setIsFollowing(!!data);
+      
+      if (data) {
+        setFollowStatus(data.status as 'pending' | 'accepted');
+      } else {
+        setFollowStatus('none');
+      }
     }
 
     setLoading(false);
@@ -154,22 +161,37 @@ export default function UserProfile() {
   const handleFollow = async () => {
     if (!user || !profile?.id) return;
 
-    if (isFollowing) {
+    if (followStatus !== 'none') {
+      // Unfollow
       await supabase
         .from('user_follow')
         .delete()
         .eq('follower_id', user.id)
         .eq('following_id', profile.id);
-      setIsFollowing(false);
-      setFollowersCount((prev) => prev - 1);
+      setFollowStatus('none');
+      if (followStatus === 'accepted') {
+        setFollowersCount((prev) => Math.max(0, prev - 1));
+      }
     } else {
-      await supabase
+      // Follow - le trigger auto_accept_public_follow gère le status
+      const { data } = await supabase
         .from('user_follow')
-        .insert({ follower_id: user.id, following_id: profile.id });
-      setIsFollowing(true);
-      setFollowersCount((prev) => prev + 1);
+        .insert({ follower_id: user.id, following_id: profile.id })
+        .select('status')
+        .single();
+      
+      if (data) {
+        setFollowStatus(data.status as 'pending' | 'accepted');
+        if (data.status === 'accepted') {
+          setFollowersCount((prev) => prev + 1);
+        }
+      }
     }
   };
+
+  // Calcul de la visibilité du contenu
+  const isOwnProfile = user?.id === profile?.id;
+  const canViewContent = isOwnProfile || isProfilePublic || followStatus === 'accepted';
 
   if (loading) {
     return (
@@ -187,7 +209,7 @@ export default function UserProfile() {
     );
   }
 
-  const isOwnProfile = user?.id === profile.id;
+  
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -236,11 +258,16 @@ export default function UserProfile() {
                       </Dialog>
                     </div>
                   ) : user ? (
-                    <Button onClick={handleFollow} variant={isFollowing ? 'outline' : 'default'} className="w-full sm:w-auto">
-                      {isFollowing ? (
+                    <Button onClick={handleFollow} variant={followStatus !== 'none' ? 'outline' : 'default'} className="w-full sm:w-auto">
+                      {followStatus === 'accepted' ? (
                         <>
                           <UserCheck className="w-4 h-4 mr-2" />
                           Abonné
+                        </>
+                      ) : followStatus === 'pending' ? (
+                        <>
+                          <Clock className="w-4 h-4 mr-2" />
+                          En attente
                         </>
                       ) : (
                         <>
@@ -443,18 +470,34 @@ export default function UserProfile() {
           )}
 
           <TabsContent value="posts" className="mt-6 space-y-6">
-            {/* Create Post (only on own profile) */}
-            {isOwnProfile && (
-              <CreatePost onPostCreated={fetchProfileData} />
+            {!canViewContent ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">Profil privé</h3>
+                  <p className="text-muted-foreground">
+                    {followStatus === 'pending' 
+                      ? 'Votre demande d\'abonnement est en attente d\'approbation'
+                      : 'Suivez ce profil pour voir ses publications'}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Create Post (only on own profile) */}
+                {isOwnProfile && (
+                  <CreatePost onPostCreated={fetchProfileData} />
+                )}
+                
+                <div className="space-y-4">
+                  {posts.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">Aucun post pour le moment</p>
+                  ) : (
+                    posts.map((post) => <PostCard key={post.id} post={post} />)
+                  )}
+                </div>
+              </>
             )}
-            
-            <div className="space-y-4">
-              {posts.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">Aucun post pour le moment</p>
-              ) : (
-                posts.map((post) => <PostCard key={post.id} post={post} />)
-              )}
-            </div>
           </TabsContent>
 
           <TabsContent value="cellars" className="mt-6">
