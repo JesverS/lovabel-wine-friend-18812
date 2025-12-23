@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Plus, Upload, X, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { REGIONS } from '@/lib/regionUtils';
 
 interface CreateDomainDialogProps {
   onDomainCreated: () => void;
@@ -27,6 +28,8 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
   const [selectedRole, setSelectedRole] = useState<number>(3); // Default: Employé
   const [name, setName] = useState(initialName || '');
   const [description, setDescription] = useState('');
+  const [region, setRegion] = useState('');
+  const [customRegion, setCustomRegion] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -108,6 +111,12 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
       return;
     }
 
+    // Validation pour "autre"
+    if (region === 'other' && !customRegion.trim()) {
+      toast.error('Veuillez saisir le nom de la région');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -117,6 +126,8 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
         .insert({
           name: name.trim(),
           description: description.trim() || null,
+          region: region ? (region as any) : null,
+          custom_region: region === 'other' ? customRegion.trim() : null,
           logo_url: null,
         })
         .select()
@@ -180,6 +191,8 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
     setSelectedDomain(null);
     setName(initialName || '');
     setDescription('');
+    setRegion('');
+    setCustomRegion('');
     setLogoFile(null);
     setLogoPreview(null);
   };
@@ -294,6 +307,37 @@ export function CreateDomainDialog({ onDomainCreated, initialName }: CreateDomai
                 required
               />
             </div>
+
+            {/* Région */}
+            <div className="space-y-2">
+              <Label htmlFor="region">Région viticole</Label>
+              <Select value={region} onValueChange={setRegion}>
+                <SelectTrigger id="region">
+                  <SelectValue placeholder="Sélectionnez une région" />
+                </SelectTrigger>
+                <SelectContent>
+                  {REGIONS.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Champ personnalisé si "Autre" */}
+            {region === 'other' && (
+              <div className="space-y-2">
+                <Label htmlFor="customRegion">Nom de la région *</Label>
+                <Input
+                  id="customRegion"
+                  value={customRegion}
+                  onChange={(e) => setCustomRegion(e.target.value)}
+                  placeholder="Ex: Savoie, Lorraine..."
+                  required
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>

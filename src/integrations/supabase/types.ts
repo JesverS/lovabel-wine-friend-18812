@@ -291,6 +291,7 @@ export type Database = {
           banner_url: string | null
           communes: string | null
           created_at: string | null
+          custom_region: string | null
           description: string | null
           email: string | null
           id: string
@@ -312,6 +313,7 @@ export type Database = {
           banner_url?: string | null
           communes?: string | null
           created_at?: string | null
+          custom_region?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -333,6 +335,7 @@ export type Database = {
           banner_url?: string | null
           communes?: string | null
           created_at?: string | null
+          custom_region?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -2943,6 +2946,8 @@ export type Database = {
         | "Sud-Ouest"
         | "Corse"
         | "Provence"
+        | "unknown"
+        | "other"
       event_access_type: "public" | "paid" | "request_based" | "invite_only"
       event_role: "organizer" | "co_organizer" | "admin" | "participant"
       quiz_wine_color: "red" | "white" | "rose" | "eff" | "all"
@@ -3097,6 +3102,8 @@ export const Constants = {
         "Sud-Ouest",
         "Corse",
         "Provence",
+        "unknown",
+        "other",
       ],
       event_access_type: ["public", "paid", "request_based", "invite_only"],
       event_role: ["organizer", "co_organizer", "admin", "participant"],
