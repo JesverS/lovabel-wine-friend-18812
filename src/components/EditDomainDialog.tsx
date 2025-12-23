@@ -11,8 +11,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Settings, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { REGIONS } from '@/lib/regionUtils';
 
 interface EditDomainDialogProps {
   domain: any;
@@ -24,6 +26,8 @@ export function EditDomainDialog({ domain, onDomainUpdated }: EditDomainDialogPr
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(domain.name);
   const [description, setDescription] = useState(domain.description || '');
+  const [region, setRegion] = useState(domain.region || '');
+  const [customRegion, setCustomRegion] = useState(domain.custom_region || '');
   const [address, setAddress] = useState(domain.address || '');
   const [phone, setPhone] = useState(domain.phone || '');
   const [email, setEmail] = useState(domain.email || '');
@@ -51,6 +55,12 @@ export function EditDomainDialog({ domain, onDomainUpdated }: EditDomainDialogPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation pour "autre"
+    if (region === 'other' && !customRegion.trim()) {
+      toast.error('Veuillez saisir le nom de la région');
+      return;
+    }
 
     setLoading(true);
 
@@ -81,6 +91,8 @@ export function EditDomainDialog({ domain, onDomainUpdated }: EditDomainDialogPr
         .update({
           name,
           description,
+          region: region || null,
+          custom_region: region === 'other' ? customRegion.trim() : null,
           address,
           phone,
           email,
@@ -153,6 +165,37 @@ export function EditDomainDialog({ domain, onDomainUpdated }: EditDomainDialogPr
               required
             />
           </div>
+
+          {/* Région */}
+          <div>
+            <Label htmlFor="region">Région viticole</Label>
+            <Select value={region} onValueChange={setRegion}>
+              <SelectTrigger id="region">
+                <SelectValue placeholder="Sélectionnez une région" />
+              </SelectTrigger>
+              <SelectContent>
+                {REGIONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Champ personnalisé si "Autre" */}
+          {region === 'other' && (
+            <div>
+              <Label htmlFor="customRegion">Nom de la région *</Label>
+              <Input
+                id="customRegion"
+                value={customRegion}
+                onChange={(e) => setCustomRegion(e.target.value)}
+                placeholder="Ex: Savoie, Lorraine..."
+                required
+              />
+            </div>
+          )}
 
           <div>
             <Label htmlFor="description">Description</Label>

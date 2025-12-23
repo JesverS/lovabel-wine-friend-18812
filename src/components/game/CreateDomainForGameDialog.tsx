@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { REGIONS } from "@/lib/regionUtils";
 
 interface CreateDomainForGameDialogProps {
   open: boolean;
@@ -14,29 +15,21 @@ interface CreateDomainForGameDialogProps {
   onDomainCreated: (domain: any) => void;
 }
 
-const REGIONS = [
-  "Alsace",
-  "Beaujolais",
-  "Bordeaux",
-  "Bourgogne",
-  "Champagne",
-  "Corse",
-  "Jura",
-  "Languedoc-Roussillon",
-  "Loire",
-  "Provence",
-  "Rhône",
-  "Sud-Ouest",
-];
-
 export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated }: CreateDomainForGameDialogProps) {
   const [name, setName] = useState("");
   const [region, setRegion] = useState("");
+  const [customRegion, setCustomRegion] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleCreateDomain = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !region) return;
+    if (!name.trim()) return;
+
+    // Si "other" est sélectionné mais pas de région personnalisée
+    if (region === "other" && !customRegion.trim()) {
+      toast.error("Veuillez saisir le nom de la région");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -44,9 +37,10 @@ export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated 
         .from("domain")
         .insert({
           name: name.trim(),
-          region: region as any,
+          region: region ? (region as any) : null,
+          custom_region: region === "other" ? customRegion.trim() : null,
         })
-        .select("id, name, region, logo_url")
+        .select("id, name, region, custom_region, logo_url")
         .single();
 
       if (error) throw error;
@@ -57,6 +51,7 @@ export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated 
       // Reset form
       setName("");
       setRegion("");
+      setCustomRegion("");
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la création du domaine");
@@ -92,21 +87,38 @@ export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated 
           {/* Région */}
           <div className="space-y-2">
             <Label htmlFor="domain-region" className="text-sm font-medium">
-              Région viticole <span className="text-destructive">*</span>
+              Région viticole
             </Label>
-            <Select value={region} onValueChange={setRegion} required>
+            <Select value={region} onValueChange={setRegion}>
               <SelectTrigger id="domain-region" className="h-11">
                 <SelectValue placeholder="Sélectionnez une région" />
               </SelectTrigger>
               <SelectContent>
                 {REGIONS.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {/* Champ personnalisé si "Autre" est sélectionné */}
+          {region === "other" && (
+            <div className="space-y-2">
+              <Label htmlFor="custom-region" className="text-sm font-medium">
+                Nom de la région <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="custom-region"
+                value={customRegion}
+                onChange={(e) => setCustomRegion(e.target.value)}
+                placeholder="Ex: Savoie, Lorraine..."
+                className="h-11"
+                required
+              />
+            </div>
+          )}
 
           {/* Boutons d'action */}
           <div className="flex gap-3 pt-4">
@@ -122,7 +134,7 @@ export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated 
             <Button
               type="submit"
               className="flex-1 bg-gradient-wine hover:opacity-90"
-              disabled={loading || !name.trim() || !region}
+              disabled={loading || !name.trim() || (region === "other" && !customRegion.trim())}
             >
               {loading ? (
                 <>
