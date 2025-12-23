@@ -27,63 +27,28 @@ export const SocialFeed = () => {
     }
 
     try {
-      let followedPosts: any[] = [];
-      let randomPosts: any[] = [];
+      // Requête simplifiée - RLS filtre automatiquement les posts visibles
+      // Une seule requête au lieu de 2-3 requêtes séparées
+      const { data, error } = await supabase
+        .from('post')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(pageNumber * POSTS_PER_PAGE, (pageNumber + 1) * POSTS_PER_PAGE - 1);
 
-      // Si l'utilisateur est connecté, charger 70% de posts des utilisateurs suivis
-      if (user) {
-        const { data: following } = await supabase
-          .from('user_follow')
-          .select('following_id')
-          .eq('follower_id', user.id);
-
-        if (following && following.length > 0) {
-          const followingIds = following.map(f => f.following_id);
-          const followedCount = Math.ceil(POSTS_PER_PAGE * 0.7);
-
-          const { data } = await supabase
-            .from('post')
-            .select('*')
-            .in('user_id', followingIds)
-            .order('created_at', { ascending: false })
-            .range(pageNumber * followedCount, (pageNumber + 1) * followedCount - 1);
-
-          followedPosts = data || [];
-        }
+      if (error) {
+        console.error('Erreur lors du chargement des posts:', error);
+        return;
       }
 
-      // Calculer le nombre de posts aléatoires nécessaires
-      const targetTotal = POSTS_PER_PAGE;
-      const randomCount = targetTotal - followedPosts.length;
-
-      if (randomCount > 0) {
-        let randomQuery = supabase
-          .from('post')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .range(pageNumber * randomCount, (pageNumber + 1) * randomCount - 1);
-
-        // Exclure les posts des utilisateurs suivis si applicable
-        if (user && followedPosts.length > 0) {
-          const followingIds = followedPosts.map(p => p.user_id);
-          randomQuery = randomQuery.not('user_id', 'in', `(${followingIds.join(',')})`);
-        }
-
-        const { data: randomData } = await randomQuery;
-        randomPosts = randomData || [];
-      }
-
-      // Mélanger les posts
-      const allNewPosts = [...followedPosts, ...randomPosts];
-      const shuffled = allNewPosts.sort(() => Math.random() - 0.5);
+      const newPosts = data || [];
 
       if (pageNumber === 0) {
-        setPosts(shuffled);
+        setPosts(newPosts);
       } else {
-        setPosts(prev => [...prev, ...shuffled]);
+        setPosts(prev => [...prev, ...newPosts]);
       }
 
-      setHasMore(shuffled.length >= POSTS_PER_PAGE);
+      setHasMore(newPosts.length >= POSTS_PER_PAGE);
     } catch (error) {
       console.error('Erreur lors du chargement des posts:', error);
     } finally {

@@ -78,19 +78,22 @@ export function FollowDialogs({
 
   const fetchFollowers = async () => {
     setLoadingFollowers(true);
+    // Requête unique avec jointure - plus performant
     const { data } = await supabase
       .from('user_follow')
-      .select('follower_id')
+      .select(`
+        follower:user_profiles_public!user_follow_follower_id_fkey1(
+          id, full_name, logo_adress, slug
+        )
+      `)
       .eq('following_id', profileId)
       .eq('status', 'accepted');
 
-    if (data && data.length > 0) {
-      const followerIds = data.map((f: any) => f.follower_id);
-      const { data: profiles } = await supabase
-        .from('user_profiles_public' as any)
-        .select('id, full_name, logo_adress, slug')
-        .in('id', followerIds);
-      setFollowers((profiles as unknown as UserItem[]) || []);
+    if (data) {
+      const profiles = data
+        .map((f: any) => f.follower)
+        .filter(Boolean) as UserItem[];
+      setFollowers(profiles);
     } else {
       setFollowers([]);
     }
@@ -99,19 +102,22 @@ export function FollowDialogs({
 
   const fetchFollowing = async () => {
     setLoadingFollowing(true);
+    // Requête unique avec jointure - plus performant
     const { data } = await supabase
       .from('user_follow')
-      .select('following_id')
+      .select(`
+        following:user_profiles_public!user_follow_following_id_fkey1(
+          id, full_name, logo_adress, slug
+        )
+      `)
       .eq('follower_id', profileId)
       .eq('status', 'accepted');
 
-    if (data && data.length > 0) {
-      const followingIds = data.map((f: any) => f.following_id);
-      const { data: profiles } = await supabase
-        .from('user_profiles_public' as any)
-        .select('id, full_name, logo_adress, slug')
-        .in('id', followingIds);
-      setFollowing((profiles as unknown as UserItem[]) || []);
+    if (data) {
+      const profiles = data
+        .map((f: any) => f.following)
+        .filter(Boolean) as UserItem[];
+      setFollowing(profiles);
     } else {
       setFollowing([]);
     }
@@ -120,24 +126,25 @@ export function FollowDialogs({
 
   const fetchPendingRequests = async () => {
     setLoadingRequests(true);
+    // Requête unique avec jointure - plus performant
     const { data } = await supabase
       .from('user_follow')
-      .select('follower_id, followed_at')
+      .select(`
+        follower_id, 
+        followed_at,
+        follower:user_profiles_public!user_follow_follower_id_fkey1(
+          id, full_name, logo_adress, slug
+        )
+      `)
       .eq('following_id', profileId)
       .eq('status', 'pending');
 
     if (data && data.length > 0) {
       const followerIds = data.map((f: any) => f.follower_id);
-      const { data: profiles } = await supabase
-        .from('user_profiles_public' as any)
-        .select('id, full_name, logo_adress, slug')
-        .in('id', followerIds);
-
-      const profilesList = (profiles as unknown as UserItem[]) || [];
       const requests = data.map((req: any) => ({
         follower_id: req.follower_id,
         followed_at: req.followed_at,
-        user: profilesList.find((p) => p.id === req.follower_id) || {
+        user: req.follower || {
           id: req.follower_id,
           full_name: null,
           logo_adress: null,
