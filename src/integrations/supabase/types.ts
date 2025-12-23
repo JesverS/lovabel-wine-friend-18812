@@ -2707,6 +2707,10 @@ export type Database = {
     }
     Functions: {
       can_user_unlock_lesson: { Args: { p_user_id: string }; Returns: boolean }
+      can_view_profile_content: {
+        Args: { _profile_id: string; _viewer_id: string }
+        Returns: boolean
+      }
       check_and_award_badges: {
         Args: { p_user_id: string }
         Returns: {

@@ -50,6 +50,10 @@ export function FollowDialogs({
   const [loadingFollowers, setLoadingFollowers] = useState(false);
   const [loadingFollowing, setLoadingFollowing] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  
+  // État pour le follow back
+  const [followingBackStatus, setFollowingBackStatus] = useState<Record<string, boolean>>({});
+  const [followingBackLoading, setFollowingBackLoading] = useState<Record<string, boolean>>({});
 
   // Fetch followers when dialog opens
   useEffect(() => {
@@ -141,10 +145,47 @@ export function FollowDialogs({
         },
       }));
       setPendingRequests(requests);
+      
+      // Vérifier si on suit déjà ces personnes
+      await checkFollowingBack(followerIds);
     } else {
       setPendingRequests([]);
     }
     setLoadingRequests(false);
+  };
+
+  // Vérifier si on suit déjà les personnes qui nous suivent
+  const checkFollowingBack = async (followerIds: string[]) => {
+    const { data } = await supabase
+      .from('user_follow')
+      .select('following_id')
+      .eq('follower_id', profileId)
+      .in('following_id', followerIds)
+      .eq('status', 'accepted');
+
+    const status: Record<string, boolean> = {};
+    followerIds.forEach(id => {
+      status[id] = data?.some(f => f.following_id === id) || false;
+    });
+    setFollowingBackStatus(status);
+  };
+
+  // Fonction pour follow back
+  const handleFollowBack = async (userId: string) => {
+    setFollowingBackLoading(prev => ({ ...prev, [userId]: true }));
+    
+    const { error } = await supabase
+      .from('user_follow')
+      .insert({ follower_id: profileId, following_id: userId });
+
+    if (error) {
+      toast.error('Erreur lors du suivi');
+    } else {
+      setFollowingBackStatus(prev => ({ ...prev, [userId]: true }));
+      toast.success('Vous suivez maintenant cet utilisateur');
+    }
+    
+    setFollowingBackLoading(prev => ({ ...prev, [userId]: false }));
   };
 
   const handleAcceptRequest = async (followerId: string) => {
@@ -280,7 +321,7 @@ export function FollowDialogs({
                           {new Date(request.followed_at).toLocaleDateString('fr-FR')}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button
                           size="icon"
                           variant="outline"
@@ -297,6 +338,19 @@ export function FollowDialogs({
                         >
                           <X className="w-4 h-4" />
                         </Button>
+                        {/* Bouton Follow Back */}
+                        {!followingBackStatus[request.follower_id] && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-8 gap-1"
+                            disabled={followingBackLoading[request.follower_id]}
+                            onClick={() => handleFollowBack(request.follower_id)}
+                          >
+                            <UserPlus className="w-3 h-3" />
+                            <span className="hidden sm:inline">Suivre</span>
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
