@@ -13,6 +13,7 @@ interface UserItem {
   full_name: string | null;
   logo_adress: string | null;
   slug: string | null;
+  is_public?: boolean;
 }
 
 interface FollowRequest {
@@ -87,7 +88,7 @@ export function FollowDialogs({
       .from('user_follow')
       .select(`
         follower:user_profiles_public!user_follow_follower_id_fkey1(
-          id, full_name, logo_adress, slug
+          id, full_name, logo_adress, slug, is_public
         )
       `)
       .eq('following_id', profileId)
@@ -111,7 +112,7 @@ export function FollowDialogs({
       .from('user_follow')
       .select(`
         following:user_profiles_public!user_follow_following_id_fkey1(
-          id, full_name, logo_adress, slug
+          id, full_name, logo_adress, slug, is_public
         )
       `)
       .eq('follower_id', profileId)
@@ -137,7 +138,7 @@ export function FollowDialogs({
         follower_id, 
         followed_at,
         follower:user_profiles_public!user_follow_follower_id_fkey1(
-          id, full_name, logo_adress, slug
+          id, full_name, logo_adress, slug, is_public
         )
       `)
       .eq('following_id', profileId)
@@ -411,7 +412,11 @@ export function FollowDialogs({
       <Dialog open={followBackDialogOpen} onOpenChange={setFollowBackDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Suivre en retour ?</DialogTitle>
+            <DialogTitle>
+              {pendingFollowBackUser?.is_public 
+                ? "Suivre en retour ?" 
+                : "Demander à suivre en retour ?"}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex items-center gap-4 py-4">
             <Avatar className="w-12 h-12">
@@ -419,7 +424,11 @@ export function FollowDialogs({
               <AvatarFallback>{pendingFollowBackUser?.full_name?.[0] || 'U'}</AvatarFallback>
             </Avatar>
             <p className="text-sm">
-              Voulez-vous suivre <span className="font-semibold">{pendingFollowBackUser?.full_name || 'cet utilisateur'}</span> en retour ?
+              {pendingFollowBackUser?.is_public ? (
+                <>Voulez-vous suivre <span className="font-semibold">{pendingFollowBackUser?.full_name || 'cet utilisateur'}</span> en retour ?</>
+              ) : (
+                <>Voulez-vous envoyer une demande d'abonnement à <span className="font-semibold">{pendingFollowBackUser?.full_name || 'cet utilisateur'}</span> ?</>
+              )}
             </p>
           </div>
           <div className="flex gap-2 justify-end">
@@ -434,7 +443,7 @@ export function FollowDialogs({
             </Button>
             <Button onClick={handleFollowBackFromDialog}>
               <UserPlus className="w-4 h-4 mr-2" />
-              Suivre
+              {pendingFollowBackUser?.is_public ? "Suivre" : "Demander"}
             </Button>
           </div>
         </DialogContent>
