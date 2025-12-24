@@ -200,6 +200,11 @@ export function FollowDialogs({
   };
 
   const handleAcceptRequest = async (followerId: string) => {
+    // Stocker l'utilisateur AVANT de modifier la liste
+    const request = pendingRequests.find(r => r.follower_id === followerId);
+    const userToFollowBack = request?.user;
+    const shouldShowFollowBack = !followingBackStatus[followerId] && userToFollowBack;
+
     const { error } = await supabase
       .from('user_follow')
       .update({ status: 'accepted' })
@@ -213,17 +218,18 @@ export function FollowDialogs({
 
     toast.success('Demande acceptée');
     
-    // Vérifier si on ne suit pas déjà cette personne et proposer le follow-back
-    if (!followingBackStatus[followerId]) {
-      const request = pendingRequests.find(r => r.follower_id === followerId);
-      if (request?.user) {
-        setPendingFollowBackUser(request.user);
-        setFollowBackDialogOpen(true);
-      }
-    }
-    
+    // D'abord mettre à jour la liste
     setPendingRequests((prev) => prev.filter((r) => r.follower_id !== followerId));
     onRequestsUpdated?.();
+    
+    // PUIS afficher le popup de follow-back après fermeture du dialog des demandes
+    if (shouldShowFollowBack) {
+      setRequestsDialogOpen(false);
+      setTimeout(() => {
+        setPendingFollowBackUser(userToFollowBack);
+        setFollowBackDialogOpen(true);
+      }, 200);
+    }
   };
   
   // Handler pour le follow-back depuis la popup
