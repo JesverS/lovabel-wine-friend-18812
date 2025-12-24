@@ -54,6 +54,10 @@ export function FollowDialogs({
   // État pour le follow back
   const [followingBackStatus, setFollowingBackStatus] = useState<Record<string, boolean>>({});
   const [followingBackLoading, setFollowingBackLoading] = useState<Record<string, boolean>>({});
+  
+  // État pour la popup de follow-back après acceptation
+  const [followBackDialogOpen, setFollowBackDialogOpen] = useState(false);
+  const [pendingFollowBackUser, setPendingFollowBackUser] = useState<UserItem | null>(null);
 
   // Fetch followers when dialog opens
   useEffect(() => {
@@ -208,8 +212,37 @@ export function FollowDialogs({
     }
 
     toast.success('Demande acceptée');
+    
+    // Vérifier si on ne suit pas déjà cette personne et proposer le follow-back
+    if (!followingBackStatus[followerId]) {
+      const request = pendingRequests.find(r => r.follower_id === followerId);
+      if (request?.user) {
+        setPendingFollowBackUser(request.user);
+        setFollowBackDialogOpen(true);
+      }
+    }
+    
     setPendingRequests((prev) => prev.filter((r) => r.follower_id !== followerId));
     onRequestsUpdated?.();
+  };
+  
+  // Handler pour le follow-back depuis la popup
+  const handleFollowBackFromDialog = async () => {
+    if (!pendingFollowBackUser) return;
+    
+    const { error } = await supabase
+      .from('user_follow')
+      .insert({ follower_id: profileId, following_id: pendingFollowBackUser.id });
+
+    if (error) {
+      toast.error('Erreur lors du suivi');
+    } else {
+      setFollowingBackStatus(prev => ({ ...prev, [pendingFollowBackUser.id]: true }));
+      toast.success(`Vous suivez maintenant ${pendingFollowBackUser.full_name || 'cet utilisateur'}`);
+    }
+    
+    setFollowBackDialogOpen(false);
+    setPendingFollowBackUser(null);
   };
 
   const handleRejectRequest = async (followerId: string) => {
@@ -367,6 +400,39 @@ export function FollowDialogs({
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Follow-Back Dialog après acceptation */}
+      <Dialog open={followBackDialogOpen} onOpenChange={setFollowBackDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Suivre en retour ?</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center gap-4 py-4">
+            <Avatar className="w-12 h-12">
+              <AvatarImage src={pendingFollowBackUser?.logo_adress || undefined} />
+              <AvatarFallback>{pendingFollowBackUser?.full_name?.[0] || 'U'}</AvatarFallback>
+            </Avatar>
+            <p className="text-sm">
+              Voulez-vous suivre <span className="font-semibold">{pendingFollowBackUser?.full_name || 'cet utilisateur'}</span> en retour ?
+            </p>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setFollowBackDialogOpen(false);
+                setPendingFollowBackUser(null);
+              }}
+            >
+              Non merci
+            </Button>
+            <Button onClick={handleFollowBackFromDialog}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Suivre
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -27,6 +27,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTabsList, TabsTrigger as InnerTabsTrigger } from '@/components/ui/tabs';
 import { FollowDialogs } from '@/components/FollowDialogs';
 import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
+import { PrivacySettings } from '@/components/PrivacySettings';
 
 export default function UserProfile() {
   const { slug } = useParams<{ slug: string }>();
@@ -242,11 +243,15 @@ export default function UserProfile() {
                           <DialogHeader>
                             <DialogTitle>Paramètres du compte</DialogTitle>
                           </DialogHeader>
-                          <InnerTabs defaultValue="stripe" className="mt-4">
-                            <InnerTabsList className="grid w-full grid-cols-2">
+                          <InnerTabs defaultValue="privacy" className="mt-4">
+                            <InnerTabsList className="grid w-full grid-cols-3">
+                              <InnerTabsTrigger value="privacy">Confidentialité</InnerTabsTrigger>
                               <InnerTabsTrigger value="stripe">Compte Stripe</InnerTabsTrigger>
                               <InnerTabsTrigger value="revenue">Mes revenus</InnerTabsTrigger>
                             </InnerTabsList>
+                            <InnerTabsContent value="privacy" className="mt-4">
+                              <PrivacySettings />
+                            </InnerTabsContent>
                             <InnerTabsContent value="stripe" className="mt-4">
                               <OrganizerStripeSetup />
                             </InnerTabsContent>
@@ -269,10 +274,15 @@ export default function UserProfile() {
                           <Clock className="w-4 h-4 mr-2" />
                           En attente
                         </>
+                      ) : isProfilePublic ? (
+                        <>
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          S'abonner
+                        </>
                       ) : (
                         <>
                           <UserPlus className="w-4 h-4 mr-2" />
-                          Suivre
+                          Demander à s'abonner
                         </>
                       )}
                     </Button>
