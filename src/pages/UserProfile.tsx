@@ -57,8 +57,11 @@ export default function UserProfile() {
     }
   }, [slug, user]);
 
-  const fetchProfileData = async () => {
-    setLoading(true);
+  const fetchProfileData = async (options?: { silent?: boolean }) => {
+    // Mode silent : pas d'écran de chargement, pas de démontage des composants
+    if (!options?.silent) {
+      setLoading(true);
+    }
 
     // Fetch profile - always use public view
     const { data: profileData } = await supabase
@@ -156,7 +159,14 @@ export default function UserProfile() {
       }
     }
 
-    setLoading(false);
+    if (!options?.silent) {
+      setLoading(false);
+    }
+  };
+
+  // Refresh silencieux pour les mises à jour mineures (follow/unfollow)
+  const handleSilentRefresh = () => {
+    fetchProfileData({ silent: true });
   };
 
   const handleFollow = async () => {
@@ -745,7 +755,7 @@ export default function UserProfile() {
         setFollowingDialogOpen={setFollowingDialogOpen}
         requestsDialogOpen={requestsDialogOpen}
         setRequestsDialogOpen={setRequestsDialogOpen}
-        onRequestsUpdated={fetchProfileData}
+        onRequestsUpdated={handleSilentRefresh}
       />
     </div>
   );

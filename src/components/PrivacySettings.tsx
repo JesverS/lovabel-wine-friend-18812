@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Globe, Lock, Mail, Phone, MapPin, Trophy } from 'lucide-react';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 interface PrivacySettingsState {
   is_public: boolean;
@@ -17,6 +18,8 @@ interface PrivacySettingsState {
   phone_number: string;
   address: string;
   city: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export function PrivacySettings() {
@@ -31,6 +34,8 @@ export function PrivacySettings() {
     phone_number: '',
     address: '',
     city: '',
+    latitude: null,
+    longitude: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +50,7 @@ export function PrivacySettings() {
     
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('is_public, allow_email, allow_phone, allow_adress, allow_xp, email, phone_number, address, city')
+      .select('is_public, allow_email, allow_phone, allow_adress, allow_xp, email, phone_number, address, city, latitude, longitude')
       .eq('id', user.id)
       .single();
 
@@ -60,6 +65,8 @@ export function PrivacySettings() {
         phone_number: data.phone_number?.toString() || '',
         address: data.address || '',
         city: data.city || '',
+        latitude: data.latitude || null,
+        longitude: data.longitude || null,
       });
     }
     setLoading(false);
@@ -105,6 +112,37 @@ export function PrivacySettings() {
       toast.error('Erreur lors de la mise à jour');
     } else {
       toast.success('Information mise à jour');
+    }
+  };
+
+  const handleAddressSelect = async (
+    address: string, 
+    coordinates?: { latitude: number; longitude: number },
+    meta?: { city: string; postcode: string }
+  ) => {
+    if (!user) return;
+
+    const updates = {
+      address,
+      city: meta?.city || settings.city,
+      latitude: coordinates?.latitude || null,
+      longitude: coordinates?.longitude || null,
+    };
+
+    setSettings(prev => ({ ...prev, ...updates }));
+
+    // Sauvegarder si on a sélectionné une adresse (avec coordonnées)
+    if (coordinates) {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (error) {
+        toast.error('Erreur lors de la mise à jour');
+      } else {
+        toast.success('Adresse mise à jour');
+      }
     }
   };
 
@@ -222,20 +260,14 @@ export function PrivacySettings() {
           </div>
           {settings.allow_adress && (
             <div className="ml-7 space-y-2">
-              <Input
-                type="text"
-                placeholder="Adresse"
+              <AddressAutocomplete
                 value={settings.address}
-                onChange={(e) => handleValueChange('address', e.target.value)}
-                onBlur={() => handleValueSave('address')}
+                onChange={handleAddressSelect}
+                placeholder="Rechercher une adresse..."
               />
-              <Input
-                type="text"
-                placeholder="Ville"
-                value={settings.city}
-                onChange={(e) => handleValueChange('city', e.target.value)}
-                onBlur={() => handleValueSave('city')}
-              />
+              <p className="text-xs text-muted-foreground">
+                {settings.city ? `Ville : ${settings.city}` : 'Sélectionnez une adresse pour remplir automatiquement la ville'}
+              </p>
             </div>
           )}
         </div>
