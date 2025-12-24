@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Globe, Lock, Mail, Phone, MapPin, Trophy } from 'lucide-react';
 
@@ -12,6 +13,10 @@ interface PrivacySettingsState {
   allow_phone: boolean;
   allow_adress: boolean;
   allow_xp: boolean;
+  email: string;
+  phone_number: string;
+  address: string;
+  city: string;
 }
 
 export function PrivacySettings() {
@@ -22,6 +27,10 @@ export function PrivacySettings() {
     allow_phone: false,
     allow_adress: false,
     allow_xp: false,
+    email: '',
+    phone_number: '',
+    address: '',
+    city: '',
   });
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +45,7 @@ export function PrivacySettings() {
     
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('is_public, allow_email, allow_phone, allow_adress, allow_xp')
+      .select('is_public, allow_email, allow_phone, allow_adress, allow_xp, email, phone_number, address, city')
       .eq('id', user.id)
       .single();
 
@@ -47,6 +56,10 @@ export function PrivacySettings() {
         allow_phone: data.allow_phone ?? false,
         allow_adress: data.allow_adress ?? false,
         allow_xp: data.allow_xp ?? false,
+        email: data.email || '',
+        phone_number: data.phone_number?.toString() || '',
+        address: data.address || '',
+        city: data.city || '',
       });
     }
     setLoading(false);
@@ -67,6 +80,32 @@ export function PrivacySettings() {
 
     setSettings(prev => ({ ...prev, [field]: value }));
     toast.success('Paramètre mis à jour');
+  };
+
+  const handleValueChange = (field: keyof PrivacySettingsState, value: string) => {
+    setSettings(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleValueSave = async (field: 'email' | 'phone_number' | 'address' | 'city') => {
+    if (!user) return;
+
+    let valueToSave: string | number | null;
+    if (field === 'phone_number') {
+      valueToSave = settings.phone_number ? parseInt(settings.phone_number.replace(/\D/g, '')) : null;
+    } else {
+      valueToSave = settings[field] || null;
+    }
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ [field]: valueToSave })
+      .eq('id', user.id);
+
+    if (error) {
+      toast.error('Erreur lors de la mise à jour');
+    } else {
+      toast.success('Information mise à jour');
+    }
   };
 
   if (loading) {
@@ -108,48 +147,97 @@ export function PrivacySettings() {
         </h4>
 
         {/* Afficher email */}
-        <div className="flex items-center justify-between gap-4 py-3">
-          <div className="flex items-center gap-3">
-            <Mail className="w-4 h-4 text-muted-foreground" />
-            <Label htmlFor="allow_email" className="text-sm">
-              Afficher mon email
-            </Label>
+        <div className="space-y-3 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="allow_email" className="text-sm">
+                Afficher mon email
+              </Label>
+            </div>
+            <Switch
+              id="allow_email"
+              checked={settings.allow_email}
+              onCheckedChange={(v) => handleToggle('allow_email', v)}
+            />
           </div>
-          <Switch
-            id="allow_email"
-            checked={settings.allow_email}
-            onCheckedChange={(v) => handleToggle('allow_email', v)}
-          />
+          {settings.allow_email && (
+            <div className="ml-7 space-y-2">
+              <Input
+                type="email"
+                placeholder="votre.email@exemple.com"
+                value={settings.email}
+                onChange={(e) => handleValueChange('email', e.target.value)}
+                onBlur={() => handleValueSave('email')}
+              />
+              <p className="text-xs text-muted-foreground">
+                Cet email peut être différent de celui de votre compte
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Afficher téléphone */}
-        <div className="flex items-center justify-between gap-4 py-3">
-          <div className="flex items-center gap-3">
-            <Phone className="w-4 h-4 text-muted-foreground" />
-            <Label htmlFor="allow_phone" className="text-sm">
-              Afficher mon téléphone
-            </Label>
+        <div className="space-y-3 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Phone className="w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="allow_phone" className="text-sm">
+                Afficher mon téléphone
+              </Label>
+            </div>
+            <Switch
+              id="allow_phone"
+              checked={settings.allow_phone}
+              onCheckedChange={(v) => handleToggle('allow_phone', v)}
+            />
           </div>
-          <Switch
-            id="allow_phone"
-            checked={settings.allow_phone}
-            onCheckedChange={(v) => handleToggle('allow_phone', v)}
-          />
+          {settings.allow_phone && (
+            <div className="ml-7">
+              <Input
+                type="tel"
+                placeholder="06 12 34 56 78"
+                value={settings.phone_number}
+                onChange={(e) => handleValueChange('phone_number', e.target.value)}
+                onBlur={() => handleValueSave('phone_number')}
+              />
+            </div>
+          )}
         </div>
 
         {/* Afficher adresse */}
-        <div className="flex items-center justify-between gap-4 py-3">
-          <div className="flex items-center gap-3">
-            <MapPin className="w-4 h-4 text-muted-foreground" />
-            <Label htmlFor="allow_adress" className="text-sm">
-              Afficher mon adresse
-            </Label>
+        <div className="space-y-3 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="allow_adress" className="text-sm">
+                Afficher mon adresse
+              </Label>
+            </div>
+            <Switch
+              id="allow_adress"
+              checked={settings.allow_adress}
+              onCheckedChange={(v) => handleToggle('allow_adress', v)}
+            />
           </div>
-          <Switch
-            id="allow_adress"
-            checked={settings.allow_adress}
-            onCheckedChange={(v) => handleToggle('allow_adress', v)}
-          />
+          {settings.allow_adress && (
+            <div className="ml-7 space-y-2">
+              <Input
+                type="text"
+                placeholder="Adresse"
+                value={settings.address}
+                onChange={(e) => handleValueChange('address', e.target.value)}
+                onBlur={() => handleValueSave('address')}
+              />
+              <Input
+                type="text"
+                placeholder="Ville"
+                value={settings.city}
+                onChange={(e) => handleValueChange('city', e.target.value)}
+                onBlur={() => handleValueSave('city')}
+              />
+            </div>
+          )}
         </div>
 
         {/* Afficher XP */}
