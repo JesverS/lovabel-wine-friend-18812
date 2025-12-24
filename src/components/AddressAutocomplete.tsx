@@ -14,9 +14,14 @@ interface AddressFeature {
   };
 }
 
+interface AddressMeta {
+  city: string;
+  postcode: string;
+}
+
 interface AddressAutocompleteProps {
   value: string;
-  onChange: (address: string, coordinates?: { latitude: number; longitude: number }) => void;
+  onChange: (address: string, coordinates?: { latitude: number; longitude: number }, meta?: AddressMeta) => void;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -82,9 +87,13 @@ export const AddressAutocomplete = ({
   const handleSelectAddress = (feature: AddressFeature) => {
     const address = feature.properties.label;
     const [longitude, latitude] = feature.geometry.coordinates;
+    const meta: AddressMeta = {
+      city: feature.properties.city,
+      postcode: feature.properties.postcode,
+    };
     
     justSelectedRef.current = true;
-    onChange(address, { latitude, longitude });
+    onChange(address, { latitude, longitude }, meta);
     setSuggestions([]);
     setShowSuggestions(false);
   };
