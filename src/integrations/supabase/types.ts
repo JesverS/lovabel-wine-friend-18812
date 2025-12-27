@@ -975,30 +975,67 @@ export type Database = {
           answer_type: number
           apply_to_color: Database["public"]["Enums"]["quiz_wine_color"]
           apply_to_region: Database["public"]["Enums"]["domain_region"] | null
+          created_at: string | null
           fact_key: string | null
           id: number
           is_fun: boolean | null
+          is_reviewed: boolean | null
           question: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          updated_at: string | null
         }
         Insert: {
           answer_type: number
           apply_to_color?: Database["public"]["Enums"]["quiz_wine_color"]
           apply_to_region?: Database["public"]["Enums"]["domain_region"] | null
+          created_at?: string | null
           fact_key?: string | null
           id?: number
           is_fun?: boolean | null
+          is_reviewed?: boolean | null
           question?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string | null
         }
         Update: {
           answer_type?: number
           apply_to_color?: Database["public"]["Enums"]["quiz_wine_color"]
           apply_to_region?: Database["public"]["Enums"]["domain_region"] | null
+          created_at?: string | null
           fact_key?: string | null
           id?: number
           is_fun?: boolean | null
+          is_reviewed?: boolean | null
           question?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "game_question_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_question_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_question_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       game_wine_facts: {
         Row: {

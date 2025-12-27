@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { WineTastingNotes } from '@/components/WineTastingNotes';
 
 const commentSchema = z.object({
   content: z.string().trim().min(1, 'Le commentaire est requis').max(1000, 'Maximum 1000 caractères'),
@@ -475,6 +476,11 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
             <p className="text-sm text-muted-foreground">{wine.domain?.name}</p>
           </div>
         </Link>
+      )}
+
+      {/* Impressions de dégustation */}
+      {post.is_wine_notice && post.wine_notice && (
+        <WineTastingNotes wineNotice={post.wine_notice} />
       )}
 
       <div className="flex items-center gap-4 pt-2 border-t">
