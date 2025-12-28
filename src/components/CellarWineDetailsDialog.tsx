@@ -89,6 +89,7 @@ interface CellarWineDetailsDialogProps {
 }
 
 interface TastingDetails {
+  rating: number;
   acidity: number;
   tannins: number;
   body: number;
@@ -131,6 +132,7 @@ export function CellarWineDetailsDialog({
   // Tasting states
   const [liked, setLiked] = useState<number>(0);
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
+    rating: 5.0,
     acidity: 5.0,
     tannins: 5.0,
     body: 5.0,
@@ -207,10 +209,11 @@ export function CellarWineDetailsDialog({
         if (noticeData.details && typeof noticeData.details === 'object' && !Array.isArray(noticeData.details)) {
           const details = noticeData.details as any;
           setTastingDetails({
-            acidity: details.acidity || 5.0,
-            tannins: details.tannins || 5.0,
-            body: details.body || 5.0,
-            sweetness: details.sweetness || 5.0,
+            rating: details.rating ?? 5.0,
+            acidity: details.acidity ?? 5.0,
+            tannins: details.tannins ?? 5.0,
+            body: details.body ?? 5.0,
+            sweetness: details.sweetness ?? 5.0,
             remarks: details.remarks || '',
           });
         }
@@ -1033,6 +1036,18 @@ export function CellarWineDetailsDialog({
               </div>
 
               <div className="space-y-4">
+              {/* Rating slider - Note globale */}
+              <div>
+                <Label className="font-semibold">Note globale : {tastingDetails.rating.toFixed(1)}/10</Label>
+                <Slider
+                  value={[tastingDetails.rating]}
+                  onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, rating: Math.round(val * 10) / 10 }))}
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  className="mt-2"
+                />
+              </div>
               <div>
                 <Label>Acidité</Label>
                 <Slider

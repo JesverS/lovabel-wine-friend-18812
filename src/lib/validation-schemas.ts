@@ -24,10 +24,11 @@ export const wineNoticeSchema = z.object({
     .min(-1, 'Valeur minimale : -1')
     .max(1, 'Valeur maximale : 1'),
   details: z.object({
-    acidity: z.number().min(0).max(5).optional(),
-    tannins: z.number().min(0).max(5).optional(),
-    body: z.number().min(0).max(5).optional(),
-    sweetness: z.number().min(0).max(5).optional(),
+    rating: z.number().min(0).max(10).optional(),
+    acidity: z.number().min(0).max(10).optional(),
+    tannins: z.number().min(0).max(10).optional(),
+    body: z.number().min(0).max(10).optional(),
+    sweetness: z.number().min(0).max(10).optional(),
     remarks: z.string().max(500).optional(),
   }).optional(),
 });

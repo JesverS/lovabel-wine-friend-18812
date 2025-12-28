@@ -34,6 +34,7 @@ interface WineInteractionDialogProps {
 }
 
 interface TastingDetails {
+  rating: number;
   acidity: number;
   tannins: number;
   body: number;
@@ -64,6 +65,7 @@ export const WineInteractionDialog = ({
   const COMMENTS_PER_PAGE = 8;
 
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
+    rating: 5.0,
     acidity: 5.0,
     tannins: 5.0,
     body: 5.0,
@@ -91,10 +93,11 @@ export const WineInteractionDialog = ({
         if (noticeData.details && typeof noticeData.details === 'object' && !Array.isArray(noticeData.details)) {
           const details = noticeData.details as any;
           setTastingDetails({
-            acidity: details.acidity || 5.0,
-            tannins: details.tannins || 5.0,
-            body: details.body || 5.0,
-            sweetness: details.sweetness || 5.0,
+            rating: details.rating ?? 5.0,
+            acidity: details.acidity ?? 5.0,
+            tannins: details.tannins ?? 5.0,
+            body: details.body ?? 5.0,
+            sweetness: details.sweetness ?? 5.0,
             remarks: details.remarks || "",
           });
         }
@@ -221,6 +224,7 @@ export const WineInteractionDialog = ({
 
     // Arrondir les valeurs au dixième avant sauvegarde
     const roundedDetails = {
+      rating: Math.round(tastingDetails.rating * 10) / 10,
       acidity: Math.round(tastingDetails.acidity * 10) / 10,
       tannins: Math.round(tastingDetails.tannins * 10) / 10,
       body: Math.round(tastingDetails.body * 10) / 10,
@@ -443,6 +447,7 @@ export const WineInteractionDialog = ({
 
     // Arrondir les valeurs au dixième avant sauvegarde
     const roundedDetails = {
+      rating: Math.round(tastingDetails.rating * 10) / 10,
       acidity: Math.round(tastingDetails.acidity * 10) / 10,
       tannins: Math.round(tastingDetails.tannins * 10) / 10,
       body: Math.round(tastingDetails.body * 10) / 10,
@@ -759,9 +764,26 @@ export const WineInteractionDialog = ({
               </div>
 
               <div className="space-y-4">
+                {/* Rating slider - Note globale */}
+                <div>
+                  <Label className="font-semibold">
+                    Note globale : {tastingDetails.rating.toFixed(1)}/10
+                  </Label>
+                  <Slider
+                    value={[tastingDetails.rating]}
+                    onValueChange={([value]) =>
+                      setTastingDetails({ ...tastingDetails, rating: Math.round(value * 10) / 10 })
+                    }
+                    min={0}
+                    max={10}
+                    step={0.5}
+                    className="mt-2"
+                  />
+                </div>
+
                 <div>
                   <Label>
-                    Acidité: {tastingDetails.acidity.toFixed(1)}/10
+                    Acidité : {tastingDetails.acidity.toFixed(1)}/10
                   </Label>
                   <p className="text-xs text-muted-foreground mb-2">
                     0 = Très faible • 10 = Très marquée
