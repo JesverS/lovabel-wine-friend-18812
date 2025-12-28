@@ -29,10 +29,11 @@ export default function SpontaneousTastingDialog({
   
   const [selectedWine, setSelectedWine] = useState<any>(null);
   const [liked, setLiked] = useState<number>(0);
-  const [acidity, setAcidity] = useState<number>(0);
-  const [tannins, setTannins] = useState<number>(0);
-  const [body, setBody] = useState<number>(0);
-  const [sweetness, setSweetness] = useState<number>(0);
+  const [rating, setRating] = useState<number>(5);
+  const [acidity, setAcidity] = useState<number>(5);
+  const [tannins, setTannins] = useState<number>(5);
+  const [body, setBody] = useState<number>(5);
+  const [sweetness, setSweetness] = useState<number>(5);
   const [remarks, setRemarks] = useState('');
 
   const requestLocation = async () => {
@@ -94,10 +95,11 @@ export default function SpontaneousTastingDialog({
 
     try {
       const details = {
-        acidity: acidity || undefined,
-        tannins: tannins || undefined,
-        body: body || undefined,
-        sweetness: sweetness || undefined,
+        rating: rating,
+        acidity: acidity,
+        tannins: tannins,
+        body: body,
+        sweetness: sweetness,
         remarks: remarks || undefined,
       };
 
@@ -120,10 +122,11 @@ export default function SpontaneousTastingDialog({
       // Reset form
       setSelectedWine(null);
       setLiked(0);
-      setAcidity(0);
-      setTannins(0);
-      setBody(0);
-      setSweetness(0);
+      setRating(5);
+      setAcidity(5);
+      setTannins(5);
+      setBody(5);
+      setSweetness(5);
       setRemarks('');
       setLocation(null);
     } catch (error) {
@@ -229,42 +232,53 @@ export default function SpontaneousTastingDialog({
               {/* Sliders pour les caractéristiques */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Acidité: {acidity}/5</Label>
+                  <Label className="font-semibold">Note globale : {rating.toFixed(1)}/10</Label>
+                  <Slider
+                    value={[rating]}
+                    onValueChange={(v) => setRating(v[0])}
+                    max={10}
+                    step={0.5}
+                    className="py-2"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Acidité : {acidity.toFixed(1)}/10</Label>
                   <Slider
                     value={[acidity]}
                     onValueChange={(v) => setAcidity(v[0])}
-                    max={5}
-                    step={1}
+                    max={10}
+                    step={0.5}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tanins: {tannins}/5</Label>
+                  <Label>Tanins : {tannins.toFixed(1)}/10</Label>
                   <Slider
                     value={[tannins]}
                     onValueChange={(v) => setTannins(v[0])}
-                    max={5}
-                    step={1}
+                    max={10}
+                    step={0.5}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Corps: {body}/5</Label>
+                  <Label>Corps : {body.toFixed(1)}/10</Label>
                   <Slider
                     value={[body]}
                     onValueChange={(v) => setBody(v[0])}
-                    max={5}
-                    step={1}
+                    max={10}
+                    step={0.5}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Sucrosité: {sweetness}/5</Label>
+                  <Label>Sucrosité : {sweetness.toFixed(1)}/10</Label>
                   <Slider
                     value={[sweetness]}
                     onValueChange={(v) => setSweetness(v[0])}
-                    max={5}
-                    step={1}
+                    max={10}
+                    step={0.5}
                   />
                 </div>
               </div>
