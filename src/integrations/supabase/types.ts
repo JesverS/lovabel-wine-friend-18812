@@ -248,6 +248,39 @@ export type Database = {
           },
         ]
       }
+      cgu_acceptance: {
+        Row: {
+          acceptance_method: string
+          accepted_at: string
+          cgu_version: string
+          consent_text_hash: string
+          id: string
+          ip_address: unknown
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          acceptance_method: string
+          accepted_at?: string
+          cgu_version: string
+          consent_text_hash: string
+          id?: string
+          ip_address?: unknown
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          acceptance_method?: string
+          accepted_at?: string
+          cgu_version?: string
+          consent_text_hash?: string
+          id?: string
+          ip_address?: unknown
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       courses: {
         Row: {
           created_at: string
