@@ -1369,7 +1369,29 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizer_stripe_account_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organizer_stripe_account_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organizer_stripe_account_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       post: {
         Row: {

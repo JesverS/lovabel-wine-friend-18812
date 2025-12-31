@@ -2,7 +2,25 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Shield, Database, Lock, Eye, FileText, Mail, Cookie } from "lucide-react";
+import { 
+  Shield, 
+  Database, 
+  Lock, 
+  FileText, 
+  Mail, 
+  Cookie, 
+  User, 
+  Server, 
+  Target, 
+  ShieldCheck, 
+  Scale, 
+  Users, 
+  Globe, 
+  Clock, 
+  AlertTriangle, 
+  RefreshCw, 
+  Building 
+} from "lucide-react";
 
 export default function Privacy() {
   return (
@@ -13,293 +31,453 @@ export default function Privacy() {
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             Politique de <span className="text-gradient-wine">Confidentialité</span>
           </h1>
+          <p className="text-xl text-muted-foreground mb-2">WineNote</p>
           <p className="text-muted-foreground">
-            Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}
+            Dernière mise à jour : 31 décembre 2024
           </p>
         </div>
 
         <div className="space-y-6">
+          {/* Section 1 - Responsable du traitement */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-6 w-6 text-primary" />
-                Introduction
+                <User className="h-6 w-6 text-primary" />
+                1. Responsable du traitement
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                Wine Note s'engage à protéger la vie privée de ses utilisateurs. 
-                Cette politique de confidentialité explique comment nous collectons, utilisons, 
-                partageons et protégeons vos informations personnelles conformément au 
-                Règlement Général sur la Protection des Données (RGPD).
+                Les données personnelles collectées dans le cadre de l'utilisation du site{" "}
+                <a href="https://winenote.me" className="text-primary hover:underline">
+                  https://winenote.me
+                </a>{" "}
+                et de l'application <strong>WineNote</strong> sont traitées sous la responsabilité de :
               </p>
-              <p className="text-sm text-muted-foreground">
-                En utilisant notre plateforme, vous acceptez les pratiques décrites dans cette politique.
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <p className="font-semibold">Jean Gaspard Segard</p>
+                <p className="text-muted-foreground">agissant en tant que personne physique,</p>
+                <p className="text-muted-foreground">éditeur de la plateforme WineNote.</p>
+              </div>
+              <p className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-primary" />
+                Contact :{" "}
+                <a href="mailto:contact@winenote.me" className="text-primary hover:underline font-semibold">
+                  contact@winenote.me
+                </a>
               </p>
             </CardContent>
           </Card>
 
+          {/* Section 2 - Données personnelles collectées */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-6 w-6 text-primary" />
-                Données collectées
+                2. Données personnelles collectées
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p>
+                WineNote collecte et stocke uniquement les données nécessaires au fonctionnement du service.
+              </p>
+              
               <div>
-                <h4 className="font-semibold mb-2">Informations d'inscription :</h4>
+                <h4 className="font-semibold mb-2">2.1 Données obligatoires lors de l'inscription :</h4>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Nom et prénom</li>
-                  <li>Adresse email</li>
-                  <li>Mot de passe (crypté)</li>
-                  <li>Photo de profil (optionnel)</li>
+                  <li>adresse email</li>
+                  <li>pseudonyme</li>
+                  <li>nom</li>
+                  <li>prénom</li>
+                  <li>ville de résidence (ville uniquement)</li>
                 </ul>
               </div>
 
               <Separator />
 
               <div>
-                <h4 className="font-semibold mb-2">Données d'utilisation :</h4>
+                <h4 className="font-semibold mb-2">2.2 Données facultatives fournies volontairement :</h4>
+                <p className="text-muted-foreground mb-2">
+                  L'utilisateur peut, s'il le souhaite, compléter son profil avec :
+                </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Caves et vins ajoutés</li>
-                  <li>Notes et commentaires sur les vins</li>
-                  <li>Participation aux événements</li>
-                  <li>Progression dans les cours</li>
-                  <li>Interactions sociales (likes, commentaires)</li>
+                  <li>une photo de profil</li>
+                  <li>une adresse postale</li>
+                  <li>un numéro de téléphone</li>
+                  <li>une description personnelle</li>
+                  <li>des liens vers des réseaux sociaux</li>
                 </ul>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h4 className="font-semibold mb-2">Données techniques :</h4>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Adresse IP</li>
-                  <li>Type de navigateur</li>
-                  <li>Pages visitées et durée de visite</li>
-                  <li>Données de géolocalisation (si autorisée)</li>
-                </ul>
+                <p className="text-sm text-muted-foreground mt-3 bg-muted/30 p-3 rounded-lg">
+                  Ces données sont <strong>facultatives</strong>, fournies <strong>volontairement</strong> et leur 
+                  visibilité (publique ou privée) est <strong>entièrement paramétrable par l'utilisateur</strong>.
+                </p>
               </div>
             </CardContent>
           </Card>
 
+          {/* Section 3 - Données liées à l'utilisation */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-6 w-6 text-primary" />
-                Finalités du traitement
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">Nous utilisons vos données pour :</p>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>Créer et gérer votre compte utilisateur</li>
-                <li>Vous permettre de gérer vos caves et vins</li>
-                <li>Faciliter votre participation aux événements</li>
-                <li>Personnaliser votre expérience d'apprentissage</li>
-                <li>Vous envoyer des notifications importantes</li>
-                <li>Améliorer nos services et développer de nouvelles fonctionnalités</li>
-                <li>Assurer la sécurité de la plateforme</li>
-                <li>Respecter nos obligations légales</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="h-6 w-6 text-primary" />
-                Base légale du traitement
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                <li>
-                  <strong>Exécution du contrat :</strong> traitement nécessaire à la fourniture 
-                  de nos services (gestion de compte, caves, événements)
-                </li>
-                <li>
-                  <strong>Consentement :</strong> pour l'envoi de communications marketing 
-                  (vous pouvez retirer votre consentement à tout moment)
-                </li>
-                <li>
-                  <strong>Intérêt légitime :</strong> amélioration de nos services, 
-                  sécurité de la plateforme
-                </li>
-                <li>
-                  <strong>Obligation légale :</strong> conservation de certaines données 
-                  pour respecter nos obligations légales
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-6 w-6 text-primary" />
-                Partage des données
+                3. Données liées à l'utilisation du service
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p>Vos données personnelles ne sont jamais vendues à des tiers.</p>
-              <p>Nous pouvons partager vos données avec :</p>
+              <p>
+                WineNote stocke les contenus générés par les utilisateurs, notamment :
+              </p>
               <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>
-                  <strong>Prestataires techniques :</strong> hébergement (Supabase), 
-                  authentification, envoi d'emails
-                </li>
-                <li>
-                  <strong>Autres utilisateurs :</strong> certaines informations de profil 
-                  sont publiques (nom, photo, caves publiques) selon vos paramètres de confidentialité
-                </li>
-                <li>
-                  <strong>Organisateurs d'événements :</strong> lorsque vous vous inscrivez 
-                  à un événement
-                </li>
-                <li>
-                  <strong>Autorités légales :</strong> si requis par la loi
-                </li>
+                <li>publications, commentaires et interactions sociales</li>
+                <li>dégustations (notes, commentaires, photos, localisations)</li>
+                <li>événements créés (titres, dates, lieux, descriptions)</li>
               </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-6 w-6 text-primary" />
-                Durée de conservation
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-muted-foreground">
-                <li>
-                  <strong>Compte actif :</strong> tant que votre compte est actif
-                </li>
-                <li>
-                  <strong>Compte supprimé :</strong> 30 jours après suppression 
-                  (période de rétractation)
-                </li>
-                <li>
-                  <strong>Données légales :</strong> durée requise par la loi (généralement 3 ans)
-                </li>
-                <li>
-                  <strong>Données anonymisées :</strong> peuvent être conservées indéfiniment 
-                  à des fins statistiques
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-6 w-6 text-primary" />
-                Vos droits
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p>Conformément au RGPD, vous disposez des droits suivants :</p>
-              <ul className="space-y-3">
-                <li>
-                  <strong>Droit d'accès :</strong> obtenir une copie de vos données personnelles
-                </li>
-                <li>
-                  <strong>Droit de rectification :</strong> corriger vos données inexactes
-                </li>
-                <li>
-                  <strong>Droit à l'effacement :</strong> supprimer vos données ("droit à l'oubli")
-                </li>
-                <li>
-                  <strong>Droit à la limitation :</strong> limiter le traitement de vos données
-                </li>
-                <li>
-                  <strong>Droit à la portabilité :</strong> récupérer vos données dans un format structuré
-                </li>
-                <li>
-                  <strong>Droit d'opposition :</strong> vous opposer au traitement de vos données
-                </li>
-                <li>
-                  <strong>Droit de retirer votre consentement :</strong> à tout moment
-                </li>
-              </ul>
-              <Separator />
-              <p className="text-sm">
-                Pour exercer ces droits, contactez-nous à : 
-                <strong className="text-primary ml-1">privacy@winenote.fr</strong>
+              <p className="text-sm text-muted-foreground">
+                Ces données transitent exclusivement par les serveurs de WineNote.
               </p>
             </CardContent>
           </Card>
 
+          {/* Section 4 - Données techniques */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="h-6 w-6 text-primary" />
+                4. Données techniques
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>
+                WineNote collecte uniquement des données techniques <strong>strictement nécessaires</strong> au 
+                fonctionnement du service, notamment :
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>logs de connexion</li>
+                <li>horodatages</li>
+                <li>identifiants de session (tokens)</li>
+              </ul>
+
+              <Separator />
+
+              <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
+                <p className="font-semibold text-green-700 dark:text-green-400 mb-2">
+                  WineNote ne procède à aucune collecte volontaire :
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>d'adresse IP</li>
+                  <li>de type d'appareil</li>
+                  <li>de navigateur</li>
+                  <li>ou de système d'exploitation</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 5 - Cookies et stockage local */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Cookie className="h-6 w-6 text-primary" />
-                Cookies
+                5. Cookies et stockage local
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p>
-                Wine Note utilise des cookies pour améliorer votre expérience utilisateur :
+              <div>
+                <h4 className="font-semibold mb-2">5.1 Cookies</h4>
+                <p className="text-muted-foreground">
+                  Le site web WineNote peut utiliser des <strong>cookies strictement nécessaires</strong> au 
+                  maintien des sessions et à la sécurité du service.
+                </p>
+                <p className="text-sm text-muted-foreground mt-2 bg-muted/30 p-3 rounded-lg">
+                  Aucun cookie publicitaire, de suivi ou de traçage comportemental n'est utilisé.
+                </p>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-semibold mb-2">5.2 Stockage local</h4>
+                <p className="text-muted-foreground">
+                  L'application mobile peut utiliser un <strong>stockage local</strong> sur l'appareil de 
+                  l'utilisateur afin d'assurer certaines fonctionnalités techniques (connexion, sessions, 
+                  données temporaires).
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 6 - Finalités des traitements */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-6 w-6 text-primary" />
+                6. Finalités des traitements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">
+                Les données personnelles sont traitées exclusivement pour les finalités suivantes :
               </p>
               <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>
-                  <strong>Cookies essentiels :</strong> nécessaires au fonctionnement du site 
-                  (authentification, préférences)
-                </li>
-                <li>
-                  <strong>Cookies analytiques :</strong> pour comprendre comment vous utilisez 
-                  le site (anonymisés)
-                </li>
+                <li>création et gestion des comptes utilisateurs</li>
+                <li>fonctionnement des fonctionnalités sociales</li>
+                <li>gestion des dégustations et des événements</li>
+                <li>amélioration continue de l'application</li>
+                <li>production de statistiques d'usage <strong>strictement anonymisées et agrégées</strong></li>
+                <li>sécurité, prévention des abus et lutte contre les comportements malveillants</li>
+                <li>communication fonctionnelle avec les utilisateurs</li>
+                <li>promotion de WineNote à partir de contenus <strong>anonymisés</strong></li>
               </ul>
-              <p className="text-sm">
-                Vous pouvez gérer vos préférences de cookies dans les paramètres de votre navigateur.
+            </CardContent>
+          </Card>
+
+          {/* Section 7 - Absence de revente des données */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-6 w-6 text-primary" />
+                7. Absence de revente des données
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
+                <p className="font-semibold text-green-700 dark:text-green-400">
+                  WineNote ne vend, ne loue, ne cède ni ne commercialise aucune donnée personnelle, 
+                  sous quelque forme que ce soit.
+                </p>
+              </div>
+              <p className="text-muted-foreground mt-4">
+                Aucune donnée personnelle identifiable n'est transmise à des tiers à des fins commerciales.
               </p>
             </CardContent>
           </Card>
 
+          {/* Section 8 - Base légale des traitements */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Scale className="h-6 w-6 text-primary" />
+                8. Base légale des traitements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">Les traitements reposent sur :</p>
+              <ul className="space-y-3">
+                <li>
+                  <strong>L'exécution des Conditions Générales d'Utilisation</strong>
+                </li>
+                <li>
+                  <strong>Le consentement de l'utilisateur</strong> lorsque requis
+                </li>
+                <li>
+                  <strong>L'intérêt légitime de WineNote</strong> à assurer la sécurité, la stabilité 
+                  et l'amélioration du service
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Section 9 - Destinataires des données */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-6 w-6 text-primary" />
+                9. Destinataires des données
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>
+                Les données sont accessibles uniquement par WineNote.
+              </p>
+              <p>
+                WineNote fait appel à des prestataires techniques, notamment :
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                <li><strong>AWS</strong> et <strong>Supabase</strong> pour l'hébergement</li>
+                <li><strong>Stripe</strong> pour la gestion des paiements</li>
+              </ul>
+              <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                Stripe agit en tant que <strong>responsable de traitement indépendant</strong> pour ses propres services.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Section 10 - Hébergement des données */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-6 w-6 text-primary" />
+                10. Hébergement des données
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>
+                Les données sont hébergées <strong>au sein de l'Union européenne</strong>.
+              </p>
+              <p className="text-muted-foreground">
+                Aucun transfert hors de l'Union européenne n'est effectué à ce jour.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                L'infrastructure technique est susceptible d'évoluer, dans le respect de la 
+                réglementation applicable.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Section 11 - Durée de conservation */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-6 w-6 text-primary" />
+                11. Durée de conservation
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3">
+                <li>
+                  <strong>Compte actif :</strong>{" "}
+                  <span className="text-muted-foreground">
+                    Les données personnelles sont conservées tant que le compte utilisateur est actif.
+                  </span>
+                </li>
+                <li>
+                  <strong>Suppression du compte :</strong>{" "}
+                  <span className="text-muted-foreground">
+                    Les données sont supprimées dans un délai maximum de 30 jours.
+                  </span>
+                </li>
+                <li>
+                  <strong>Bannissement :</strong>{" "}
+                  <span className="text-muted-foreground">
+                    Certains logs peuvent être conservés à des fins de sécurité.
+                  </span>
+                </li>
+                <li>
+                  <strong>Données statistiques :</strong>{" "}
+                  <span className="text-muted-foreground">
+                    Les données anonymisées peuvent être conservées sans limitation de durée.
+                  </span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Section 12 - Droits des utilisateurs */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-6 w-6 text-primary" />
+                12. Droits des utilisateurs
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>Conformément à la réglementation en vigueur, l'utilisateur dispose des droits suivants :</p>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold min-w-fit">Droit d'accès :</span>
+                  <span className="text-muted-foreground">obtenir une copie de vos données personnelles</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold min-w-fit">Droit de rectification :</span>
+                  <span className="text-muted-foreground">corriger vos données inexactes</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold min-w-fit">Droit à l'effacement :</span>
+                  <span className="text-muted-foreground">supprimer vos données</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold min-w-fit">Droit à la limitation :</span>
+                  <span className="text-muted-foreground">limiter le traitement de vos données</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold min-w-fit">Droit d'opposition :</span>
+                  <span className="text-muted-foreground">vous opposer au traitement de vos données</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold min-w-fit">Droit à la portabilité :</span>
+                  <span className="text-muted-foreground">lorsque applicable</span>
+                </li>
+              </ul>
+              <Separator />
+              <p className="flex items-center gap-2">
+                Toute demande s'effectue par email à :{" "}
+                <a href="mailto:contact@winenote.me" className="text-primary hover:underline font-semibold">
+                  contact@winenote.me
+                </a>
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Section 13 - Sécurité des données */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="h-6 w-6 text-primary" />
-                Sécurité des données
+                13. Sécurité des données
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                Nous mettons en œuvre des mesures techniques et organisationnelles appropriées 
-                pour protéger vos données personnelles :
+                WineNote met en œuvre des mesures techniques et organisationnelles raisonnables 
+                afin de protéger les données personnelles.
               </p>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>Cryptage des données sensibles (mots de passe, communications)</li>
-                <li>Serveurs sécurisés avec certificats SSL/TLS</li>
-                <li>Accès restreint aux données personnelles</li>
-                <li>Sauvegardes régulières</li>
-                <li>Audits de sécurité réguliers</li>
-              </ul>
+              <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                Toutefois, aucune sécurité absolue ne peut être garantie.
+              </p>
             </CardContent>
           </Card>
 
+          {/* Section 14 - Mineurs */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Mail className="h-6 w-6 text-primary" />
-                Contact
+                <AlertTriangle className="h-6 w-6 text-primary" />
+                14. Mineurs
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <p>
-                Pour toute question concernant cette politique de confidentialité ou 
-                l'utilisation de vos données personnelles :
+            <CardContent className="space-y-4">
+              <p className="font-semibold">
+                WineNote est strictement réservé aux personnes majeures.
               </p>
-              <p><strong>Email :</strong> privacy@winenote.fr</p>
-              <p><strong>Adresse :</strong> Wine Note, Paris, France</p>
-              <Separator className="my-4" />
-              <p className="text-sm text-muted-foreground">
-                Vous avez également le droit de déposer une plainte auprès de la CNIL 
-                (Commission Nationale de l'Informatique et des Libertés) si vous estimez 
-                que vos droits ne sont pas respectés.
+              <p className="text-muted-foreground">
+                Aucune donnée de mineur n'est volontairement collectée.
+              </p>
+              <p className="text-muted-foreground">
+                Tout compte identifié comme appartenant à un mineur sera supprimé immédiatement.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Section 15 - Modification de la politique */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="h-6 w-6 text-primary" />
+                15. Modification de la politique
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                La présente politique de confidentialité peut être modifiée à tout moment.
+              </p>
+              <p className="text-muted-foreground mt-2">
+                L'utilisation continue du service vaut acceptation des modifications.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Section 16 - Autorité de contrôle */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-6 w-6 text-primary" />
+                16. Autorité de contrôle
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                L'utilisateur peut introduire une réclamation auprès de l'autorité compétente, 
+                notamment la <strong>CNIL</strong> (Commission Nationale de l'Informatique et des Libertés).
               </p>
             </CardContent>
           </Card>
