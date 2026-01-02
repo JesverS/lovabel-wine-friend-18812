@@ -1,5 +1,7 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import aboutHeroImage from "@/assets/about-hero-vineyard.jpg";
+import founderImage from "@/assets/founder-jg-segard.jpg";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -120,12 +122,15 @@ export default function About() {
       
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-background">
-          {/* Decorative elements */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/15 rounded-full blur-3xl" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-primary/5 to-transparent rounded-full" />
+        <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
+          {/* Background image */}
+          <div className="absolute inset-0">
+            <img 
+              src={aboutHeroImage} 
+              alt="Vignoble au coucher de soleil" 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
           </div>
           
           <div className="relative z-10 container mx-auto px-4 text-center animate-fade-up">
@@ -295,13 +300,15 @@ export default function About() {
               <Card className="glass-card overflow-hidden animate-fade-up">
                 <div className="md:flex items-center">
                   <div className="md:w-1/3 p-8 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                      <span className="text-4xl md:text-5xl font-bold text-primary-foreground">JG</span>
-                    </div>
+                    <img 
+                      src={founderImage} 
+                      alt="Jean-Gaspard Segard, fondateur de WineNote" 
+                      className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover shadow-lg border-4 border-background"
+                    />
                   </div>
                   <div className="md:w-2/3 p-8">
                     <Badge className="badge-wine mb-4">Fondateur</Badge>
-                    <h3 className="text-2xl font-bold mb-2">Jean Gaspard Segard</h3>
+                    <h3 className="text-2xl font-bold mb-2">Jean-Gaspard Segard</h3>
                     <p className="text-muted-foreground leading-relaxed mb-4">
                       Passionné de vin et de technologie, j'ai créé WineNote pour partager ma passion 
                       et permettre à chacun de découvrir l'univers fascinant de l'œnologie.
