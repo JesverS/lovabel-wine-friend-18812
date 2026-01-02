@@ -20,7 +20,7 @@ import {
   Grape
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import heroImage from "@/assets/hero-wine.jpg";
+import { useAuth } from "@/contexts/AuthContext";
 
 const FEATURES = [
   {
@@ -43,8 +43,8 @@ const FEATURES = [
   },
   {
     icon: Gamepad2,
-    title: "Jeux Festifs",
-    description: "Animez vos soirées avec des jeux de dégustation à l'aveugle, de 1 à 8 joueurs, pour tous les niveaux.",
+    title: "Jeux Éducatifs",
+    description: "Testez vos connaissances avec des jeux de dégustation à l'aveugle, de 1 à 8 joueurs, pour tous les niveaux.",
     gradient: "from-violet-500 to-purple-600"
   },
   {
@@ -63,25 +63,21 @@ const FEATURES = [
 
 const STEPS = [
   {
-    number: "01",
     icon: UserPlus,
     title: "Créez votre compte",
     description: "Inscrivez-vous gratuitement en quelques secondes et personnalisez votre profil."
   },
   {
-    number: "02",
     icon: Search,
     title: "Explorez & Apprenez",
     description: "Parcourez les cours d'œnologie, découvrez des domaines et enrichissez vos connaissances."
   },
   {
-    number: "03",
     icon: Share2,
     title: "Partagez vos dégustations",
     description: "Notez vos vins, publiez vos impressions et échangez avec la communauté."
   },
   {
-    number: "04",
     icon: PartyPopper,
     title: "Participez & Célébrez",
     description: "Rejoignez des événements, organisez des soirées et vivez votre passion pleinement."
@@ -108,6 +104,15 @@ const VALUES = [
 
 export default function About() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleStartClick = () => {
+    if (user) {
+      navigate("/");
+    } else {
+      navigate("/auth");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -115,38 +120,38 @@ export default function About() {
       
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
-          <div 
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${heroImage})` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-background" />
+        <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-background">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/15 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-primary/5 to-transparent rounded-full" />
+          </div>
           
           <div className="relative z-10 container mx-auto px-4 text-center animate-fade-up">
             <Badge className="badge-wine mb-6 text-sm px-4 py-2">
               <Grape className="w-4 h-4 mr-2" />
               Bienvenue sur WineNote
             </Badge>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6">
               Découvrez <span className="text-gradient-wine">WineNote</span>
             </h1>
-            <p className="text-xl md:text-2xl text-white/80 max-w-3xl mx-auto mb-8">
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-8">
               La plateforme qui réinvente votre passion du vin : apprenez, partagez, dégustez et célébrez ensemble.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                onClick={() => navigate("/auth")}
+                onClick={handleStartClick}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
               >
-                Commencer gratuitement
+                {user ? "Accéder à WineNote" : "Commencer gratuitement"}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button 
                 size="lg" 
-                variant="outline"
+                variant="secondary"
                 onClick={() => navigate("/learning")}
-                className="border-white/30 text-white hover:bg-white/10"
               >
                 Explorer les cours
               </Button>
@@ -227,28 +232,28 @@ export default function About() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {STEPS.map((step, index) => (
-                <div 
-                  key={step.number} 
-                  className="relative text-center animate-fade-up"
-                  style={{ animationDelay: `${index * 150}ms` }}
-                >
-                  {/* Connector line */}
-                  {index < STEPS.length - 1 && (
-                    <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
-                  )}
-                  
-                  <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                    <step.icon className="h-7 w-7 text-primary" />
-                    <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
-                      {index + 1}
-                    </span>
+            <div className="relative max-w-5xl mx-auto">
+              {/* Connector line for desktop */}
+              <div className="hidden lg:block absolute top-8 left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-primary/30 via-primary/50 to-primary/30" />
+              
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {STEPS.map((step, index) => (
+                  <div 
+                    key={step.title} 
+                    className="relative text-center animate-fade-up"
+                    style={{ animationDelay: `${index * 150}ms` }}
+                  >
+                    <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full bg-background border-2 border-primary/20 mb-4 shadow-lg">
+                      <step.icon className="h-7 w-7 text-primary" />
+                      <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shadow-md">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
+                    <p className="text-muted-foreground text-sm">{step.description}</p>
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-                  <p className="text-muted-foreground text-sm">{step.description}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -327,15 +332,15 @@ export default function About() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
                   size="lg" 
-                  onClick={() => navigate("/auth")}
+                  onClick={handleStartClick}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
                 >
-                  Commencer gratuitement
+                  {user ? "Accéder à WineNote" : "Commencer gratuitement"}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
                 <Button 
                   size="lg" 
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => navigate("/learning")}
                 >
                   Explorer les cours
