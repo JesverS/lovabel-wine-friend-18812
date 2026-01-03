@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Send, Loader2, Trash2, Edit2, ThumbsUp } from 'lucide-react';
+import { Heart, MessageCircle, Send, Loader2, Trash2, Edit2, ThumbsUp, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -23,6 +23,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { WineTastingNotes } from '@/components/WineTastingNotes';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const commentSchema = z.object({
   content: z.string().trim().min(1, 'Le commentaire est requis').max(1000, 'Maximum 1000 caractères'),
@@ -59,6 +64,9 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [loadingShare, setLoadingShare] = useState(false);
+  const [authorIsPublic, setAuthorIsPublic] = useState<boolean | null>(null);
+  const [shareToken, setShareToken] = useState<string | null>(post.share_token || null);
 
   // Seulement charger les données si pas pré-chargées
   useEffect(() => {
@@ -68,7 +76,18 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
       // Charger uniquement le profil de l'utilisateur courant pour les commentaires
       fetchCurrentUserProfile();
     }
+    // Charger le statut public de l'auteur
+    fetchAuthorPublicStatus();
   }, [post.id, user, preloadedData]);
+
+  const fetchAuthorPublicStatus = async () => {
+    const { data } = await supabase
+      .from('user_profiles_public' as any)
+      .select('is_public')
+      .eq('id', post.user_id)
+      .maybeSingle();
+    setAuthorIsPublic((data as any)?.is_public ?? true);
+  };
 
   const fetchCurrentUserProfile = async () => {
     if (!user) return;
@@ -327,6 +346,97 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
     }
   };
 
+  const handleShare = async () => {
+    const baseUrl = window.location.origin;
+    
+    // Si le profil de l'auteur est public, partager directement avec l'ID du post
+    if (authorIsPublic) {
+      const shareUrl = `${baseUrl}/post/share/${post.id}`;
+      await triggerShare(shareUrl);
+      return;
+    }
+    
+    // Si le profil est privé, seul le propriétaire peut partager
+    if (user?.id !== post.user_id) {
+      toast({
+        variant: 'destructive',
+        title: 'Partage impossible',
+        description: 'Seul l\'auteur peut partager ce post depuis un compte privé',
+      });
+      return;
+    }
+    
+    // Générer ou utiliser le share_token existant
+    setLoadingShare(true);
+    try {
+      let token = shareToken;
+      
+      if (!token) {
+        // Générer un nouveau token
+        token = crypto.randomUUID();
+        const { error } = await supabase
+          .from('post')
+          .update({ 
+            share_token: token, 
+            share_token_created_at: new Date().toISOString() 
+          })
+          .eq('id', post.id);
+        
+        if (error) throw error;
+        setShareToken(token);
+      }
+      
+      const shareUrl = `${baseUrl}/post/share/${token}`;
+      await triggerShare(shareUrl);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de générer le lien de partage',
+      });
+    } finally {
+      setLoadingShare(false);
+    }
+  };
+
+  const triggerShare = async (url: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Post WineNote',
+          text: post.content?.substring(0, 100) || 'Découvrez ce post sur WineNote',
+          url,
+        });
+      } catch (error) {
+        // L'utilisateur a annulé le partage, on ne fait rien
+        if ((error as Error).name !== 'AbortError') {
+          await copyToClipboard(url);
+        }
+      }
+    } else {
+      await copyToClipboard(url);
+    }
+  };
+
+  const copyToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: 'Lien copié',
+        description: 'Le lien a été copié dans le presse-papier',
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de copier le lien',
+      });
+    }
+  };
+
+  // Déterminer si le bouton de partage doit être affiché
+  const canShare = authorIsPublic || user?.id === post.user_id;
+
   const handleDeletePost = async () => {
     if (!user || user.id !== post.user_id) return;
     
@@ -498,6 +608,31 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
           <MessageCircle className="w-4 h-4" />
           {commentsCount}
         </Button>
+        {canShare && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="gap-2 ml-auto"
+                onClick={handleShare}
+                disabled={loadingShare}
+              >
+                {loadingShare ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Share2 className="w-4 h-4" />
+                )}
+                Partager
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {authorIsPublic 
+                ? 'Partager ce post' 
+                : 'Créer un lien de partage privé'}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       {/* Comments Section */}

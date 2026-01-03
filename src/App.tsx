@@ -32,6 +32,7 @@ import Legal from "./pages/Legal";
 import Privacy from "./pages/Privacy";
 import Notifications from "./pages/Notifications";
 import Badges from "./pages/Badges";
+import SharedPost from "./pages/SharedPost";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,7 +43,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<Index />} />
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/badges" element={<Badges />} />
+            <Route path="/post/share/:token" element={<SharedPost />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

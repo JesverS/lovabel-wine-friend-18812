@@ -231,7 +231,7 @@ export const GlobalSearchBar = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hidden md:inline-flex">
+        <Button variant="ghost" size="icon" className="hidden md:inline-flex" data-search-trigger>
           <Search className="h-5 w-5" />
         </Button>
       </DialogTrigger>
