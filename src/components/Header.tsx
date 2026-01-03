@@ -63,7 +63,22 @@ export const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          <GlobalSearchBar />
+          <div className="hidden md:block">
+            <GlobalSearchBar />
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              // Trouver et cliquer sur le bouton de recherche GlobalSearchBar
+              const searchButton = document.querySelector('[data-search-trigger]') as HTMLButtonElement;
+              if (searchButton) searchButton.click();
+            }}
+          >
+            <Search className="h-5 w-5" />
+          </Button>
           {user && (
             <div className="hidden md:block">
               <NotificationCenter />
@@ -107,6 +122,14 @@ export const Header = () => {
                 <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-4 mt-8">
+                <Link 
+                  to="/search" 
+                  className="text-lg font-medium text-foreground hover:text-primary transition-colors flex items-center gap-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Search className="h-5 w-5" />
+                  Recherche
+                </Link>
                 <Link 
                   to="/events" 
                   className="text-lg font-medium text-foreground hover:text-primary transition-colors"

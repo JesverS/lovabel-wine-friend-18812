@@ -1402,6 +1402,8 @@ export type Database = {
           image_url: string | null
           is_wine_notice: boolean
           likes_count: number
+          share_token: string | null
+          share_token_created_at: string | null
           updated_at: string | null
           user_id: string
           wine_id: string | null
@@ -1415,6 +1417,8 @@ export type Database = {
           image_url?: string | null
           is_wine_notice?: boolean
           likes_count?: number
+          share_token?: string | null
+          share_token_created_at?: string | null
           updated_at?: string | null
           user_id: string
           wine_id?: string | null
@@ -1428,6 +1432,8 @@ export type Database = {
           image_url?: string | null
           is_wine_notice?: boolean
           likes_count?: number
+          share_token?: string | null
+          share_token_created_at?: string | null
           updated_at?: string | null
           user_id?: string
           wine_id?: string | null

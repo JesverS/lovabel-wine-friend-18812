@@ -310,9 +310,8 @@ export default function DomainDetails() {
                             year={wine.year || 0}
                             region={domain.address || ""}
                             price={Number(wine.price) || 0}
-                            rating={4.5}
                             imageUrl={wine.label_url}
-                            available={wine.stock > 0}
+                            available={wine.price ? true : undefined}
                             tags={wine.characteristics?.type ? [wine.characteristics.type] : []}
                           />
                         </Link>
@@ -385,9 +384,8 @@ export default function DomainDetails() {
                         year={wine.year || 0}
                         region={domain.address || ""}
                         price={Number(wine.price) || 0}
-                        rating={4.5}
                         imageUrl={wine.label_url}
-                        available={wine.stock > 0}
+                        available={wine.price ? true : undefined}
                         tags={wine.characteristics?.type ? [wine.characteristics.type] : []}
                       />
                     </Link>

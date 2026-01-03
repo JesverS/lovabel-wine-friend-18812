@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -80,6 +81,16 @@ const DialogDescription = React.forwardRef<
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
+// Composant pour ajouter une description accessible cachée quand aucune n'est fournie
+const DialogAccessibleDescription = ({ children }: { children?: React.ReactNode }) => {
+  if (children) return <>{children}</>;
+  return (
+    <VisuallyHidden.Root asChild>
+      <DialogPrimitive.Description>Contenu de la boîte de dialogue</DialogPrimitive.Description>
+    </VisuallyHidden.Root>
+  );
+};
+
 export {
   Dialog,
   DialogPortal,
@@ -91,4 +102,5 @@ export {
   DialogFooter,
   DialogTitle,
   DialogDescription,
+  DialogAccessibleDescription,
 };
