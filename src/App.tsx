@@ -33,6 +33,7 @@ import Privacy from "./pages/Privacy";
 import Notifications from "./pages/Notifications";
 import Badges from "./pages/Badges";
 import SharedPost from "./pages/SharedPost";
+import PostDetails from "./pages/PostDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/badges" element={<Badges />} />
             <Route path="/post/share/:token" element={<SharedPost />} />
+            <Route path="/post/:id" element={<PostDetails />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

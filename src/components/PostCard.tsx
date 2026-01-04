@@ -81,12 +81,18 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   }, [post.id, user, preloadedData]);
 
   const fetchAuthorPublicStatus = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_profiles_public' as any)
       .select('is_public')
       .eq('id', post.user_id)
       .maybeSingle();
-    setAuthorIsPublic((data as any)?.is_public ?? true);
+    
+    if (error || !data) {
+      // En cas d'erreur, on reste sur null (pas de partage possible)
+      setAuthorIsPublic(null);
+      return;
+    }
+    setAuthorIsPublic((data as any)?.is_public ?? false);
   };
 
   const fetchCurrentUserProfile = async () => {
@@ -349,9 +355,18 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   const handleShare = async () => {
     const baseUrl = window.location.origin;
     
-    // Si le profil de l'auteur est public, partager directement avec l'ID du post
-    if (authorIsPublic) {
-      const shareUrl = `${baseUrl}/post/share/${post.id}`;
+    // Si on n'a pas encore récupéré le statut public, attendre
+    if (authorIsPublic === null) {
+      toast({
+        title: 'Chargement...',
+        description: 'Veuillez patienter pendant la vérification',
+      });
+      return;
+    }
+    
+    // Si le profil de l'auteur est public, partager avec l'URL du post
+    if (authorIsPublic === true) {
+      const shareUrl = `${baseUrl}/post/${post.id}`;
       await triggerShare(shareUrl);
       return;
     }
@@ -366,7 +381,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
       return;
     }
     
-    // Générer ou utiliser le share_token existant
+    // Générer ou utiliser le share_token existant (profil privé + propriétaire)
     setLoadingShare(true);
     try {
       let token = shareToken;
@@ -384,15 +399,21 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
         
         if (error) throw error;
         setShareToken(token);
+        
+        toast({
+          title: 'Lien privé généré',
+          description: 'Un lien de partage unique a été créé',
+        });
       }
       
       const shareUrl = `${baseUrl}/post/share/${token}`;
       await triggerShare(shareUrl);
     } catch (error: any) {
+      console.error('Erreur génération token:', error);
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: 'Impossible de générer le lien de partage',
+        description: 'Impossible de générer le lien de partage. Vérifiez vos permissions.',
       });
     } finally {
       setLoadingShare(false);
@@ -435,7 +456,9 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   };
 
   // Déterminer si le bouton de partage doit être affiché
-  const canShare = authorIsPublic || user?.id === post.user_id;
+  // On affiche le bouton si le profil est public OU si l'utilisateur est le propriétaire
+  // On n'affiche pas si authorIsPublic est null (chargement en cours)
+  const canShare = authorIsPublic === true || user?.id === post.user_id;
 
   const handleDeletePost = async () => {
     if (!user || user.id !== post.user_id) return;
