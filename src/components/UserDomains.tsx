@@ -87,6 +87,7 @@ export function UserDomains() {
                         <img 
                           src={app.domain.logo_url} 
                           alt={app.domain.name}
+                          loading="lazy"
                           className="h-full w-auto object-contain"
                         />
                       ) : (
@@ -134,6 +135,7 @@ export function UserDomains() {
                       <img 
                         src={domain.logo_url} 
                         alt={domain.name}
+                        loading="lazy"
                         className="h-full w-auto object-contain"
                       />
                     ) : (

@@ -80,6 +80,7 @@ export default function WineDetails() {
               <img
                 src={wine.label_url}
                 alt={wine.name}
+                loading="lazy"
                 className="max-w-sm w-full h-auto object-contain rounded-lg shadow-lg"
               />
             ) : (
@@ -93,7 +94,7 @@ export default function WineDetails() {
             <div>
               <h1 className="text-4xl font-bold mb-2">{wine.name}</h1>
               {domaine && (
-                <Link to={`/domaine/${domaine.id}`} className="text-xl text-primary hover:underline">
+                <Link to={`/domain/${domaine.id}`} className="text-xl text-primary hover:underline">
                   {domaine.name}
                 </Link>
               )}
@@ -159,7 +160,7 @@ export default function WineDetails() {
               )}
               {domaine && (
                 <Button asChild size="lg" variant="outline" className="flex-1">
-                  <Link to={`/domaine/${domaine.id}`}>
+                  <Link to={`/domain/${domaine.id}`}>
                     Commander auprès du domaine
                   </Link>
                 </Button>

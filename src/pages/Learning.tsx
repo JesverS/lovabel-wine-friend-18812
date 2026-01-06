@@ -7,9 +7,10 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Award, Trophy, Sparkles, Lock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBadges } from "@/hooks/useBadges";
 
 interface Course {
   id: number;
@@ -26,6 +27,7 @@ interface Course {
 export default function Learning() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { getBadgesByCategory, isUnlocked, loading: badgesLoading } = useBadges();
   const { data: courses, isLoading } = useQuery({
     queryKey: ["courses"],
     queryFn: async () => {
@@ -223,23 +225,51 @@ export default function Learning() {
         {/* Achievements Section */}
         <Card className="mt-12 glass-card animate-fade-up">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Award className="h-6 w-6 text-secondary" />
-              Vos Badges & Récompenses
-            </CardTitle>
-            <CardDescription>Débloquez des badges en progressant dans votre apprentissage</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-6 w-6 text-secondary" />
+                  Vos Badges & Récompenses
+                </CardTitle>
+                <CardDescription>Débloquez des badges en progressant dans votre apprentissage</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/badges">Voir tous</Link>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted/50 opacity-40"
-                >
-                  <Lock className="h-8 w-8 text-muted-foreground mb-2" />
-                  <span className="text-xs text-muted-foreground text-center">Badge verrouillé</span>
-                </div>
-              ))}
+              {badgesLoading ? (
+                [...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted/50 animate-pulse h-24"
+                  />
+                ))
+              ) : (
+                getBadgesByCategory('learning').slice(0, 4).map((badge) => {
+                  const unlocked = isUnlocked(badge.id);
+                  return (
+                    <div
+                      key={badge.id}
+                      className={`flex flex-col items-center justify-center p-4 rounded-lg ${
+                        unlocked 
+                          ? 'bg-primary/10 border border-primary/20' 
+                          : 'bg-muted/50 opacity-50'
+                      }`}
+                    >
+                      <span className="text-2xl mb-2">{badge.icon}</span>
+                      <span className="text-xs text-center font-medium">
+                        {badge.name}
+                      </span>
+                      {!unlocked && (
+                        <Lock className="h-3 w-3 text-muted-foreground mt-1" />
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </CardContent>
         </Card>

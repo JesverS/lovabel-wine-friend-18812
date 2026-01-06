@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Send, Loader2, Trash2, Edit2, ThumbsUp, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Loader2, Trash2, Edit2, ThumbsUp, Share2, Flag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -28,6 +28,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { renderContentWithLinks } from '@/lib/contentParser';
+import { ReportContentDialog } from '@/components/ReportContentDialog';
 
 const commentSchema = z.object({
   content: z.string().trim().min(1, 'Le commentaire est requis').max(1000, 'Maximum 1000 caractères'),
@@ -67,6 +69,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   const [loadingShare, setLoadingShare] = useState(false);
   const [authorIsPublic, setAuthorIsPublic] = useState<boolean | null>(null);
   const [shareToken, setShareToken] = useState<string | null>(post.share_token || null);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
   // Seulement charger les données si pas pré-chargées
   useEffect(() => {
@@ -543,12 +546,22 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
                 </Button>
               </div>
             )}
+            {user && user.id !== post.user_id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setReportDialogOpen(true)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Flag className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       {!isEditing ? (
-        <p className="whitespace-pre-wrap">{post.content}</p>
+        <p className="whitespace-pre-wrap">{renderContentWithLinks(post.content || '')}</p>
       ) : (
         <div className="space-y-2">
           <Textarea
@@ -821,6 +834,13 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Report Dialog */}
+      <ReportContentDialog
+        open={reportDialogOpen}
+        onOpenChange={setReportDialogOpen}
+        postId={post.id}
+      />
     </Card>
   );
 };

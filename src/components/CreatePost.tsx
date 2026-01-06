@@ -16,6 +16,7 @@ import { Loader2, Image as ImageIcon, X, Wine, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { CreateWineForPostDialog } from './CreateWineForPostDialog';
+import { extractMentionsAndHashtags } from '@/lib/contentParser';
 
 interface CreatePostProps {
   onPostCreated?: () => void;
@@ -158,14 +159,76 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
         setUploading(false);
       }
 
-      const { error: insertError } = await supabase.from('post').insert([{
+      const { error: insertError, data: newPost } = await supabase.from('post').insert([{
         user_id: user.id,
         content: content.trim() || null,
         image_url: imageUrl || null,
         wine_id: selectedWine?.id || null,
-      }]);
+      }]).select('id').single();
 
       if (insertError) throw insertError;
+
+      // Parser les mentions et hashtags
+      if (content.trim() && newPost?.id) {
+        const { mentions, hashtags } = extractMentionsAndHashtags(content);
+
+        // Traiter les mentions
+        if (mentions.length > 0) {
+          // Vérifier quels slugs existent et récupérer les user_ids
+          const { data: mentionedUsers } = await supabase
+            .from('user_profiles_public' as any)
+            .select('id, slug')
+            .in('slug', mentions);
+
+          if (mentionedUsers && mentionedUsers.length > 0) {
+            const mentionInserts = (mentionedUsers as any[]).map((u: any) => ({
+              post_id: newPost.id,
+              mentioned_user_id: u.id,
+              mentioned_slug: u.slug,
+            }));
+
+            await supabase
+              .from('post_mention' as any)
+              .insert(mentionInserts);
+          }
+        }
+
+        // Traiter les hashtags
+        if (hashtags.length > 0) {
+          for (const tag of hashtags) {
+            // Upsert le hashtag
+            const { data: existingHashtag } = await supabase
+              .from('hashtag' as any)
+              .select('id')
+              .eq('tag', tag)
+              .maybeSingle();
+
+            let hashtagId: string;
+
+            if (existingHashtag) {
+              hashtagId = (existingHashtag as any).id;
+              // Incrémenter le compteur
+              await supabase
+                .from('hashtag' as any)
+                .update({ usage_count: (existingHashtag as any).usage_count + 1 })
+                .eq('id', hashtagId);
+            } else {
+              // Créer le hashtag
+              const { data: newHashtag } = await supabase
+                .from('hashtag' as any)
+                .insert({ tag, usage_count: 1 })
+                .select('id')
+                .single();
+              hashtagId = (newHashtag as any).id;
+            }
+
+            // Insérer la relation post_hashtag
+            await supabase
+              .from('post_hashtag' as any)
+              .insert({ post_id: newPost.id, hashtag_id: hashtagId });
+          }
+        }
+      }
 
       toast({
         title: 'Succès',
