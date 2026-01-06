@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Send, Wine } from "lucide-react";
+import { Sparkles, Send, Wine, Hash, Loader2 } from "lucide-react";
 import { WineCard } from "@/components/WineCard";
+import { PostCard } from "@/components/PostCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -45,7 +48,9 @@ const MOCK_RECOMMENDATIONS = [
 const Search = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const initialQuery = searchParams.get("q") || "";
+  const tagQuery = searchParams.get("tag") || "";
   
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: `Excellent choix ! Pour "${initialQuery}", j'ai quelques questions rapides :` },
@@ -54,6 +59,51 @@ const Search = () => {
   
   const [input, setInput] = useState("");
   const [showRecommendations, setShowRecommendations] = useState(false);
+  
+  // Hashtag search state
+  const [hashtagPosts, setHashtagPosts] = useState<any[]>([]);
+  const [loadingHashtag, setLoadingHashtag] = useState(false);
+
+  // Fetch posts by hashtag
+  useEffect(() => {
+    if (tagQuery) {
+      fetchPostsByHashtag(tagQuery);
+    }
+  }, [tagQuery]);
+
+  const fetchPostsByHashtag = async (tag: string) => {
+    setLoadingHashtag(true);
+    try {
+      // Recherche optimisée via les tables de liaison
+      const { data: posts, error } = await supabase
+        .from('post')
+        .select(`
+          *,
+          post_hashtag!inner(hashtag:hashtag!inner(tag))
+        `)
+        .eq('post_hashtag.hashtag.tag', tag.toLowerCase())
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        // Fallback : recherche par ILIKE dans le contenu
+        const { data: fallbackPosts } = await supabase
+          .from('post')
+          .select('*')
+          .ilike('content', `%#${tag}%`)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        setHashtagPosts(fallbackPosts || []);
+      } else {
+        setHashtagPosts(posts || []);
+      }
+    } catch (error) {
+      console.error('Error fetching hashtag posts:', error);
+    } finally {
+      setLoadingHashtag(false);
+    }
+  };
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +137,58 @@ const Search = () => {
       
       <main className="pt-24 pb-16 flex-grow min-h-screen">
         <div className="container mx-auto px-4">
+          {/* Hashtag Search Results */}
+          {tagQuery ? (
+            <div className="max-w-2xl mx-auto">
+              <div className="text-center mb-8 animate-fade-up">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 mb-4">
+                  <Hash className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Recherche par hashtag</span>
+                </div>
+                <h1 className="font-serif text-4xl font-bold mb-3">
+                  #{tagQuery}
+                </h1>
+                <p className="text-muted-foreground">
+                  {hashtagPosts.length} post{hashtagPosts.length > 1 ? 's' : ''} trouvé{hashtagPosts.length > 1 ? 's' : ''}
+                </p>
+              </div>
+
+              {loadingHashtag ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : hashtagPosts.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">Aucun post avec ce hashtag</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => navigate("/")}
+                    >
+                      Retour à l'accueil
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-6">
+                  {hashtagPosts.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+              )}
+
+              <div className="text-center mt-8">
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate("/")}
+                >
+                  Retour à l'accueil
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
           {/* Header */}
           <div className="max-w-3xl mx-auto mb-8 text-center animate-fade-up">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 mb-4">
@@ -252,6 +354,8 @@ const Search = () => {
                 </Button>
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
       </main>

@@ -13,6 +13,7 @@ import { Store, MapPin } from 'lucide-react';
 import { CellarCatalog } from '@/components/CellarCatalog';
 import { EditCellarDialog } from '@/components/EditCellarDialog';
 import { CellarMembers } from '@/components/CellarMembers';
+import { StockAlertBanner } from '@/components/StockAlertBanner';
 import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -211,6 +212,7 @@ export default function CellarDetails() {
             <img
               src={cellar.banner_url}
               alt={cellar.name}
+              loading="lazy"
               className="w-full h-full object-cover"
             />
           </div>
@@ -251,6 +253,7 @@ export default function CellarDetails() {
           </TabsList>
 
           <TabsContent value="catalog" className="mt-6">
+            {userRole && <StockAlertBanner cellarId={cellar.id} />}
             <CellarCatalog cellarId={cellar.id} userRole={userRole} />
           </TabsContent>
 

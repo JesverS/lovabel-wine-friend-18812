@@ -202,6 +202,7 @@ export type Database = {
           label_url: string | null
           price: number | null
           quantity: number | null
+          stock_alert_threshold: number | null
           wine_id: string
         }
         Insert: {
@@ -212,6 +213,7 @@ export type Database = {
           label_url?: string | null
           price?: number | null
           quantity?: number | null
+          stock_alert_threshold?: number | null
           wine_id: string
         }
         Update: {
@@ -222,6 +224,7 @@ export type Database = {
           label_url?: string | null
           price?: number | null
           quantity?: number | null
+          stock_alert_threshold?: number | null
           wine_id?: string
         }
         Relationships: [
@@ -280,6 +283,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      content_report: {
+        Row: {
+          comment_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          post_id: string | null
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id: string | null
+          reviewed_at: string | null
+          status: string | null
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          post_id?: string | null
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          post_id?: string | null
+          reason?: Database["public"]["Enums"]["report_reason"]
+          reporter_id?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_report_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_report_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "post"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       courses: {
         Row: {
@@ -1097,6 +1151,27 @@ export type Database = {
         }
         Relationships: []
       }
+      hashtag: {
+        Row: {
+          created_at: string | null
+          id: string
+          tag: string
+          usage_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          tag: string
+          usage_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          tag?: string
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       lesson_completion: {
         Row: {
           completed_at: string
@@ -1555,6 +1630,39 @@ export type Database = {
           },
         ]
       }
+      post_hashtag: {
+        Row: {
+          created_at: string | null
+          hashtag_id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          hashtag_id: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string | null
+          hashtag_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_hashtag_hashtag_id_fkey"
+            columns: ["hashtag_id"]
+            isOneToOne: false
+            referencedRelation: "hashtag"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_hashtag_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "post"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_like: {
         Row: {
           liked_at: string | null
@@ -1598,6 +1706,86 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles_public_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_mention: {
+        Row: {
+          created_at: string | null
+          id: string
+          mentioned_slug: string
+          mentioned_user_id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          mentioned_slug: string
+          mentioned_user_id: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          mentioned_slug?: string
+          mentioned_user_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_mention_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "post"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_alert: {
+        Row: {
+          cellar_id: string
+          created_at: string | null
+          current_quantity: number
+          id: string
+          is_read: boolean | null
+          threshold: number
+          wine_id: string
+          wine_name: string
+        }
+        Insert: {
+          cellar_id: string
+          created_at?: string | null
+          current_quantity: number
+          id?: string
+          is_read?: boolean | null
+          threshold: number
+          wine_id: string
+          wine_name: string
+        }
+        Update: {
+          cellar_id?: string
+          created_at?: string | null
+          current_quantity?: number
+          id?: string
+          is_read?: boolean | null
+          threshold?: number
+          wine_id?: string
+          wine_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_alert_cellar_id_fkey"
+            columns: ["cellar_id"]
+            isOneToOne: false
+            referencedRelation: "cellar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_alert_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wine"
             referencedColumns: ["id"]
           },
         ]
@@ -3053,6 +3241,13 @@ export type Database = {
       event_access_type: "public" | "paid" | "request_based" | "invite_only"
       event_role: "organizer" | "co_organizer" | "admin" | "participant"
       quiz_wine_color: "red" | "white" | "rose" | "eff" | "all"
+      report_reason:
+        | "spam"
+        | "harassment"
+        | "inappropriate_content"
+        | "misinformation"
+        | "copyright"
+        | "other"
       user_request: "accepted" | "pending" | "rejected"
       wine_type_enum:
         | "champagne"
@@ -3210,6 +3405,14 @@ export const Constants = {
       event_access_type: ["public", "paid", "request_based", "invite_only"],
       event_role: ["organizer", "co_organizer", "admin", "participant"],
       quiz_wine_color: ["red", "white", "rose", "eff", "all"],
+      report_reason: [
+        "spam",
+        "harassment",
+        "inappropriate_content",
+        "misinformation",
+        "copyright",
+        "other",
+      ],
       user_request: ["accepted", "pending", "rejected"],
       wine_type_enum: [
         "champagne",

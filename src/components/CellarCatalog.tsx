@@ -433,6 +433,7 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
                         <img
                           src={wine.label_url || wine.wine?.label_url || DEFAULT_IMAGE}
                           alt={wine.wine?.name}
+                          loading="lazy"
                           className="w-full h-full object-cover"
                         />
                         {userRole && (

@@ -180,7 +180,7 @@ export default function DomainDetails() {
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="h-32 w-auto max-w-[180px] flex items-center justify-center flex-shrink-0">
                 {domain.logo_url ? (
-                  <img src={domain.logo_url} alt={domain.name} className="h-full w-auto object-contain" />
+                  <img src={domain.logo_url} alt={domain.name} loading="lazy" className="h-full w-auto object-contain" />
                 ) : (
                   <div className="h-32 w-32 bg-muted rounded flex items-center justify-center">
                     <Store className="w-16 h-16" />
