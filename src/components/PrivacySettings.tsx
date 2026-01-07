@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Globe, Lock, Mail, Phone, MapPin, Trophy } from 'lucide-react';
 import { AddressAutocomplete } from './AddressAutocomplete';
+import { DeleteAccountDialog } from './DeleteAccountDialog';
 
 interface PrivacySettingsState {
   is_public: boolean;
@@ -285,6 +286,23 @@ export function PrivacySettings() {
             checked={settings.allow_xp}
             onCheckedChange={(v) => handleToggle('allow_xp', v)}
           />
+        </div>
+      </div>
+
+      {/* Zone de danger */}
+      <div className="border-t border-destructive/20 pt-6 mt-6">
+        <h4 className="text-sm font-medium text-destructive mb-4">
+          Zone de danger
+        </h4>
+        
+        <div className="flex items-center justify-between gap-4 p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+          <div>
+            <p className="text-sm font-medium">Supprimer mon compte</p>
+            <p className="text-xs text-muted-foreground">
+              Cette action est irréversible et supprimera toutes vos données
+            </p>
+          </div>
+          <DeleteAccountDialog />
         </div>
       </div>
     </div>

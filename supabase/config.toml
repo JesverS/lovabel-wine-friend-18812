@@ -89,3 +89,24 @@ verify_jwt = true
 
 [functions.accept-cgu]
 verify_jwt = true
+
+[functions.leave-event]
+verify_jwt = true
+
+[functions.leave-event-without-refund]
+verify_jwt = true
+
+[functions.get-pending-payment]
+verify_jwt = true
+
+[functions.cancel-pending-payment]
+verify_jwt = true
+
+[functions.request-event-refund]
+verify_jwt = true
+
+[functions.process-refund-request]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
