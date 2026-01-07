@@ -40,8 +40,8 @@ export function DeleteAccountDialog() {
   const [accountData, setAccountData] = useState<AccountDeletionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [confirmName, setConfirmName] = useState('');
+  const [userFullName, setUserFullName] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -54,8 +54,7 @@ export function DeleteAccountDialog() {
     if (!open) {
       // Reset state when dialog closes
       setStep('info');
-      setEmail('');
-      setPassword('');
+      setConfirmName('');
       setError('');
     }
   }, [open]);
@@ -65,6 +64,18 @@ export function DeleteAccountDialog() {
     setFetchingData(true);
 
     try {
+      // Fetch user profile for full name
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('full_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      const fullName = profile?.full_name 
+        ? `${profile.full_name}${profile.last_name ? ' ' + profile.last_name : ''}`
+        : '';
+      setUserFullName(fullName);
+
       // Fetch posts count
       const { count: postsCount } = await supabase
         .from('post')
@@ -157,36 +168,22 @@ export function DeleteAccountDialog() {
     }
   };
 
-  const handleVerifyCredentials = async () => {
-    if (!user) return;
+  const handleConfirmName = async () => {
+    if (!user || !userFullName) return;
     setError('');
-    setLoading(true);
 
-    try {
-      // Verify credentials
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    // Verify the typed name matches
+    if (confirmName.trim().toLowerCase() !== userFullName.trim().toLowerCase()) {
+      setError('Le nom ne correspond pas');
+      return;
+    }
 
-      if (authError) {
-        setError('Email ou mot de passe incorrect');
-        setLoading(false);
-        return;
-      }
-
-      // If user has public cellars to delete, show warning
-      if (accountData && accountData.publicCellarsToDelete.length > 0) {
-        setStep('cellar_warning');
-        setLoading(false);
-      } else {
-        // Proceed to deletion
-        await handleDeleteAccount();
-      }
-    } catch (err) {
-      console.error('Auth error:', err);
-      setError('Erreur de vérification');
-      setLoading(false);
+    // If user has public cellars to delete, show warning
+    if (accountData && accountData.publicCellarsToDelete.length > 0) {
+      setStep('cellar_warning');
+    } else {
+      // Proceed to deletion
+      await handleDeleteAccount();
     }
   };
 
@@ -332,32 +329,27 @@ export function DeleteAccountDialog() {
     <>
       <AlertDialogHeader>
         <AlertDialogTitle className="flex items-center gap-2">
-          Vérification de votre identité
+          Confirmation finale
         </AlertDialogTitle>
         <AlertDialogDescription>
-          Pour confirmer la suppression, veuillez entrer vos identifiants de connexion.
+          Pour confirmer la suppression de votre compte, tapez votre nom complet ci-dessous.
         </AlertDialogDescription>
       </AlertDialogHeader>
 
       <div className="space-y-4 py-4">
-        <div className="space-y-2">
-          <Label htmlFor="delete-email">Email</Label>
-          <Input
-            id="delete-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="votre@email.com"
-          />
+        <div className="p-3 bg-muted rounded-lg text-center">
+          <p className="text-sm text-muted-foreground mb-1">Votre nom :</p>
+          <p className="font-semibold text-lg">{userFullName || 'Non renseigné'}</p>
         </div>
+        
         <div className="space-y-2">
-          <Label htmlFor="delete-password">Mot de passe</Label>
+          <Label htmlFor="confirm-name">Tapez votre nom pour confirmer</Label>
           <Input
-            id="delete-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            id="confirm-name"
+            type="text"
+            value={confirmName}
+            onChange={(e) => setConfirmName(e.target.value)}
+            placeholder={userFullName || 'Votre nom complet'}
           />
         </div>
         {error && (
@@ -371,13 +363,13 @@ export function DeleteAccountDialog() {
         </Button>
         <Button
           variant="destructive"
-          onClick={handleVerifyCredentials}
-          disabled={loading || !email || !password}
+          onClick={handleConfirmName}
+          disabled={loading || !confirmName.trim() || !userFullName}
         >
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Vérification...
+              Suppression...
             </>
           ) : (
             'Supprimer mon compte'
