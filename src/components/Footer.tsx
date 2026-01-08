@@ -10,7 +10,7 @@ export const Footer = () => {
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
               <Wine className="h-8 w-8 text-secondary" />
-              <span className="font-serif text-2xl font-bold">Lovabel</span>
+              <span className="font-serif text-2xl font-bold">Wine Note</span>
             </Link>
             <p className="text-sm text-primary-foreground/70">
               La plateforme qui réinvente la découverte du vin avec des cours personnalisés, des jeux chalereux et la
@@ -113,7 +113,7 @@ export const Footer = () => {
 
         <div className="border-t border-primary-foreground/20 pt-8 text-center text-sm text-primary-foreground/60">
           <p>
-            © 2025 Lovabel. Tous droits réservés. L'abus d'alcool est dangereux pour la santé, à consommer avec
+            © 2025 Wine Note. Tous droits réservés. L'abus d'alcool est dangereux pour la santé, à consommer avec
             modération.
           </p>
         </div>
