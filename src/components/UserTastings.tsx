@@ -358,34 +358,27 @@ export const UserTastings = () => {
 
     const uniqueEventIds = Object.keys(eventCounts);
 
-    const eventsData = await Promise.all(
-      uniqueEventIds.map(async (eventId) => {
-        const { data: event } = await supabase
-          .from('event')
-          .select('id, name, banner_url, start_date, location')
-          .eq('id', eventId)
-          .single();
-        
-        if (!event) return null;
+    // Batch fetch all events in one query instead of N+1
+    const { data: eventsRaw } = await supabase
+      .from('event')
+      .select('id, name, banner_url, start_date, location')
+      .in('id', uniqueEventIds);
 
-        return {
-          event_id: eventId,
-          event_name: event.name,
-          event_banner: event.banner_url,
-          event_start_date: event.start_date,
-          event_location: event.location,
-          tasting_count: eventCounts[eventId]
-        };
-      })
-    );
+    const eventsData = (eventsRaw || []).map(event => ({
+      event_id: event.id,
+      event_name: event.name,
+      event_banner: event.banner_url,
+      event_start_date: event.start_date,
+      event_location: event.location,
+      tasting_count: eventCounts[event.id] || 0
+    }));
 
-    const filteredEvents = eventsData.filter(e => e !== null) as EventGroup[];
-    
-    filteredEvents.sort((a, b) => 
+
+    eventsData.sort((a, b) => 
       new Date(b.event_start_date).getTime() - new Date(a.event_start_date).getTime()
     );
 
-    const paginatedEvents = filteredEvents.slice(from, to + 1);
+    const paginatedEvents = eventsData.slice(from, to + 1);
     
     if (pageNum === 0) {
       setEvents(paginatedEvents);
@@ -440,31 +433,24 @@ export const UserTastings = () => {
 
     const uniqueCellarIds = Object.keys(cellarCounts);
 
-    const cellarsData = await Promise.all(
-      uniqueCellarIds.map(async (cellarId) => {
-        const { data: cellar } = await supabase
-          .from('cellar')
-          .select('id, name, logo_url, location')
-          .eq('id', cellarId)
-          .single();
-        
-        if (!cellar) return null;
+    // Batch fetch all cellars in one query instead of N+1
+    const { data: cellarsRaw } = await supabase
+      .from('cellar')
+      .select('id, name, logo_url, location')
+      .in('id', uniqueCellarIds);
 
-        return {
-          cellar_id: cellarId,
-          cellar_name: cellar.name,
-          cellar_logo: cellar.logo_url,
-          cellar_location: cellar.location,
-          tasting_count: cellarCounts[cellarId]
-        };
-      })
-    );
+    const cellarsData = (cellarsRaw || []).map(cellar => ({
+      cellar_id: cellar.id,
+      cellar_name: cellar.name,
+      cellar_logo: cellar.logo_url,
+      cellar_location: cellar.location,
+      tasting_count: cellarCounts[cellar.id] || 0
+    }));
 
-    const filteredCellars = cellarsData.filter(c => c !== null) as CellarGroup[];
-    
-    filteredCellars.sort((a, b) => b.tasting_count - a.tasting_count);
 
-    const paginatedCellars = filteredCellars.slice(from, to + 1);
+    cellarsData.sort((a, b) => b.tasting_count - a.tasting_count);
+
+    const paginatedCellars = cellarsData.slice(from, to + 1);
     
     if (pageNum === 0) {
       setCellars(paginatedCellars);

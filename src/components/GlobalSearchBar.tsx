@@ -235,61 +235,70 @@ export const GlobalSearchBar = () => {
           <Search className="h-5 w-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Recherche</DialogTitle>
-        </DialogHeader>
-        
-        {/* Category Tabs */}
-        <div className="flex gap-2 mb-4">
-          {(Object.keys(categoryConfig) as SearchCategory[]).map((cat) => {
-            const Icon = categoryConfig[cat].icon;
-            return (
+      <DialogContent className="fixed top-[10%] left-1/2 -translate-x-1/2 translate-y-0 sm:max-w-[500px] p-0 gap-0 max-h-[80vh] flex flex-col">
+        {/* Fixed Header Section */}
+        <div className="p-6 pb-4 space-y-4 shrink-0 border-b">
+          <DialogHeader>
+            <DialogTitle>Recherche</DialogTitle>
+          </DialogHeader>
+          
+          {/* Category Tabs */}
+          <div className="flex gap-2">
+            {(Object.keys(categoryConfig) as SearchCategory[]).map((cat) => {
+              const Icon = categoryConfig[cat].icon;
+              return (
+                <Button
+                  key={cat}
+                  variant={category === cat ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCategory(cat)}
+                  className="flex-1 gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {categoryConfig[cat].label}
+                </Button>
+              );
+            })}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={categoryConfig[category].placeholder}
+              className="pl-10 pr-10"
+              autoFocus
+            />
+            {query && (
               <Button
-                key={cat}
-                variant={category === cat ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCategory(cat)}
-                className="flex-1 gap-2"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                onClick={() => {
+                  setQuery('');
+                  resetSearch();
+                }}
               >
-                <Icon className="h-4 w-4" />
-                {categoryConfig[cat].label}
+                <X className="h-4 w-4" />
               </Button>
-            );
-          })}
+            )}
+          </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={categoryConfig[category].placeholder}
-            className="pl-10 pr-10"
-            autoFocus
-          />
-          {query && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-              onClick={() => {
-                setQuery('');
-                resetSearch();
-              }}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
-        {/* Results */}
-        <ScrollArea className="flex-1 mt-4 -mx-6 px-6">
-          <div className="space-y-2">
+        {/* Scrollable Results Section - Variable Height */}
+        <ScrollArea className="min-h-[100px] max-h-[50vh] flex-1">
+          <div className="p-6 pt-4 space-y-2">
             {results.length === 0 && !loading && query.trim() && (
               <p className="text-center text-muted-foreground py-8">
                 Aucun résultat trouvé
+              </p>
+            )}
+
+            {results.length === 0 && !loading && !query.trim() && (
+              <p className="text-center text-muted-foreground py-8">
+                Tapez pour rechercher...
               </p>
             )}
 
