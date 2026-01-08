@@ -67,7 +67,9 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [loadingShare, setLoadingShare] = useState(false);
-  const [authorIsPublic, setAuthorIsPublic] = useState<boolean | null>(null);
+  const [authorIsPublic, setAuthorIsPublic] = useState<boolean | null>(
+    preloadedData && post.author ? post.author.is_public : null
+  );
   const [shareToken, setShareToken] = useState<string | null>(post.share_token || null);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
@@ -75,12 +77,12 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   useEffect(() => {
     if (!preloadedData) {
       fetchPostData();
+      // Charger le statut public de l'auteur seulement si non pré-chargé
+      fetchAuthorPublicStatus();
     } else if (user) {
       // Charger uniquement le profil de l'utilisateur courant pour les commentaires
       fetchCurrentUserProfile();
     }
-    // Charger le statut public de l'auteur
-    fetchAuthorPublicStatus();
   }, [post.id, user, preloadedData]);
 
   const fetchAuthorPublicStatus = async () => {

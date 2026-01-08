@@ -21,6 +21,7 @@ export interface PostWithRelations {
     slug: string | null;
     full_name: string | null;
     logo_adress: string | null;
+    is_public: boolean | null;
   } | null;
   wine: {
     id: string;
@@ -58,10 +59,10 @@ async function fetchPostsPage(pageParam: number, userId: string | undefined): Pr
 
   // Faire les requêtes en parallèle
   const [authorsResult, winesResult, likesResult] = await Promise.all([
-    // Auteurs
+    // Auteurs - include is_public to avoid N+1 query in PostCard
     supabase
       .from('user_profiles_public' as any)
-      .select('id, slug, full_name, logo_adress')
+      .select('id, slug, full_name, logo_adress, is_public')
       .in('id', userIds),
     // Vins avec domaine
     wineIds.length > 0 
