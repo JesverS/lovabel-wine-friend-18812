@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { geocodeAddress } from "@/lib/utils";
-import { sanitizeSlugInput } from "@/lib/slugUtils";
+import { sanitizeSlugInput, generateUserSlug } from "@/lib/slugUtils";
 import CGUDialog from "@/components/CGUDialog";
 import { CGU_VERSION, CGU_TEXT } from "@/content/cgu-text";
 
@@ -35,6 +35,7 @@ export default function CompleteProfile() {
   const [cguAccepted, setCguAccepted] = useState(false);
   const [cguAlreadyAccepted, setCguAlreadyAccepted] = useState(false);
   const [showCGUDialog, setShowCGUDialog] = useState(false);
+  const [isOAuthWithName, setIsOAuthWithName] = useState(false);
 
   // Déterminer la méthode d'authentification
   const getAcceptanceMethod = (): string => {
@@ -49,9 +50,64 @@ export default function CompleteProfile() {
     const loadProfile = async () => {
       if (!user) return;
       
-      // Charger le profil
+      // Récupérer les métadonnées de l'utilisateur (depuis OAuth)
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const userMetadata = currentUser?.user_metadata;
+      const provider = currentUser?.app_metadata?.provider;
+      
+      // Charger le profil existant
       const { data: profile } = await supabase.from("user_profiles").select("*").eq("id", user.id).maybeSingle();
-      if (profile) {
+      
+      // Déterminer si on a des données de nom via OAuth (Apple ou Google)
+      let firstName = "";
+      let lastName = "";
+      
+      if (userMetadata) {
+        firstName = userMetadata.given_name || 
+                    userMetadata.first_name || 
+                    userMetadata.full_name?.split(" ")[0] || 
+                    userMetadata.name?.split(" ")[0] ||
+                    "";
+        lastName = userMetadata.family_name || 
+                   userMetadata.last_name || 
+                   userMetadata.full_name?.split(" ").slice(1).join(" ") || 
+                   userMetadata.name?.split(" ").slice(1).join(" ") ||
+                   "";
+      }
+      
+      // Si on a le nom via OAuth et que le profil n'est pas encore rempli
+      const hasOAuthName = (provider === "apple" || provider === "google") && firstName && lastName;
+      const profileNeedsName = !profile?.full_name || !profile?.last_name;
+      
+      if (hasOAuthName && profileNeedsName) {
+        // Pré-remplir avec les données OAuth
+        const generatedSlug = generateUserSlug(firstName, lastName);
+        
+        setFormData({
+          full_name: firstName,
+          last_name: lastName,
+          city: profile?.city || "",
+          address: profile?.address || "",
+          phone_number: profile?.phone_number?.toString() || "",
+        });
+        setSlug(generatedSlug);
+        setSlugTouched(true);
+        setIsOAuthWithName(true);
+        
+        // Sauvegarder immédiatement le nom dans le profil (important pour Apple)
+        await supabase
+          .from("user_profiles")
+          .update({
+            full_name: firstName,
+            last_name: lastName,
+            slug: generatedSlug,
+          })
+          .eq("id", user.id);
+        
+        // Passer directement à la page 2 (ville)
+        setCurrentPage(2);
+      } else if (profile) {
+        // Charger les données existantes normalement
         setFormData({
           full_name: profile.full_name || "",
           last_name: profile.last_name || "",
@@ -197,7 +253,9 @@ export default function CompleteProfile() {
       <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-center mb-2">Compléter votre profil</h1>
-          <p className="text-center text-muted-foreground">Page {currentPage} sur 2</p>
+          <p className="text-center text-muted-foreground">
+            {isOAuthWithName ? "Dernière étape" : `Page ${currentPage} sur 2`}
+          </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           {currentPage === 1 ? (
@@ -260,6 +318,14 @@ export default function CompleteProfile() {
             </>
           ) : (
             <>
+              {isOAuthWithName && (
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-primary">
+                    ✓ Bienvenue <strong>{formData.full_name} {formData.last_name}</strong> ! 
+                    Veuillez compléter les informations ci-dessous.
+                  </p>
+                </div>
+              )}
               <h2 className="text-xl font-semibold">Contact et localisation</h2>
               <div>
                 <Label htmlFor="city">

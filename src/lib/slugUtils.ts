@@ -10,6 +10,16 @@ export function sanitizeSlugInput(text: string): string {
 }
 
 /**
+ * Génère un slug unique pour un utilisateur OAuth (Apple, Google)
+ * Format : prenom-nom-XXXX (4 chiffres aléatoires)
+ */
+export function generateUserSlug(firstName: string, lastName: string): string {
+  const baseSlug = sanitizeSlugInput(`${firstName} ${lastName}`.trim());
+  const randomId = Math.floor(1000 + Math.random() * 9000).toString();
+  return `${baseSlug}-${randomId}`;
+}
+
+/**
  * Génère un slug unique pour un événement
  * Format : slugify(event_name) + "-" + randomShortId
  */
