@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
       console.log(`Deleting ${cellarsToDelete.length} cellars...`);
       
       for (const cellarId of cellarsToDelete) {
-        // First delete cellar_wine entries (should cascade but being explicit)
+        // First delete cellar_wine entries
         const { error: cellarWineError } = await supabaseAdmin
           .from('cellar_wine')
           .delete()
@@ -130,11 +130,31 @@ Deno.serve(async (req) => {
           console.error(`Error deleting cellar wines for ${cellarId}:`, cellarWineError);
         }
 
-        // Delete user_cellar entries
+        // Delete cellar invitations
+        const { error: cellarInvitationError } = await supabaseAdmin
+          .from('cellar_invitation')
+          .delete()
+          .eq('cellar_id', cellarId);
+        
+        if (cellarInvitationError) {
+          console.error(`Error deleting cellar invitations for ${cellarId}:`, cellarInvitationError);
+        }
+
+        // Delete stock alerts for this cellar
+        const { error: stockAlertError } = await supabaseAdmin
+          .from('stock_alert')
+          .delete()
+          .eq('cellar_id', cellarId);
+        
+        if (stockAlertError) {
+          console.error(`Error deleting stock alerts for ${cellarId}:`, stockAlertError);
+        }
+
+        // Delete user_cellar entries (correct column name: user_cellar_id)
         const { error: userCellarError } = await supabaseAdmin
           .from('user_cellar')
           .delete()
-          .eq('cellar_id', cellarId);
+          .eq('user_cellar_id', cellarId);
         
         if (userCellarError) {
           console.error(`Error deleting user_cellar for ${cellarId}:`, userCellarError);
@@ -152,17 +172,94 @@ Deno.serve(async (req) => {
       }
     }
 
-    // STEP 5: Delete user from auth.users
-    // This will trigger ON DELETE CASCADE for:
-    // - user_profiles
-    // - post (and post_like, post_comment, post_mention, post_hashtag)
-    // - user_cellar (remaining relations)
-    // - user_follow
-    // - user_badge
-    // - notification
-    // - content_report
-    // - stock_alert
-    // - etc.
+    // STEP 5: Delete remaining user data that may not cascade properly
+    console.log('Deleting remaining user data...');
+
+    // Delete user's own user_cellar entries (membership in other cellars)
+    await supabaseAdmin.from('user_cellar').delete().eq('user_id', userId);
+    
+    // Delete cellar invitations sent by user
+    await supabaseAdmin.from('cellar_invitation').delete().eq('inviter_id', userId);
+    
+    // Delete cellar invitations received by user
+    await supabaseAdmin.from('cellar_invitation').delete().eq('invitee_user_id', userId);
+
+    // Delete event invitations sent by user
+    await supabaseAdmin.from('event_invitation').delete().eq('inviter_id', userId);
+    
+    // Delete event invitations received by user
+    await supabaseAdmin.from('event_invitation').delete().eq('invitee_user_id', userId);
+
+    // Delete event access requests
+    await supabaseAdmin.from('event_access_request').delete().eq('user_id', userId);
+
+    // Delete event payments
+    await supabaseAdmin.from('event_payment').delete().eq('user_id', userId);
+
+    // Delete event refund requests
+    await supabaseAdmin.from('event_refund_request').delete().eq('user_id', userId);
+
+    // Delete user_event entries
+    await supabaseAdmin.from('user_event').delete().eq('user_id', userId);
+
+    // Delete user domain entries
+    await supabaseAdmin.from('user_domain').delete().eq('user_id', userId);
+    
+    // Delete user domain applications
+    await supabaseAdmin.from('user_domain_application').delete().eq('user_id', userId);
+
+    // Delete user favorites
+    await supabaseAdmin.from('user_favorite').delete().eq('user_id', userId);
+
+    // Delete user follows (both directions)
+    await supabaseAdmin.from('user_follow').delete().eq('follower_id', userId);
+    await supabaseAdmin.from('user_follow').delete().eq('following_id', userId);
+    
+    // Delete user follow counts
+    await supabaseAdmin.from('user_follow_counts').delete().eq('user_id', userId);
+
+    // Delete user badges
+    await supabaseAdmin.from('user_badge').delete().eq('user_id', userId);
+
+    // Delete notifications
+    await supabaseAdmin.from('notification').delete().eq('user_id', userId);
+
+    // Delete CGU acceptances
+    await supabaseAdmin.from('cgu_acceptance').delete().eq('user_id', userId);
+
+    // Delete post comment likes by user
+    await supabaseAdmin.from('post_comment_like').delete().eq('user_id', userId);
+
+    // Delete post likes by user
+    await supabaseAdmin.from('post_like').delete().eq('user_id', userId);
+
+    // Delete post comments by user
+    await supabaseAdmin.from('post_comment').delete().eq('user_id', userId);
+
+    // Delete post mentions of user
+    await supabaseAdmin.from('post_mention').delete().eq('mentioned_user_id', userId);
+
+    // Delete posts (should cascade post_like, post_comment, post_hashtag, post_mention)
+    await supabaseAdmin.from('post').delete().eq('user_id', userId);
+
+    // Delete content reports by user
+    await supabaseAdmin.from('content_report').delete().eq('reporter_id', userId);
+
+    // Delete lesson completions and quiz results
+    await supabaseAdmin.from('lesson_completion').delete().eq('user_id', userId);
+    await supabaseAdmin.from('lesson_quiz_result').delete().eq('user_id', userId);
+    await supabaseAdmin.from('user_lesson_unlock').delete().eq('user_id', userId);
+
+    // Delete game propositions
+    await supabaseAdmin.from('user_game_proposition').delete().eq('user_id', userId);
+
+    // Delete organizer stripe account
+    await supabaseAdmin.from('organizer_stripe_account').delete().eq('user_id', userId);
+
+    // Delete user profile
+    await supabaseAdmin.from('user_profiles').delete().eq('id', userId);
+
+    // STEP 6: Delete user from auth.users
     console.log('Deleting user from auth...');
     const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
