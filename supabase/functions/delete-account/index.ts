@@ -199,7 +199,11 @@ Deno.serve(async (req) => {
     // Delete event refund requests
     await supabaseAdmin.from('event_refund_request').delete().eq('user_id', userId);
 
-    // Delete user_event entries
+    // IMPORTANT: user_event.granted_by has a FK to auth.users with NO ACTION.
+    // If this user granted access to others, auth deletion will fail unless we clear it.
+    await supabaseAdmin.from('user_event').update({ granted_by: null }).eq('granted_by', userId);
+
+    // Delete user_event entries for the user
     await supabaseAdmin.from('user_event').delete().eq('user_id', userId);
 
     // Delete user domain entries
