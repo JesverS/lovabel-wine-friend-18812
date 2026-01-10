@@ -521,27 +521,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "domain_enrichment_status_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "domain_enrichment_status_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "domain_enrichment_status_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_public_search"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "domain_enrichment_status_domain_id_fkey"
             columns: ["domain_id"]
             isOneToOne: false
