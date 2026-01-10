@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Send, Loader2, Trash2, Edit2, ThumbsUp, Share2, Flag } from 'lucide-react';
+import { Heart, MessageCircle, Send, Loader2, Trash2, Edit2, ThumbsUp, Share2, Flag, Link as LinkIcon, Instagram } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -24,12 +24,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { WineTastingNotes } from '@/components/WineTastingNotes';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { renderContentWithLinks } from '@/lib/contentParser';
 import { ReportContentDialog } from '@/components/ReportContentDialog';
+import { ShareStoryDialog } from '@/components/ShareStoryDialog';
 
 const commentSchema = z.object({
   content: z.string().trim().min(1, 'Le commentaire est requis').max(1000, 'Maximum 1000 caractères'),
@@ -72,6 +74,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   );
   const [shareToken, setShareToken] = useState<string | null>(post.share_token || null);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [storyDialogOpen, setStoryDialogOpen] = useState(false);
 
   // Seulement charger les données si pas pré-chargées
   useEffect(() => {
@@ -647,13 +650,12 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
           {commentsCount}
         </Button>
         {canShare && (
-          <Tooltip>
-            <TooltipTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="gap-2 ml-auto"
-                onClick={handleShare}
                 disabled={loadingShare}
               >
                 {loadingShare ? (
@@ -663,13 +665,18 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
                 )}
                 Partager
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {authorIsPublic 
-                ? 'Partager ce post' 
-                : 'Créer un lien de partage privé'}
-            </TooltipContent>
-          </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleShare}>
+                <LinkIcon className="w-4 h-4 mr-2" />
+                Copier le lien
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStoryDialogOpen(true)}>
+                <Instagram className="w-4 h-4 mr-2" />
+                Story Instagram
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
@@ -842,6 +849,20 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
         open={reportDialogOpen}
         onOpenChange={setReportDialogOpen}
         postId={post.id}
+      />
+
+      {/* Share Story Dialog */}
+      <ShareStoryDialog
+        open={storyDialogOpen}
+        onOpenChange={setStoryDialogOpen}
+        post={{
+          content: post.content,
+          image_url: post.image_url,
+          is_wine_notice: post.is_wine_notice,
+          wine_notice: post.wine_notice,
+        }}
+        wine={wine}
+        author={author}
       />
     </Card>
   );
