@@ -1721,6 +1721,53 @@ export type Database = {
           },
         ]
       }
+      post_moderation: {
+        Row: {
+          ai_reason: string | null
+          created_at: string | null
+          flags: Json | null
+          id: string
+          post_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_reason?: string | null
+          created_at?: string | null
+          flags?: Json | null
+          id?: string
+          post_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_reason?: string | null
+          created_at?: string | null
+          flags?: Json | null
+          id?: string
+          post_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_moderation_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "post"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_alert: {
         Row: {
           cellar_id: string
