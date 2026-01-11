@@ -242,8 +242,6 @@ export const WineInteractionDialog = ({
           p_details: roundedDetails as any,
         } as any);
 
-      console.log('DEBUG - RPC upsert like result:', { noticeId, error });
-
       if (error) {
         toast({
           title: 'Erreur',
@@ -468,8 +466,6 @@ export const WineInteractionDialog = ({
       .select()
       .maybeSingle();
 
-    console.log("DEBUG - Tasting upsert result:", { noticeData, error, hasId: !!noticeData?.id });
-
     if (error) {
       toast({
         title: "Erreur",
@@ -494,10 +490,6 @@ export const WineInteractionDialog = ({
 
     // Create link between notice and event
     if (eventId) {
-        console.log("DEBUG - Attempting insert into user_wine_notice_event:", {
-          user_wine_notice_id: noticeData.id,
-          event_id: eventId
-        });
 
         const { data: linkData, error: linkError } = await supabase
           .from("user_wine_notice_event" as any)
@@ -509,8 +501,6 @@ export const WineInteractionDialog = ({
           })
           .select();
 
-        console.log("DEBUG - Link result:", { linkData, linkError });
-
         if (linkError) {
           console.error("Error linking tasting to event:", linkError);
           toast({
@@ -518,8 +508,6 @@ export const WineInteractionDialog = ({
             description: `${linkError.message}`,
             variant: "destructive",
           });
-      } else {
-        console.log("SUCCESS - Linked tasting to event:", linkData);
       }
     }
 

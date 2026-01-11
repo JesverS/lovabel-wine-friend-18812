@@ -283,8 +283,6 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
         p_details: roundedDetails as any,
       });
 
-      console.log("[DEBUG] RPC upsert_wine_notice_with_event result:", { noticeId, error });
-
       if (error) {
         toast({
           title: "Erreur",
@@ -375,8 +373,6 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
         p_rating: 0,
         p_details: roundedDetails as any,
       });
-
-      console.log("[DEBUG] RPC upsert_wine_notice_with_event result:", { noticeId, error });
 
       if (error) {
         toast({

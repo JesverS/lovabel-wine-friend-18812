@@ -299,43 +299,45 @@ const EventDetails = () => {
         return;
       }
 
-      // Fetch wines for each domain
-      const domainsWithWinesData: DomainWithWines[] = await Promise.all(
-        domainsData.map(async (domain) => {
-          const { data: winesData } = await supabase
-            .from("event_domain_wine")
-            .select(`
-              wine_id,
-              wine:wine_id (
-                id,
-                name,
-                year,
-                label_url,
-                description,
-                domain_id,
-                price,
-                volume_ml,
-                alcohol_percentage,
-                characteristics,
-                type,
-                mode_culture,
-                wine_classification,
-                website_order_url,
-                wine_type:type(type),
-                wine_classification_data:wine_classification(nom)
-              )
-            `)
-            .eq("event_id", eventData.id)
-            .eq("domain_id", domain.id);
+      // Fetch all wines for this event in a single query (optimized)
+      const { data: allWinesData } = await supabase
+        .from("event_domain_wine")
+        .select(`
+          wine_id,
+          domain_id,
+          wine:wine_id (
+            id,
+            name,
+            year,
+            label_url,
+            description,
+            domain_id,
+            price,
+            volume_ml,
+            alcohol_percentage,
+            characteristics,
+            type,
+            mode_culture,
+            wine_classification,
+            website_order_url,
+            wine_type:type(type),
+            wine_classification_data:wine_classification(nom)
+          )
+        `)
+        .eq("event_id", eventData.id)
+        .in("domain_id", domainIds);
 
-          const wines = winesData?.map((w: any) => w.wine).filter(Boolean) || [];
+      // Group wines by domain client-side
+      const winesByDomain = (allWinesData || []).reduce((acc, item: any) => {
+        if (!acc[item.domain_id]) acc[item.domain_id] = [];
+        if (item.wine) acc[item.domain_id].push(item.wine);
+        return acc;
+      }, {} as Record<string, Wine[]>);
 
-          return {
-            domain,
-            wines,
-          };
-        })
-      );
+      const domainsWithWinesData: DomainWithWines[] = domainsData.map(domain => ({
+        domain,
+        wines: winesByDomain[domain.id] || [],
+      }));
 
       setDomainsWithWines(domainsWithWinesData);
       setLoading(false);
@@ -420,43 +422,45 @@ const EventDetails = () => {
 
     if (!domainsData) return;
 
-    // Fetch wines for each domain
-    const domainsWithWinesData: DomainWithWines[] = await Promise.all(
-      domainsData.map(async (domain) => {
-        const { data: winesData } = await supabase
-          .from("event_domain_wine")
-          .select(`
-            wine_id,
-            wine:wine_id (
-              id,
-              name,
-              year,
-              label_url,
-              description,
-              domain_id,
-              price,
-              volume_ml,
-              alcohol_percentage,
-              characteristics,
-              type,
-              mode_culture,
-              wine_classification,
-              website_order_url,
-              wine_type:type(type),
-              wine_classification_data:wine_classification(nom)
-            )
-          `)
-          .eq("event_id", eventData.id)
-          .eq("domain_id", domain.id);
+    // Fetch all wines for this event in a single query (optimized)
+    const { data: allWinesData } = await supabase
+      .from("event_domain_wine")
+      .select(`
+        wine_id,
+        domain_id,
+        wine:wine_id (
+          id,
+          name,
+          year,
+          label_url,
+          description,
+          domain_id,
+          price,
+          volume_ml,
+          alcohol_percentage,
+          characteristics,
+          type,
+          mode_culture,
+          wine_classification,
+          website_order_url,
+          wine_type:type(type),
+          wine_classification_data:wine_classification(nom)
+        )
+      `)
+      .eq("event_id", eventData.id)
+      .in("domain_id", domainIds);
 
-        const wines = winesData?.map((w: any) => w.wine).filter(Boolean) || [];
+    // Group wines by domain client-side
+    const winesByDomain = (allWinesData || []).reduce((acc, item: any) => {
+      if (!acc[item.domain_id]) acc[item.domain_id] = [];
+      if (item.wine) acc[item.domain_id].push(item.wine);
+      return acc;
+    }, {} as Record<string, Wine[]>);
 
-        return {
-          domain,
-          wines,
-        };
-      })
-    );
+    const domainsWithWinesData: DomainWithWines[] = domainsData.map(domain => ({
+      domain,
+      wines: winesByDomain[domain.id] || [],
+    }));
 
     setDomainsWithWines(domainsWithWinesData);
   };
