@@ -8,10 +8,11 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Wine, ArrowLeft, Lock } from 'lucide-react';
+import { Wine, ArrowLeft, Lock, Flag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { WineTastingNotes } from '@/components/WineTastingNotes';
+import { ReportContentDialog } from '@/components/ReportContentDialog';
 
 interface PostData {
   id: string;
@@ -44,6 +45,7 @@ export default function PostDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -203,7 +205,7 @@ export default function PostDetails() {
                 {post.author?.full_name?.[0] || 'U'}
               </AvatarFallback>
             </Avatar>
-            <div>
+            <div className="flex-1">
               {post.author?.slug ? (
                 <Link to={`/user/${post.author.slug}`} className="font-semibold hover:underline">
                   {post.author?.full_name || 'Utilisateur'}
@@ -215,6 +217,17 @@ export default function PostDetails() {
                 {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: fr })}
               </p>
             </div>
+            {user && user.id !== post.user_id && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setReportDialogOpen(true)}
+                className="text-muted-foreground hover:text-destructive"
+                title="Signaler ce post"
+              >
+                <Flag className="w-4 h-4" />
+              </Button>
+            )}
           </div>
 
           {/* Contenu du post */}
@@ -274,6 +287,12 @@ export default function PostDetails() {
             </div>
           )}
         </Card>
+
+        <ReportContentDialog
+          open={reportDialogOpen}
+          onOpenChange={setReportDialogOpen}
+          postId={post.id}
+        />
       </main>
       <Footer />
     </div>
