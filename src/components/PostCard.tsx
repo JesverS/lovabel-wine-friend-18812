@@ -75,6 +75,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
   const [shareToken, setShareToken] = useState<string | null>(post.share_token || null);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [storyDialogOpen, setStoryDialogOpen] = useState(false);
+  const [displayedContent, setDisplayedContent] = useState(post.content);
 
   // Seulement charger les données si pas pré-chargées
   useEffect(() => {
@@ -334,7 +335,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
       
       if (error) throw error;
       
-      post.content = validated.content;
+      setDisplayedContent(validated.content);
       setIsEditing(false);
       
       toast({
@@ -536,7 +537,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setEditedContent(post.content);
+                    setEditedContent(displayedContent);
                     setIsEditing(true);
                   }}
                 >
@@ -566,7 +567,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
       </div>
 
       {!isEditing ? (
-        <p className="whitespace-pre-wrap">{renderContentWithLinks(post.content || '')}</p>
+        <p className="whitespace-pre-wrap">{renderContentWithLinks(displayedContent || '')}</p>
       ) : (
         <div className="space-y-2">
           <Textarea
