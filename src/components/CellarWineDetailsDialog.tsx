@@ -53,6 +53,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 interface WineData {
   wine_id: string;
   cellar_id: string;
+  domain_id: string | null; // Ajouté: retourné par la RPC au niveau racine
   quantity: number | null;
   price: number | null;
   description: string | null;
@@ -72,7 +73,9 @@ interface WineData {
     website_order_url: string | null;
     description: string | null;
     domain: {
+      id: string;
       name: string;
+      logo_url: string | null;
     } | null;
     wine_type: {
       type: string;
@@ -173,24 +176,32 @@ export function CellarWineDetailsDialog({
     const fetchData = async () => {
       if (!user || !wineData.wine) return;
 
-      // Fetch domain
-      if (wineData.wine.domain_id) {
+      // Résolution robuste du domainId: priorité au niveau racine, fallback sur wine.domain.id
+      const resolvedDomainId = wineData.domain_id ?? wineData.wine?.domain?.id ?? null;
+
+      // Fetch domain (utiliser les données déjà présentes si possible)
+      if (wineData.wine?.domain) {
+        setDomain({
+          name: wineData.wine.domain.name,
+          logo_url: wineData.wine.domain.logo_url,
+        });
+      } else if (resolvedDomainId) {
         const { data: domainData } = await supabase
           .from('domain')
           .select('name, logo_url')
-          .eq('id', wineData.wine.domain_id)
+          .eq('id', resolvedDomainId)
           .maybeSingle();
         setDomain(domainData);
       }
 
-      // Check favorites - inclure domain_id pour la clé composite
-      if (wineData.wine.domain_id) {
+      // Check favorites - utiliser resolvedDomainId
+      if (resolvedDomainId) {
         const { data: favoriteData } = await supabase
           .from('user_favorite')
           .select('*')
           .eq('user_id', user.id)
           .eq('wine_id', wineData.wine_id)
-          .eq('domain_id', wineData.wine.domain_id)
+          .eq('domain_id', resolvedDomainId)
           .maybeSingle();
         setIsFavorite(!!favoriteData);
       }
@@ -643,8 +654,16 @@ export function CellarWineDetailsDialog({
       return;
     }
 
+    // Résolution robuste du domainId: priorité au niveau racine, fallback sur wine.domain.id
+    const domainId = wineData.domain_id ?? wineData.wine?.domain?.id ?? null;
+
     // Vérifier que le domain_id existe (requis pour user_favorite)
-    if (!wineData.wine?.domain_id) {
+    if (!domainId) {
+      console.error('No domain_id found:', { 
+        root_domain_id: wineData.domain_id, 
+        wine_domain_id: wineData.wine?.domain_id,
+        wine_domain: wineData.wine?.domain
+      });
       toast({
         title: 'Erreur',
         description: "Ce vin n'a pas de domaine associé",
@@ -659,7 +678,7 @@ export function CellarWineDetailsDialog({
         .delete()
         .eq('user_id', user.id)
         .eq('wine_id', wineData.wine_id)
-        .eq('domain_id', wineData.wine.domain_id);
+        .eq('domain_id', domainId);
 
       if (error) {
         console.error('Favorite delete error:', error);
@@ -680,7 +699,7 @@ export function CellarWineDetailsDialog({
         .insert({
           user_id: user.id,
           wine_id: wineData.wine_id,
-          domain_id: wineData.wine.domain_id,
+          domain_id: domainId,
         });
 
       if (error) {
