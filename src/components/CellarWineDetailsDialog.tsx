@@ -183,14 +183,17 @@ export function CellarWineDetailsDialog({
         setDomain(domainData);
       }
 
-      // Check favorites
-      const { data: favoriteData } = await supabase
-        .from('user_favorite')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('wine_id', wineData.wine_id)
-        .maybeSingle();
-      setIsFavorite(!!favoriteData);
+      // Check favorites - inclure domain_id pour la clé composite
+      if (wineData.wine.domain_id) {
+        const { data: favoriteData } = await supabase
+          .from('user_favorite')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('wine_id', wineData.wine_id)
+          .eq('domain_id', wineData.wine.domain_id)
+          .maybeSingle();
+        setIsFavorite(!!favoriteData);
+      }
 
       // Fetch existing tasting notice
       const { data: noticeData } = await supabase
@@ -640,17 +643,29 @@ export function CellarWineDetailsDialog({
       return;
     }
 
+    // Vérifier que le domain_id existe (requis pour user_favorite)
+    if (!wineData.wine?.domain_id) {
+      toast({
+        title: 'Erreur',
+        description: "Ce vin n'a pas de domaine associé",
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (isFavorite) {
       const { error } = await supabase
         .from('user_favorite')
         .delete()
         .eq('user_id', user.id)
-        .eq('wine_id', wineData.wine_id);
+        .eq('wine_id', wineData.wine_id)
+        .eq('domain_id', wineData.wine.domain_id);
 
       if (error) {
+        console.error('Favorite delete error:', error);
         toast({
           title: 'Erreur',
-          description: 'Impossible de retirer ce vin de vos favoris',
+          description: `Impossible de retirer ce vin de vos favoris: ${error.message}`,
           variant: 'destructive',
         });
       } else {
@@ -665,13 +680,14 @@ export function CellarWineDetailsDialog({
         .insert({
           user_id: user.id,
           wine_id: wineData.wine_id,
-          domain_id: wineData.wine?.domain_id || null,
+          domain_id: wineData.wine.domain_id,
         });
 
       if (error) {
+        console.error('Favorite insert error:', error);
         toast({
           title: 'Erreur',
-          description: "Impossible d'ajouter ce vin à vos favoris",
+          description: `Impossible d'ajouter ce vin à vos favoris: ${error.message}`,
           variant: 'destructive',
         });
       } else {
@@ -850,13 +866,24 @@ export function CellarWineDetailsDialog({
             </div>
 
         <div className="flex flex-col gap-6">
-          {/* Image */}
-          <div className="flex justify-center">
+          {/* Image avec bouton favoris en overlay */}
+          <div className="relative flex justify-center">
             <img
               src={wineData.label_url || wineData.wine.label_url || '/placeholder.svg'}
               alt={wineData.wine.name}
-              className="w-full max-w-[200px] object-contain"
+              className="w-full max-w-[280px] md:max-w-[320px] object-contain rounded-lg"
             />
+            {/* Bouton favoris en haut à droite */}
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleToggleFavorite}
+                className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full shadow-md"
+              >
+                <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+              </Button>
+            )}
           </div>
 
           {/* Info Section */}
@@ -966,17 +993,6 @@ export function CellarWineDetailsDialog({
               </Button>
             )}
 
-            {/* Favorite Button */}
-            {user && (
-              <Button
-                variant="outline"
-                onClick={handleToggleFavorite}
-                className="w-full"
-              >
-                <Heart className={`w-4 h-4 mr-2 ${isFavorite ? 'fill-current' : ''}`} />
-                {isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-              </Button>
-            )}
           </div>
         </div>
 
