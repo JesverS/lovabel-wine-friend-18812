@@ -528,16 +528,35 @@ export const WineInteractionDialog = ({
       return;
     }
 
+    if (!wine.domain_id) {
+      console.error('Favorite error: wine.domain_id is missing', { wine });
+      toast({
+        title: "Erreur",
+        description: "Ce vin n'a pas de domaine associé.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     if (isFavorite) {
+      // domain_id is part of the primary key - must include it
       const { error } = await supabase
         .from("user_favorite")
         .delete()
         .eq("user_id", user.id)
-        .eq("wine_id", wine.id);
+        .eq("wine_id", wine.id)
+        .eq("domain_id", wine.domain_id);
 
-      if (!error) {
+      if (error) {
+        console.error('Favorite delete error:', error);
+        toast({
+          title: "Erreur",
+          description: `Impossible de retirer des favoris: ${error.message} (${error.code})`,
+          variant: "destructive",
+        });
+      } else {
         setIsFavorite(false);
         toast({
           title: "Retiré des favoris",
@@ -550,7 +569,14 @@ export const WineInteractionDialog = ({
         domain_id: wine.domain_id,
       });
 
-      if (!error) {
+      if (error) {
+        console.error('Favorite insert error:', error);
+        toast({
+          title: "Erreur",
+          description: `Impossible d'ajouter aux favoris: ${error.message} (${error.code})`,
+          variant: "destructive",
+        });
+      } else {
         setIsFavorite(true);
         toast({
           title: "Ajouté aux favoris",

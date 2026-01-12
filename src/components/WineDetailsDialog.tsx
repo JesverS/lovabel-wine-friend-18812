@@ -502,14 +502,30 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
       return;
     }
 
+    if (!wine.domain_id) {
+      console.error('Favorite error: wine.domain_id is missing', { wine });
+      toast({
+        title: "Erreur",
+        description: "Ce vin n'a pas de domaine associé.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isFavorite) {
-      // Retirer des favoris
-      const { error } = await supabase.from("user_favorite").delete().eq("user_id", user.id).eq("wine_id", wine.id);
+      // Retirer des favoris - domain_id is part of the primary key
+      const { error } = await supabase
+        .from("user_favorite")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("wine_id", wine.id)
+        .eq("domain_id", wine.domain_id);
 
       if (error) {
+        console.error('Favorite delete error:', error);
         toast({
           title: "Erreur",
-          description: "Impossible de retirer ce vin de vos favoris",
+          description: `Impossible de retirer ce vin de vos favoris: ${error.message} (${error.code})`,
           variant: "destructive",
         });
       } else {
@@ -530,9 +546,10 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
       });
 
       if (error) {
+        console.error('Favorite insert error:', error);
         toast({
           title: "Erreur",
-          description: "Impossible d'ajouter ce vin à vos favoris",
+          description: `Impossible d'ajouter ce vin à vos favoris: ${error.message} (${error.code})`,
           variant: "destructive",
         });
       } else {

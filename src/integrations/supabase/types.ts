@@ -529,6 +529,53 @@ export type Database = {
           },
         ]
       }
+      domain_moderation: {
+        Row: {
+          ai_reason: string | null
+          created_at: string | null
+          domain_id: string
+          flags: Json | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_reason?: string | null
+          created_at?: string | null
+          domain_id: string
+          flags?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_reason?: string | null
+          created_at?: string | null
+          domain_id?: string
+          flags?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domain_moderation_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: true
+            referencedRelation: "domain"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event: {
         Row: {
           access_type: Database["public"]["Enums"]["event_access_type"]
@@ -2832,6 +2879,53 @@ export type Database = {
           region?: string | null
         }
         Relationships: []
+      }
+      wine_moderation: {
+        Row: {
+          ai_reason: string | null
+          created_at: string | null
+          flags: Json | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number | null
+          status: string
+          updated_at: string | null
+          wine_id: string
+        }
+        Insert: {
+          ai_reason?: string | null
+          created_at?: string | null
+          flags?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string | null
+          wine_id: string
+        }
+        Update: {
+          ai_reason?: string | null
+          created_at?: string | null
+          flags?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string | null
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wine_moderation_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: true
+            referencedRelation: "wine"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wine_type: {
         Row: {
