@@ -11,6 +11,7 @@ import { WineSearchFilter, WineFilters } from "./wine/WineSearchFilter";
 interface WineData {
   wine_id: string;
   cellar_id: string;
+  domain_id: string | null; // Ajouté: retourné par la RPC au niveau racine
   quantity: number | null;
   price: number | null;
   description: string | null;
@@ -30,7 +31,9 @@ interface WineData {
     website_order_url: string | null;
     description: string | null;
     domain: {
+      id: string;
       name: string;
+      logo_url: string | null;
     } | null;
     wine_type: {
       type: string;
@@ -266,9 +269,13 @@ export function CellarCatalog({ cellarId, userRole }: CellarCatalogProps) {
 
   // Les vins sont déjà filtrés et triés par l'edge function
   // On garde uniquement le filtre de domaine pour la vue "by-domain"
+  // Utiliser domain_id au niveau racine (retourné par la RPC) avec fallback
   const filteredWines = wines.filter((wine) => {
-    if (viewMode === "by-domain" && selectedDomain && wine.wine?.domain_id !== selectedDomain) {
-      return false;
+    if (viewMode === "by-domain" && selectedDomain) {
+      const wineDomainId = wine.domain_id ?? wine.wine?.domain?.id;
+      if (wineDomainId !== selectedDomain) {
+        return false;
+      }
     }
     return true;
   });
