@@ -164,15 +164,30 @@ export default function Auth() {
           }
         }
       } else {
-        const { error } = await supabase.auth.signUp({
+        // Inscription - Vérifier si l'email existe déjà via OAuth
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth`,
           },
         });
+
         if (error) throw error;
 
+        // Vérifier si c'est un "fake" signup (user existe déjà via OAuth)
+        // Supabase retourne un user mais avec identities vide ou null
+        if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+          toast({
+            title: "Compte existant détecté",
+            description: "Cet email est déjà associé à un compte Google ou Apple. Utilisez ces options pour vous connecter, ou cliquez sur 'Mot de passe oublié' pour définir un mot de passe.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Nouvelle inscription réussie
         toast({
           title: "Vérifiez votre email",
           description: "Un email de confirmation vous a été envoyé. Cliquez sur le lien pour activer votre compte.",
