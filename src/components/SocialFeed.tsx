@@ -32,7 +32,7 @@ export const SocialFeed = () => {
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  const allPosts = data?.pages.flatMap((page) => page) || [];
+  const allPosts = data?.pages.flatMap((page) => page.posts) || [];
 
   if (isLoading) {
     return (
