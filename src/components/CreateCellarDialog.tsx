@@ -218,9 +218,11 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
 
       if (newLogoBlob) {
         const fileName = `${cellarId}/${Date.now()}-logo.jpg`;
+        // Convertir Blob en File pour éviter l'erreur "property buffer doesn't exist"
+        const logoFile = new File([newLogoBlob], 'logo.jpg', { type: 'image/jpeg' });
         const { error: uploadError } = await supabase.storage
           .from('cellar')
-          .upload(fileName, newLogoBlob);
+          .upload(fileName, logoFile, { contentType: 'image/jpeg' });
 
         if (uploadError) throw uploadError;
 
@@ -233,9 +235,11 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
 
       if (newBannerBlob) {
         const fileName = `${cellarId}/${Date.now()}-banner.jpg`;
+        // Convertir Blob en File pour éviter l'erreur "property buffer doesn't exist"
+        const bannerFile = new File([newBannerBlob], 'banner.jpg', { type: 'image/jpeg' });
         const { error: uploadError } = await supabase.storage
           .from('cellar')
-          .upload(fileName, newBannerBlob);
+          .upload(fileName, bannerFile, { contentType: 'image/jpeg' });
 
         if (uploadError) throw uploadError;
 
