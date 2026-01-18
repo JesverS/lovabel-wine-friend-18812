@@ -22,15 +22,21 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+    // Client avec auth utilisateur pour vérifier l'authentification
+    const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
       global: {
         headers: { Authorization: req.headers.get('Authorization')! },
       },
     });
 
+    // Client service_role pur pour bypass RLS sur les opérations DB
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    });
+
     // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Non authentifié' }),
@@ -86,7 +92,7 @@ serve(async (req) => {
       }
 
       // Vérifier l'unicité parmi les caves publiques
-      const { data: existingCellar } = await supabaseClient
+      const { data: existingCellar } = await supabaseAdmin
         .from('cellar')
         .select('id')
         .eq('slug', slug)
@@ -107,8 +113,8 @@ serve(async (req) => {
 
     console.log('Generated slug:', slug);
 
-    // Créer la cave
-    const { data: cellar, error: cellarError } = await supabaseClient
+    // Étape 1 : Créer la cave avec le client admin (bypass RLS)
+    const { data: cellar, error: cellarError } = await supabaseAdmin
       .from('cellar')
       .insert({
         name,
@@ -122,7 +128,7 @@ serve(async (req) => {
         banner_url,
         slug
       })
-      .select()
+      .select('id, slug')
       .single();
 
     if (cellarError) {
@@ -135,8 +141,8 @@ serve(async (req) => {
 
     console.log('Cellar created:', cellar.id);
 
-    // Créer la relation user_cellar (owner)
-    const { error: relationError } = await supabaseClient
+    // Étape 2 : Créer la relation user_cellar (owner) avec le client admin
+    const { error: relationError } = await supabaseAdmin
       .from('user_cellar')
       .insert({
         user_id: user.id,
@@ -147,7 +153,7 @@ serve(async (req) => {
     if (relationError) {
       console.error('Error creating user_cellar relation:', relationError);
       // Supprimer la cave si la relation échoue
-      await supabaseClient.from('cellar').delete().eq('id', cellar.id);
+      await supabaseAdmin.from('cellar').delete().eq('id', cellar.id);
       
       return new Response(
         JSON.stringify({ error: 'Erreur lors de la création de la relation utilisateur' }),
