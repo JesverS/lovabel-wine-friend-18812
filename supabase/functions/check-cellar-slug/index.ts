@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
 
@@ -13,18 +12,23 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Non authentifié' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Client pour authentification avec SERVICE_ROLE_KEY
+    const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Non authentifié' }),
@@ -32,9 +36,15 @@ serve(async (req) => {
       );
     }
 
+    // Client admin pour opérations DB (bypass RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     const { slug, cellar_id } = await req.json();
 
-    console.log('Checking slug:', slug, 'for cellar:', cellar_id);
+    console.log('Checking slug:', slug, 'for cellar:', cellar_id, 'user:', user.id);
 
     // Validation du format
     if (!slug || slug.trim().length === 0) {
@@ -87,8 +97,8 @@ serve(async (req) => {
       );
     }
 
-    // Vérifier l'unicité parmi les caves publiques
-    let query = supabaseClient
+    // Vérifier l'unicité parmi les caves publiques (utilise supabaseAdmin pour bypass RLS)
+    let query = supabaseAdmin
       .from('cellar')
       .select('id')
       .eq('slug', slug)

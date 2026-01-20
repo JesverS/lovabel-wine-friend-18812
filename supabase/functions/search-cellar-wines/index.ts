@@ -20,17 +20,34 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Non authentifié' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Client pour authentification avec SERVICE_ROLE_KEY
+    const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        auth: {
-          persistSession: false,
-        },
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Vérifier l'authentification
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Non authentifié' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Client admin pour opérations DB (bypass RLS si nécessaire)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const {
@@ -57,10 +74,11 @@ Deno.serve(async (req) => {
       sortOrder,
       offset,
       limit,
+      userId: user.id,
     });
 
     // Appeler la fonction RPC qui gère tout le filtrage en SQL
-    const { data: results, error } = await supabaseClient.rpc('search_cellar_wines', {
+    const { data: results, error } = await supabaseAdmin.rpc('search_cellar_wines', {
       p_cellar_id: cellarId,
       p_search_query: searchQuery || null,
       p_wine_type_id: wineTypeId || null,

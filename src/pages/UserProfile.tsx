@@ -66,7 +66,7 @@ export default function UserProfile() {
     // Fetch profile - always use public view
     const { data: profileData } = await supabase
       .from('user_profiles_public' as any)
-      .select('id, slug, full_name, logo_adress, description, city, address, level, phone_number, email, is_public')
+      .select('id, slug, full_name, last_name, logo_adress, description, city, address, level, phone_number, email, is_public')
       .eq('slug', slug)
       .single();
     setProfile(profileData);
