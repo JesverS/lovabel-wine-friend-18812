@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +54,21 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
     téléphone: profile?.phone_number?.toString() || '',
   });
 
+  // Synchroniser formData quand le dialog s'ouvre ou quand le profile change
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        full_name: profile?.full_name || '',
+        last_name: profile?.last_name || '',
+        description: profile?.description || '',
+        address: profile?.address || '',
+        city: profile?.city || '',
+        téléphone: profile?.phone_number?.toString() || '',
+      });
+      setAvatarPreview(profile?.logo_adress || null);
+    }
+  }, [open, profile]);
+
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -94,9 +109,12 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
     try {
       const fileName = `${user.id}/avatar.jpg`;
 
+      // Convertir Blob en File pour éviter l'erreur "property buffer"
+      const avatarFile = new File([croppedImage], 'avatar.jpg', { type: 'image/jpeg' });
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, croppedImage, { upsert: true });
+        .upload(fileName, avatarFile, { upsert: true, contentType: 'image/jpeg' });
 
       if (uploadError) throw uploadError;
 
