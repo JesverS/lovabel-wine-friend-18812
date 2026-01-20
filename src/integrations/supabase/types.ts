@@ -3304,9 +3304,6 @@ export type Database = {
           wine_year: number
         }[]
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
-      unaccent: { Args: { "": string }; Returns: string }
       unlock_next_lesson: { Args: { p_user_id: string }; Returns: number }
       upsert_wine_notice_with_event: {
         Args: {
