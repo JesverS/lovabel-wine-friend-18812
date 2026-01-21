@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 Deno.serve(async (req) => {
@@ -18,12 +19,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false },
+    // Client pour l'authentification (avec le token utilisateur)
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Client admin pour les opérations DB (bypass RLS)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Authentifier l'utilisateur
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: 'Utilisateur non authentifié' }),
@@ -40,14 +45,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Récupérer la demande
-    const { data: request, error: requestError } = await supabase
+    console.log('[process-access-request] User:', user.id, 'Request:', request_id, 'Approve:', approve);
+
+    // Récupérer la demande avec supabaseAdmin (bypass RLS)
+    const { data: request, error: requestError } = await supabaseAdmin
       .from('event_access_request')
       .select('id, event_id, user_id, status')
       .eq('id', request_id)
       .single();
 
     if (requestError || !request) {
+      console.error('[process-access-request] Request not found:', requestError);
       return new Response(
         JSON.stringify({ error: 'Demande introuvable' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -62,7 +70,7 @@ Deno.serve(async (req) => {
     }
 
     // Vérifier que l'utilisateur est organizer ou co_organizer
-    const { data: userEvent } = await supabase
+    const { data: userEvent } = await supabaseAdmin
       .from('user_event')
       .select('role')
       .eq('event_id', request.event_id)
@@ -77,7 +85,7 @@ Deno.serve(async (req) => {
     }
 
     // Mettre à jour le statut de la demande
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('event_access_request')
       .update({
         status: approve ? 'approved' : 'rejected',
@@ -87,7 +95,7 @@ Deno.serve(async (req) => {
       .eq('id', request_id);
 
     if (updateError) {
-      console.error('Update error:', updateError);
+      console.error('[process-access-request] Update error:', updateError);
       return new Response(
         JSON.stringify({ error: updateError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -97,7 +105,7 @@ Deno.serve(async (req) => {
     // Si approuvé, ajouter l'utilisateur dans user_event avec role participant
     if (approve) {
       // Vérifier si l'utilisateur n'existe pas déjà
-      const { data: existingMember } = await supabase
+      const { data: existingMember } = await supabaseAdmin
         .from('user_event')
         .select('user_id')
         .eq('event_id', request.event_id)
@@ -105,7 +113,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (!existingMember) {
-        const { error: memberError } = await supabase
+        const { error: memberError } = await supabaseAdmin
           .from('user_event')
           .insert({
             event_id: request.event_id,
@@ -116,13 +124,13 @@ Deno.serve(async (req) => {
           });
 
         if (memberError) {
-          console.error('Member insert error:', memberError);
+          console.error('[process-access-request] Member insert error:', memberError);
           // Ne pas échouer complètement, la demande est approuvée
         }
       }
     }
 
-    console.log('Access request processed:', request_id, approve ? 'approved' : 'rejected');
+    console.log('[process-access-request] Request processed:', request_id, approve ? 'approved' : 'rejected');
 
     return new Response(
       JSON.stringify({ 
@@ -132,7 +140,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in process-access-request:', error);
+    console.error('[process-access-request] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Erreur serveur' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

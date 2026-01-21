@@ -25,10 +25,10 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.request-event-access]
-verify_jwt = true
+verify_jwt = false
 
 [functions.process-access-request]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-event-checkout-session]
 verify_jwt = true
