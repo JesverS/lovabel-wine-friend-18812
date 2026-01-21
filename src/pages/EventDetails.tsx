@@ -61,6 +61,7 @@ interface Event {
   access_type: 'public' | 'paid' | 'request_based' | 'invite_only';
   confidential_address: boolean | null;
   confidential_phone: boolean | null;
+  confidential_email: boolean | null;
   confidential_participant_list: boolean | null;
   confidential_documents: string[] | null;
   price: number | null;
@@ -855,12 +856,17 @@ const EventDetails = () => {
                           <EyeOff className="w-3 h-3" /> Participants
                         </Badge>
                       )}
+                      {event.confidential_email && (
+                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                          <EyeOff className="w-3 h-3" /> Email
+                        </Badge>
+                      )}
                       {event.confidential_documents && event.confidential_documents.length > 0 && (
                         <Badge variant="secondary" className="text-xs flex items-center gap-1">
                           <EyeOff className="w-3 h-3" /> Documents
                         </Badge>
                       )}
-                      {!event.confidential_address && !event.confidential_phone && !event.confidential_participant_list && (!event.confidential_documents || event.confidential_documents.length === 0) && (
+                      {!event.confidential_address && !event.confidential_phone && !event.confidential_email && !event.confidential_participant_list && (!event.confidential_documents || event.confidential_documents.length === 0) && (
                         <span className="text-muted-foreground text-xs">Aucune option activée</span>
                       )}
                     </div>
@@ -928,7 +934,7 @@ const EventDetails = () => {
                 )}
 
                 {/* Message si contact confidentiel */}
-                {!hasAccess && !canEdit && event.confidential_phone && event.access_type !== 'public' && (
+                {!hasAccess && !canEdit && (event.confidential_phone || event.confidential_email) && event.access_type !== 'public' && (
                   <Card className="p-4 bg-muted/50">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Lock className="w-4 h-4" />
