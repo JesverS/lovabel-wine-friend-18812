@@ -208,7 +208,7 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
           location: formData.address || formData.city,
           category: formData.category || null,
           registration_link: formData.registration_link || null,
-          is_public: accessType === 'public',
+          is_public: formData.is_public,
           latitude,
           longitude,
           cellar_id: formData.cellarId,
