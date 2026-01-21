@@ -85,47 +85,55 @@ Deno.serve(async (req) => {
       );
     }
 
-    // L'événement est privé
-    // Cas 3 : Aucun token fourni
-    if (!token) {
-      return new Response(
-        JSON.stringify({ error: 'Accès refusé - token requis', code: 403 }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Cas 2 : Token fourni - vérification
-    if (token !== eventData.private_token) {
-      return new Response(
-        JSON.stringify({ error: 'Token invalide', code: 403 }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Token valide pour événement privé - même logique de masquage
+    // L'événement est privé - vérifier d'abord si l'utilisateur a un accès légitime
+    let hasLegitimateAccess = false;
     let hasConfidentialAccess = false;
-    
+
     const authHeader = req.headers.get('Authorization');
     if (authHeader) {
       const authToken = authHeader.replace('Bearer ', '');
       const { data: { user: authUser } } = await supabase.auth.getUser(authToken);
       
       if (authUser) {
+        // L'organisateur a toujours accès
         if (eventData.organizer_id === authUser.id) {
+          hasLegitimateAccess = true;
           hasConfidentialAccess = true;
         } else {
+          // Vérifier si membre de l'événement (inclut les rôles organisateur/co-organisateur via user_event)
           const { data: membership } = await supabase
             .from('user_event')
-            .select('user_id')
+            .select('role')
             .eq('event_id', eventData.id)
             .eq('user_id', authUser.id)
             .single();
           
-          hasConfidentialAccess = !!membership;
+          if (membership) {
+            hasLegitimateAccess = true;
+            hasConfidentialAccess = true; // Les membres ont accès aux infos confidentielles
+          }
         }
       }
     }
 
+    // Si pas d'accès légitime via authentification, vérifier le token
+    if (!hasLegitimateAccess) {
+      if (!token) {
+        return new Response(
+          JSON.stringify({ error: 'Accès refusé - token requis', code: 403 }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (token !== eventData.private_token) {
+        return new Response(
+          JSON.stringify({ error: 'Token invalide', code: 403 }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Accès accordé - appliquer le masquage conditionnel
     const safeEventData = { ...eventData };
     if (!hasConfidentialAccess) {
       if (eventData.confidential_address) {
