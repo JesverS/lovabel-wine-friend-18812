@@ -343,12 +343,13 @@ export default function WineDetails() {
                   size="icon"
                   onClick={handleToggleFavorite}
                   disabled={loadingFavorite}
+                  aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
                   className={isFavorite ? "text-red-500 border-red-500 hover:bg-red-50" : ""}
                 >
                   {loadingFavorite ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                   ) : (
-                    <Heart className={`w-5 h-5 ${isFavorite ? "fill-red-500" : ""}`} />
+                    <Heart className={`w-5 h-5 ${isFavorite ? "fill-red-500" : ""}`} aria-hidden="true" />
                   )}
                 </Button>
               )}
