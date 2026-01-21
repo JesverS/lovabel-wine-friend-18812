@@ -86,15 +86,17 @@ export default function WineDetails() {
     setPosts(postsData || []);
 
     // If user is logged in, fetch their tasting data and favorites
-    if (user && wineData && domainData) {
-      await fetchUserTastingData((wineData as any).domain_id);
-      await fetchFavoriteStatus((wineData as any).domain_id);
+    if (user && wineData) {
+      await fetchUserTastingData();
+      if ((wineData as any).domain_id) {
+        await fetchFavoriteStatus((wineData as any).domain_id);
+      }
     }
 
     setLoading(false);
   };
 
-  const fetchUserTastingData = async (domainId: string) => {
+  const fetchUserTastingData = async () => {
     if (!user || !id) return;
 
     const { data: noticeData } = await supabase
@@ -102,7 +104,6 @@ export default function WineDetails() {
       .select('*')
       .eq('user_id', user.id)
       .eq('wine_id', id)
-      .eq('domain_id', domainId)
       .maybeSingle();
 
     if (noticeData) {
@@ -234,15 +235,6 @@ export default function WineDetails() {
       return;
     }
 
-    if (!wine?.domain_id) {
-      toast({
-        title: "Erreur",
-        description: "Ce vin n'a pas de domaine associé.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Validate with zod
     try {
       wineNoticeSchema.parse({
@@ -269,12 +261,11 @@ export default function WineDetails() {
           {
             user_id: user.id,
             wine_id: id,
-            domain_id: wine.domain_id,
             liked,
             details: tastingDetails,
             updated_at: new Date().toISOString(),
           },
-          { onConflict: 'user_id,wine_id,domain_id' }
+          { onConflict: 'user_id,wine_id' }
         );
 
       if (error) {
