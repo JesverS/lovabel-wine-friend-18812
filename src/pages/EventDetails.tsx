@@ -126,6 +126,8 @@ const EventDetails = () => {
   const [hasPendingRefundRequest, setHasPendingRefundRequest] = useState(false);
   const [userPaymentAmount, setUserPaymentAmount] = useState<number | null>(null);
   const [participantsCount, setParticipantsCount] = useState(0);
+  const [hasHiddenContactInfo, setHasHiddenContactInfo] = useState(false);
+  const [hasHiddenAddress, setHasHiddenAddress] = useState(false);
   const [errorState, setErrorState] = useState<{
     type: 'not_found' | 'access_denied' | null;
     message: string;
@@ -174,6 +176,8 @@ const EventDetails = () => {
 
       const eventData = data.event;
       setEvent(eventData);
+      setHasHiddenContactInfo(data.hasHiddenContactInfo || false);
+      setHasHiddenAddress(data.hasHiddenAddress || false);
 
       // Check if user can edit and get their role
       if (user) {
@@ -399,6 +403,8 @@ const EventDetails = () => {
 
     const eventData = data.event;
     setEvent(eventData);
+    setHasHiddenContactInfo(data.hasHiddenContactInfo || false);
+    setHasHiddenAddress(data.hasHiddenAddress || false);
 
     // Fetch domains
     const { data: eventDomainsData } = await supabase
@@ -901,21 +907,17 @@ const EventDetails = () => {
 
                 {/* Affichage de l'adresse */}
                 {event.address && (
-                  <>
-                    {/* Cas 1: Pas confidentielle OU a accès (payé, approuvé, membre) OU peut éditer */}
-                    {(!event.confidential_address || hasAccess || canEdit) && (
-                      <p className="text-muted-foreground">{event.address}</p>
-                    )}
-                    {/* Cas 2: Confidentielle ET pas accès */}
-                    {event.confidential_address && !hasAccess && !canEdit && (
-                      <Card className="p-4 bg-muted/50">
-                        <p className="text-sm text-muted-foreground flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4" />
-                          L'adresse complète est confidentielle et sera visible après validation de votre accès
-                        </p>
-                      </Card>
-                    )}
-                  </>
+                  <p className="text-muted-foreground">{event.address}</p>
+                )}
+                
+                {/* Message si adresse confidentielle et masquée */}
+                {hasHiddenAddress && (
+                  <Card className="p-4 bg-muted/50">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      L'adresse complète est confidentielle et sera visible après validation de votre accès
+                    </p>
+                  </Card>
                 )}
 
                 {/* Affichage des informations de contact (téléphone et email) */}
@@ -933,8 +935,8 @@ const EventDetails = () => {
                   </Card>
                 )}
 
-                {/* Message si contact confidentiel */}
-                {!hasAccess && !canEdit && (event.confidential_phone || event.confidential_email) && event.access_type !== 'public' && (
+                {/* Message si contact confidentiel et masqué */}
+                {hasHiddenContactInfo && (
                   <Card className="p-4 bg-muted/50">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Lock className="w-4 h-4" />
