@@ -1106,9 +1106,23 @@ const EventDetails = () => {
 
                   {domainsWithWines.length === 0 ? (
                     <Card className="p-8 text-center">
-                      <p className="text-muted-foreground">
-                        Aucun domaine n'a été ajouté à cet événement
-                      </p>
+                      {!user ? (
+                        <div className="space-y-4">
+                          <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+                          <div>
+                            <p className="text-muted-foreground mb-2">
+                              Connectez-vous pour découvrir les domaines et vins présents à cet événement
+                            </p>
+                            <Button asChild variant="default">
+                              <Link to="/auth">Se connecter</Link>
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">
+                          Aucun domaine n'a été ajouté à cet événement
+                        </p>
+                      )}
                     </Card>
                   ) : (
                     domainsWithWines.map(({ domain, wines }) => (
