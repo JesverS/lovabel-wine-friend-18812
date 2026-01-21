@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 Deno.serve(async (req) => {
@@ -18,12 +19,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false },
+    // Client pour l'authentification (avec le token utilisateur)
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Client admin pour les opérations DB (bypass RLS)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Authentifier l'utilisateur
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: 'Utilisateur non authentifié' }),
@@ -40,14 +45,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Vérifier que l'événement existe et son type d'accès
-    const { data: event, error: eventError } = await supabase
+    console.log('[request-event-access] User:', user.id, 'Event:', event_id);
+
+    // Utiliser supabaseAdmin pour lire l'événement (bypass RLS)
+    const { data: event, error: eventError } = await supabaseAdmin
       .from('event')
       .select('id, access_type, name')
       .eq('id', event_id)
       .single();
 
     if (eventError || !event) {
+      console.error('[request-event-access] Event not found:', eventError);
       return new Response(
         JSON.stringify({ error: 'Événement introuvable' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -62,8 +70,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Vérifier qu'il n'y a pas déjà une demande en attente
-    const { data: existingRequest } = await supabase
+    // Utiliser supabaseAdmin pour vérifier les demandes existantes
+    const { data: existingRequest } = await supabaseAdmin
       .from('event_access_request')
       .select('id, status')
       .eq('event_id', event_id)
@@ -80,7 +88,7 @@ Deno.serve(async (req) => {
     }
 
     // Vérifier que l'utilisateur n'a pas déjà accès
-    const { data: existingMember } = await supabase
+    const { data: existingMember } = await supabaseAdmin
       .from('user_event')
       .select('user_id')
       .eq('event_id', event_id)
@@ -94,8 +102,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Créer la demande d'accès
-    const { data: request, error: insertError } = await supabase
+    // Créer la demande d'accès avec supabaseAdmin
+    const { data: request, error: insertError } = await supabaseAdmin
       .from('event_access_request')
       .insert({
         event_id,
@@ -107,14 +115,14 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error('Insert error:', insertError);
+      console.error('[request-event-access] Insert error:', insertError);
       return new Response(
         JSON.stringify({ error: insertError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Access request created:', request.id);
+    console.log('[request-event-access] Request created:', request.id);
 
     return new Response(
       JSON.stringify({ 
@@ -124,7 +132,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in request-event-access:', error);
+    console.error('[request-event-access] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Erreur serveur' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
