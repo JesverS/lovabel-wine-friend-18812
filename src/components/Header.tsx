@@ -102,6 +102,7 @@ export const Header = () => {
             variant="ghost" 
             size="icon" 
             className="md:hidden"
+            aria-label="Ouvrir la recherche"
             onClick={() => {
               setMobileMenuOpen(false);
               // Trouver et cliquer sur le bouton de recherche GlobalSearchBar
@@ -109,7 +110,7 @@ export const Header = () => {
               if (searchButton) searchButton.click();
             }}
           >
-            <Search className="h-5 w-5" />
+            <Search className="h-5 w-5" aria-hidden="true" />
           </Button>
           {user && (
             <div className="hidden md:block">
@@ -120,15 +121,17 @@ export const Header = () => {
             variant="ghost" 
             size="icon" 
             className="hidden md:inline-flex"
+            aria-label="Mes favoris"
             onClick={() => user ? navigate('/favorites') : navigate('/auth')}
           >
-            <Heart className={`h-5 w-5 ${isActive('/favorites') ? 'fill-primary text-primary' : ''}`} />
+            <Heart className={`h-5 w-5 ${isActive('/favorites') ? 'fill-primary text-primary' : ''}`} aria-hidden="true" />
           </Button>
           {user ? (
             <>
               <Button 
                 variant="ghost" 
                 size="icon" 
+                aria-label="Mon profil"
                 onClick={() => {
                   if (userSlug) {
                     navigate(`/user/${userSlug}`);
@@ -137,10 +140,10 @@ export const Header = () => {
                   }
                 }}
               >
-                <User className="h-5 w-5" />
+                <User className="h-5 w-5" aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                <LogOut className="h-5 w-5" />
+              <Button variant="ghost" size="icon" aria-label="Se déconnecter" onClick={handleSignOut}>
+                <LogOut className="h-5 w-5" aria-hidden="true" />
               </Button>
             </>
           ) : (
@@ -150,8 +153,8 @@ export const Header = () => {
           )}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button size="icon" variant="ghost" className="md:hidden">
-                <Menu className="h-5 w-5" />
+              <Button size="icon" variant="ghost" className="md:hidden" aria-label="Ouvrir le menu">
+                <Menu className="h-5 w-5" aria-hidden="true" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">

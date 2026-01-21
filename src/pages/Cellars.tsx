@@ -242,6 +242,18 @@ export default function Cellars() {
             </CardContent>
           </Card>
 
+          {/* Message pour utilisateurs non connectés */}
+          {!user && (
+            <div className="mb-8 p-4 bg-primary/10 rounded-lg border border-primary/20 text-center animate-fade-up">
+              <p className="text-muted-foreground">
+                <Link to="/auth" className="text-primary font-medium hover:underline">
+                  Connectez-vous
+                </Link>{" "}
+                pour voir les cavistes triés par distance depuis votre position
+              </p>
+            </div>
+          )}
+
           {cellars.length === 0 ? (
             <Card className="border-2 shadow-lg">
               <CardContent className="p-12 text-center">

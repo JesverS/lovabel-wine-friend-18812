@@ -536,19 +536,21 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
                 <Button
                   variant="ghost"
                   size="sm"
+                  aria-label="Modifier le post"
                   onClick={() => {
                     setEditedContent(displayedContent);
                     setIsEditing(true);
                   }}
                 >
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="w-4 h-4" aria-hidden="true" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
+                  aria-label="Supprimer le post"
                   onClick={() => setDeleteDialogOpen(true)}
                 >
-                  <Trash2 className="w-4 h-4 text-destructive" />
+                  <Trash2 className="w-4 h-4 text-destructive" aria-hidden="true" />
                 </Button>
               </div>
             )}
@@ -556,10 +558,11 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
               <Button
                 variant="ghost"
                 size="sm"
+                aria-label="Signaler le post"
                 onClick={() => setReportDialogOpen(true)}
                 className="text-muted-foreground hover:text-foreground"
               >
-                <Flag className="w-4 h-4" />
+                <Flag className="w-4 h-4" aria-hidden="true" />
               </Button>
             )}
           </div>
@@ -642,12 +645,13 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
           onClick={handleLike}
           className="gap-2"
           disabled={!user}
+          aria-label={isLiked ? "Retirer le j'aime" : "Ajouter un j'aime"}
         >
-          <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+          <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} aria-hidden="true" />
           {likesCount}
         </Button>
-        <Button variant="ghost" size="sm" className="gap-2" onClick={handleToggleComments}>
-          <MessageCircle className="w-4 h-4" />
+        <Button variant="ghost" size="sm" className="gap-2" onClick={handleToggleComments} aria-label="Afficher les commentaires">
+          <MessageCircle className="w-4 h-4" aria-hidden="true" />
           {commentsCount}
         </Button>
         {canShare && (
@@ -705,11 +709,12 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
                   type="submit"
                   size="sm"
                   disabled={loadingComment || !newComment.trim()}
+                  aria-label="Envoyer le commentaire"
                 >
                   {loadingComment ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                   ) : (
-                    <Send className="w-4 h-4" />
+                    <Send className="w-4 h-4" aria-hidden="true" />
                   )}
                 </Button>
               </div>
@@ -754,6 +759,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
                               variant="ghost"
                               size="sm"
                               className="h-6 w-6 p-0"
+                              aria-label="Supprimer le commentaire"
                               onClick={async () => {
                                 const { error } = await supabase
                                   .from('post_comment')
@@ -775,7 +781,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
                                 }
                               }}
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3 h-3" aria-hidden="true" />
                             </Button>
                           )}
                         </div>
@@ -787,6 +793,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
                         className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground mt-1"
                         onClick={() => handleCommentLike(comment.id)}
                         disabled={!user}
+                        aria-label={commentLikes[comment.id]?.liked ? "Retirer le j'aime" : "Aimer ce commentaire"}
                       >
                         <ThumbsUp
                           className={`w-3 h-3 ${
@@ -794,6 +801,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
                               ? 'fill-primary text-primary'
                               : ''
                           }`}
+                          aria-hidden="true"
                         />
                         {commentLikes[comment.id]?.count > 0 && (
                           <span>{commentLikes[comment.id].count}</span>

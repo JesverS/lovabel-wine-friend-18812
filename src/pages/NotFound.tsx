@@ -20,11 +20,8 @@ const NotFound = () => {
       <main className="flex-grow flex items-center justify-center pt-20 pb-12">
         <div className="container mx-auto px-4 text-center">
           {/* Wine Icon */}
-          <div className="relative mb-8">
-            <Wine className="h-24 w-24 text-primary mx-auto opacity-20" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-6xl" aria-hidden="true">🍷</span>
-            </div>
+          <div className="mb-8">
+            <Wine className="h-24 w-24 text-primary mx-auto" aria-hidden="true" />
           </div>
 
           {/* 404 Title */}
