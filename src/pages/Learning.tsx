@@ -103,10 +103,21 @@ export default function Learning() {
         <div className="mb-12 animate-fade-up">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="font-serif text-4xl md:text-5xl font-bold mb-2">
-                Votre <span className="text-gradient-wine">Parcours Œnologique</span>
-              </h1>
-              <p className="text-lg text-muted-foreground">Apprenez à votre rythme et devenez expert en vin</p>
+            <h1 className="font-serif text-4xl md:text-5xl font-bold mb-2">
+              Votre <span className="text-gradient-wine">Parcours Œnologique</span>
+            </h1>
+            <p className="text-lg text-muted-foreground">Apprenez à votre rythme et devenez expert en vin</p>
+            
+            {!user && (
+              <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20 inline-block">
+                <p className="text-sm text-muted-foreground">
+                  <Link to="/auth" className="text-primary font-medium hover:underline">
+                    Connectez-vous
+                  </Link>{" "}
+                  pour accéder aux cours et suivre votre progression
+                </p>
+              </div>
+            )}
             </div>
 
             <div className="hidden md:flex items-center gap-6">
