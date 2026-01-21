@@ -3214,6 +3214,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_accepted_follower: {
+        Args: { _follower_id: string; _following_id: string }
+        Returns: boolean
+      }
+      is_event_organizer: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: never; Returns: boolean }
       join_public_event: {
         Args: { p_event_id: string; p_user_id: string }
