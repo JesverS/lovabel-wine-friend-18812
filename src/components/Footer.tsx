@@ -75,11 +75,6 @@ export const Footer = () => {
                   Guides & conseils
                 </Link>
               </li>
-              <li>
-                <Link to="/members" className="hover:text-secondary transition-colors">
-                  Membres
-                </Link>
-              </li>
             </ul>
           </div>
 

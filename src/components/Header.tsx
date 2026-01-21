@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Wine, User, Heart, Menu, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalSearchBar } from "@/components/GlobalSearchBar";
@@ -17,8 +17,12 @@ import {
 export const Header = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userSlug, setUserSlug] = useState<string | null>(null);
+
+  const isActive = (path: string) => 
+    location.pathname === path || location.pathname.startsWith(path + '/');
 
   useEffect(() => {
     const fetchUserSlug = async () => {
@@ -48,16 +52,44 @@ export const Header = () => {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
-          <Link to="/events" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <Link 
+            to="/events" 
+            className={`text-sm font-medium transition-colors ${
+              isActive('/events') || isActive('/event')
+                ? 'text-primary border-b-2 border-primary pb-1' 
+                : 'text-foreground hover:text-primary'
+            }`}
+          >
             Évènements
           </Link>
-          <Link to="/cellars" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <Link 
+            to="/cellars" 
+            className={`text-sm font-medium transition-colors ${
+              isActive('/cellars') || isActive('/cellar')
+                ? 'text-primary border-b-2 border-primary pb-1' 
+                : 'text-foreground hover:text-primary'
+            }`}
+          >
             Cavistes
           </Link>
-          <Link to="/learning" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <Link 
+            to="/learning" 
+            className={`text-sm font-medium transition-colors ${
+              isActive('/learning') || isActive('/course')
+                ? 'text-primary border-b-2 border-primary pb-1' 
+                : 'text-foreground hover:text-primary'
+            }`}
+          >
             Cours
           </Link>
-          <Link to="/game" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <Link 
+            to="/game" 
+            className={`text-sm font-medium transition-colors ${
+              isActive('/game')
+                ? 'text-primary border-b-2 border-primary pb-1' 
+                : 'text-foreground hover:text-primary'
+            }`}
+          >
             Game
           </Link>
         </nav>
@@ -84,8 +116,13 @@ export const Header = () => {
               <NotificationCenter />
             </div>
           )}
-          <Button variant="ghost" size="icon" className="hidden md:inline-flex">
-            <Heart className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hidden md:inline-flex"
+            onClick={() => user ? navigate('/favorites') : navigate('/auth')}
+          >
+            <Heart className={`h-5 w-5 ${isActive('/favorites') ? 'fill-primary text-primary' : ''}`} />
           </Button>
           {user ? (
             <>
