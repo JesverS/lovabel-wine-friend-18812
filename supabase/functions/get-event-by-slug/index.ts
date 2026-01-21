@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       .eq('slug', slug)
       .single();
 
-    // Cas 4 : L'événement n'existe pas
+    // Cas : L'événement n'existe pas
     if (eventError || !eventData) {
       return new Response(
         JSON.stringify({ error: 'Événement inexistant', code: 404 }),
@@ -37,36 +37,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Cas 1 : L'événement est public - retour IMMÉDIAT (pas de vérification auth)
-    if (eventData.is_public) {
-      const safeEventData = { ...eventData };
-      // Masquer par défaut les champs confidentiels pour tous
-      if (eventData.confidential_address) safeEventData.address = null;
-      if (eventData.confidential_phone) safeEventData.contact_phone = null;
-      if (eventData.confidential_email) safeEventData.contact_email = null;
-
-      return new Response(
-        JSON.stringify({ event: safeEventData }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Cas 2 : L'événement est privé - vérifier le TOKEN EN PREMIER (rapide)
-    if (token && token === eventData.private_token) {
-      const safeEventData = { ...eventData };
-      // Token seul = pas d'accès confidentiel par défaut
-      if (eventData.confidential_address) safeEventData.address = null;
-      if (eventData.confidential_phone) safeEventData.contact_phone = null;
-      if (eventData.confidential_email) safeEventData.contact_email = null;
-
-      return new Response(
-        JSON.stringify({ event: safeEventData }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Cas 3 : Pas de token valide - vérifier l'authentification (seulement si nécessaire)
-    let hasLegitimateAccess = false;
+    // ÉTAPE 1 : Vérifier l'authentification et le membership EN PREMIER
+    // (pour savoir si l'utilisateur a droit aux infos confidentielles)
+    let isMember = false;
     let hasConfidentialAccess = false;
 
     const authHeader = req.headers.get('Authorization');
@@ -75,9 +48,9 @@ Deno.serve(async (req) => {
       const { data: { user: authUser } } = await supabase.auth.getUser(authToken);
       
       if (authUser) {
-        // L'organisateur a toujours accès
+        // L'organisateur a toujours accès complet
         if (eventData.organizer_id === authUser.id) {
-          hasLegitimateAccess = true;
+          isMember = true;
           hasConfidentialAccess = true;
         } else {
           // Vérifier si membre de l'événement
@@ -89,39 +62,69 @@ Deno.serve(async (req) => {
             .single();
           
           if (membership) {
-            hasLegitimateAccess = true;
+            isMember = true;
             hasConfidentialAccess = true;
           }
         }
       }
     }
 
-    // Pas d'accès légitime → 403
-    if (!hasLegitimateAccess) {
+    // Fonction helper pour construire la réponse avec masquage
+    const buildResponse = (applyMasking: boolean) => {
+      const safeEventData = { ...eventData };
+      let hasHiddenContactInfo = false;
+      let hasHiddenAddress = false;
+
+      if (applyMasking) {
+        if (eventData.confidential_address && eventData.address) {
+          safeEventData.address = null;
+          hasHiddenAddress = true;
+        }
+        if (eventData.confidential_phone && eventData.contact_phone) {
+          safeEventData.contact_phone = null;
+          hasHiddenContactInfo = true;
+        }
+        if (eventData.confidential_email && eventData.contact_email) {
+          safeEventData.contact_email = null;
+          hasHiddenContactInfo = true;
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          event: safeEventData,
+          hasHiddenContactInfo,
+          hasHiddenAddress
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    };
+
+    // ÉTAPE 2 : L'événement est public
+    if (eventData.is_public) {
+      // Si l'utilisateur est membre → accès complet (pas de masquage)
+      // Sinon → masquer selon les flags confidential_*
+      return buildResponse(!hasConfidentialAccess);
+    }
+
+    // ÉTAPE 3 : L'événement est privé - vérifier le TOKEN
+    if (token && token === eventData.private_token) {
+      // Token valide mais pas membre → masquer les infos confidentielles
+      // Token valide ET membre → accès complet
+      return buildResponse(!hasConfidentialAccess);
+    }
+
+    // ÉTAPE 4 : Événement privé sans token valide
+    // Seuls les membres/organisateurs peuvent accéder
+    if (!isMember) {
       return new Response(
         JSON.stringify({ error: 'Accès refusé - token requis', code: 403 }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Accès accordé via auth - appliquer le masquage conditionnel
-    const safeEventData = { ...eventData };
-    if (!hasConfidentialAccess) {
-      if (eventData.confidential_address) {
-        safeEventData.address = null;
-      }
-      if (eventData.confidential_phone) {
-        safeEventData.contact_phone = null;
-      }
-      if (eventData.confidential_email) {
-        safeEventData.contact_email = null;
-      }
-    }
-
-    return new Response(
-      JSON.stringify({ event: safeEventData }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // Membre authentifié → accès complet
+    return buildResponse(false);
   } catch (error) {
     console.error('Error in get-event-by-slug:', error);
     return new Response(
