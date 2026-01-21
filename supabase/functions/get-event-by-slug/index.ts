@@ -37,47 +37,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Cas 1 : L'événement est public - vérifier l'accès utilisateur pour les champs confidentiels
+    // Cas 1 : L'événement est public - retour IMMÉDIAT (pas de vérification auth)
     if (eventData.is_public) {
-      // Déterminer si l'utilisateur a accès aux infos confidentielles
-      let hasConfidentialAccess = false;
-      
-      const authHeader = req.headers.get('Authorization');
-      if (authHeader) {
-        const authToken = authHeader.replace('Bearer ', '');
-        const { data: { user: authUser } } = await supabase.auth.getUser(authToken);
-        
-        if (authUser) {
-          // L'organisateur a toujours accès
-          if (eventData.organizer_id === authUser.id) {
-            hasConfidentialAccess = true;
-          } else {
-            // Vérifier si membre de l'événement
-            const { data: membership } = await supabase
-              .from('user_event')
-              .select('user_id')
-              .eq('event_id', eventData.id)
-              .eq('user_id', authUser.id)
-              .single();
-            
-            hasConfidentialAccess = !!membership;
-          }
-        }
-      }
-
-      // Masquer les champs confidentiels si pas d'accès
       const safeEventData = { ...eventData };
-      if (!hasConfidentialAccess) {
-        if (eventData.confidential_address) {
-          safeEventData.address = null;
-        }
-        if (eventData.confidential_phone) {
-          safeEventData.contact_phone = null;
-        }
-        if (eventData.confidential_email) {
-          safeEventData.contact_email = null;
-        }
-      }
+      // Masquer par défaut les champs confidentiels pour tous
+      if (eventData.confidential_address) safeEventData.address = null;
+      if (eventData.confidential_phone) safeEventData.contact_phone = null;
+      if (eventData.confidential_email) safeEventData.contact_email = null;
 
       return new Response(
         JSON.stringify({ event: safeEventData }),
@@ -85,7 +51,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // L'événement est privé - vérifier d'abord si l'utilisateur a un accès légitime
+    // Cas 2 : L'événement est privé - vérifier le TOKEN EN PREMIER (rapide)
+    if (token && token === eventData.private_token) {
+      const safeEventData = { ...eventData };
+      // Token seul = pas d'accès confidentiel par défaut
+      if (eventData.confidential_address) safeEventData.address = null;
+      if (eventData.confidential_phone) safeEventData.contact_phone = null;
+      if (eventData.confidential_email) safeEventData.contact_email = null;
+
+      return new Response(
+        JSON.stringify({ event: safeEventData }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Cas 3 : Pas de token valide - vérifier l'authentification (seulement si nécessaire)
     let hasLegitimateAccess = false;
     let hasConfidentialAccess = false;
 
@@ -100,7 +80,7 @@ Deno.serve(async (req) => {
           hasLegitimateAccess = true;
           hasConfidentialAccess = true;
         } else {
-          // Vérifier si membre de l'événement (inclut les rôles organisateur/co-organisateur via user_event)
+          // Vérifier si membre de l'événement
           const { data: membership } = await supabase
             .from('user_event')
             .select('role')
@@ -110,30 +90,21 @@ Deno.serve(async (req) => {
           
           if (membership) {
             hasLegitimateAccess = true;
-            hasConfidentialAccess = true; // Les membres ont accès aux infos confidentielles
+            hasConfidentialAccess = true;
           }
         }
       }
     }
 
-    // Si pas d'accès légitime via authentification, vérifier le token
+    // Pas d'accès légitime → 403
     if (!hasLegitimateAccess) {
-      if (!token) {
-        return new Response(
-          JSON.stringify({ error: 'Accès refusé - token requis', code: 403 }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      if (token !== eventData.private_token) {
-        return new Response(
-          JSON.stringify({ error: 'Token invalide', code: 403 }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      return new Response(
+        JSON.stringify({ error: 'Accès refusé - token requis', code: 403 }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Accès accordé - appliquer le masquage conditionnel
+    // Accès accordé via auth - appliquer le masquage conditionnel
     const safeEventData = { ...eventData };
     if (!hasConfidentialAccess) {
       if (eventData.confidential_address) {
