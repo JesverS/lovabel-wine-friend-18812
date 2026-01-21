@@ -49,7 +49,7 @@ export function EventAccessRequestsManagement({ eventId }: EventAccessRequestsMa
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async (request) => {
           const { data: profile } = await supabase
-            .from('user_profiles')
+            .from('user_profiles_public')
             .select('full_name, email, logo_adress')
             .eq('id', request.user_id)
             .single();
