@@ -284,6 +284,42 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_message: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          replied_at: string | null
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          replied_at?: string | null
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          replied_at?: string | null
+          status?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
       content_report: {
         Row: {
           comment_id: string | null

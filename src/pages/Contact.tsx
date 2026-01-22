@@ -7,12 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Mail, MapPin, MessageSquare } from "lucide-react";
+import { Mail, MapPin, MessageSquare, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Helmet } from "react-helmet-async";
 
 export default function Contact() {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -20,17 +23,59 @@ export default function Contact() {
     message: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Message envoyé !",
-      description: "Nous vous répondrons dans les plus brefs délais.",
-    });
-    setFormData({ name: "", email: "", subject: "", message: "" });
+    
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('contact_message')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Message envoyé !",
+        description: "Nous vous répondrons dans les plus brefs délais.",
+      });
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (error: any) {
+      console.error('Error sending contact message:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer votre message. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Contact | Wine Note - Nous contacter</title>
+        <meta name="description" content="Contactez l'équipe Wine Note pour toute question, suggestion ou demande de partenariat. Nous sommes à votre écoute." />
+        <meta property="og:title" content="Contact - Wine Note" />
+        <meta property="og:description" content="Contactez l'équipe Wine Note" />
+        <meta property="og:type" content="website" />
+      </Helmet>
+
       <Header />
       <main className="container mx-auto px-4 py-8 pt-32 flex-grow">
         <div className="text-center mb-16 animate-fade-up">
@@ -55,18 +100,19 @@ export default function Contact() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Nom complet</Label>
+                  <Label htmlFor="name">Nom complet *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Votre nom"
                     required
+                    disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -74,14 +120,16 @@ export default function Contact() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="votre@email.com"
                     required
+                    disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="subject">Sujet</Label>
+                  <Label htmlFor="subject">Sujet *</Label>
                   <Select
                     value={formData.subject}
                     onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                    disabled={loading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionnez un sujet" />
@@ -97,7 +145,7 @@ export default function Contact() {
                 </div>
 
                 <div>
-                  <Label htmlFor="message">Message</Label>
+                  <Label htmlFor="message">Message *</Label>
                   <Textarea
                     id="message"
                     value={formData.message}
@@ -105,11 +153,19 @@ export default function Contact() {
                     placeholder="Votre message..."
                     rows={6}
                     required
+                    disabled={loading}
                   />
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Envoyer le message
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Envoi en cours...
+                    </>
+                  ) : (
+                    "Envoyer le message"
+                  )}
                 </Button>
               </form>
             </CardContent>

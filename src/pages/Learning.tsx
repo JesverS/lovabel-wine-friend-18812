@@ -11,6 +11,15 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBadges } from "@/hooks/useBadges";
+import { Helmet } from "react-helmet-async";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface Course {
   id: number;
@@ -96,9 +105,32 @@ export default function Learning() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Cours d'Oenologie | Apprenez le Vin - Wine Note</title>
+        <meta name="description" content="Apprenez l'oenologie à votre rythme avec nos cours interactifs. Devenez expert en vin : cépages, terroirs, accords mets-vins et dégustation." />
+        <meta property="og:title" content="Cours d'Oenologie - Wine Note" />
+        <meta property="og:description" content="Apprenez le vin avec des cours interactifs" />
+        <meta property="og:type" content="website" />
+      </Helmet>
+
       <Header />
 
       <main className="container mx-auto px-4 py-8 pt-32 flex-grow min-h-screen">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Accueil</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Cours</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         {/* Header Section */}
         <div className="mb-12 animate-fade-up">
           <div className="flex items-center justify-between mb-6">

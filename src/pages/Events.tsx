@@ -16,6 +16,15 @@ import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Helmet } from "react-helmet-async";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface Event {
   id: string;
@@ -57,7 +66,6 @@ const Events = () => {
     setLoading(true);
 
     try {
-      // Utiliser la VIEW event_public_list qui masque automatiquement les champs confidentiels
       let query = supabase
         .from("event_public_list")
         .select("id, slug, name, description, start_date, end_date, city, banner_url")
@@ -222,10 +230,33 @@ const Events = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>Événements Viticoles | Salons & Dégustations - Wine Note</title>
+        <meta name="description" content="Découvrez les salons du vin, dégustations et événements viticoles près de chez vous. Inscrivez-vous et participez à la communauté Wine Note." />
+        <meta property="og:title" content="Événements Viticoles - Wine Note" />
+        <meta property="og:description" content="Salons, dégustations et événements viticoles" />
+        <meta property="og:type" content="website" />
+      </Helmet>
+
       <Header />
       <main className="pt-20 flex-grow">
         <section className="container mx-auto px-4 py-16 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
+            {/* Breadcrumb */}
+            <Breadcrumb className="mb-6">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/">Accueil</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Événements</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+
             <div className="mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                 <div>

@@ -15,6 +15,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DomainAdministration } from "@/components/DomainAdministration";
 import { EditDomainDialog } from "@/components/EditDomainDialog";
 import { AddWineToDomainDialog } from "@/components/AddWineToDomainDialog";
+import { Helmet } from "react-helmet-async";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export default function DomainDetails() {
   const { id } = useParams();
@@ -165,8 +174,32 @@ export default function DomainDetails() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <Helmet>
+        <title>{domain.name} | Domaine viticole - Wine Note</title>
+        <meta name="description" content={domain.description?.slice(0, 155) || `Découvrez le domaine ${domain.name} et ses vins`} />
+        <meta property="og:title" content={`${domain.name} - Wine Note`} />
+        <meta property="og:description" content={domain.description?.slice(0, 155) || `Domaine viticole ${domain.name}`} />
+        {domain.logo_url && <meta property="og:image" content={domain.logo_url} />}
+        <meta property="og:type" content="website" />
+      </Helmet>
+
       <Header />
       <main className="flex-1 min-h-screen container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Accueil</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{domain.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <Button variant="ghost" asChild className="mb-6">
           <Link to={userSlug ? `/user/${userSlug}` : "/search"}>
             <ArrowLeft className="w-4 h-4 mr-2" />
