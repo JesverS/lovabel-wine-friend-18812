@@ -1,10 +1,15 @@
 import { useRef, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/PostCardSkeleton";
 import { useSocialFeed } from "@/hooks/useSocialFeed";
-import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2, LogIn, Users } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export const SocialFeed = () => {
+  const { user } = useAuth();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useSocialFeed();
 
   const observerRef = useRef<HTMLDivElement>(null);
@@ -31,6 +36,42 @@ export const SocialFeed = () => {
     observer.observe(element);
     return () => observer.disconnect();
   }, [handleObserver]);
+
+  // Message pour les utilisateurs non connectés
+  if (!user) {
+    return (
+      <section className="py-24 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12 animate-fade-up">
+            <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4">La communauté Wine Note</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Découvrez les dernières trouvailles et recommandations de nos membres
+            </p>
+          </div>
+
+          <div className="max-w-2xl mx-auto">
+            <Card className="p-8 text-center glass-card">
+              <div className="flex justify-center mb-4">
+                <div className="p-4 rounded-full bg-primary/10">
+                  <Users className="h-12 w-12 text-primary" />
+                </div>
+              </div>
+              <h3 className="text-2xl font-semibold mb-3">Rejoignez la communauté</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Connectez-vous pour découvrir les dégustations, notes et partages de nos membres passionnés de vin
+              </p>
+              <Button asChild size="lg" className="gap-2">
+                <Link to="/auth">
+                  <LogIn className="w-4 h-4" />
+                  Se connecter
+                </Link>
+              </Button>
+            </Card>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const allPosts = data?.pages.flatMap((page) => page.posts) || [];
 

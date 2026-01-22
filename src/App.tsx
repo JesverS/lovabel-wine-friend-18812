@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "./contexts/AuthContext";
 import ScrollToTop from "./components/ScrollToTop";
 import Index from "./pages/Index";
@@ -42,53 +43,55 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <ScrollToTop />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/auth/confirm" element={<AuthConfirm />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/user/:slug" element={<UserProfile />} />
-            <Route path="/wine/:id" element={<WineDetails />} />
-            <Route path="/cellars" element={<Cellars />} />
-            <Route path="/cellar/:slug" element={<CellarDetails />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="/event/:slug" element={<EventDetails />} />
-            <Route path="/domain/:id" element={<DomainDetails />} />
-            <Route path="/complete-profile" element={<CompleteProfile />} />
-            <Route path="/learning" element={<Learning />} />
-            <Route path="/course/:id" element={<CourseDetails />} />
-            <Route path="/course/locked/:id" element={<CourseLocked />} />
-            <Route path="/course/:courseId/lesson/:lessonId" element={<LessonDetails />} />
-            <Route path="/game" element={<GameMultiplayer />} />
-            <Route path="/game/play" element={<GamePlay />} />
-            <Route path="/cellar-invitation/:token" element={<CellarInvitation />} />
-            <Route path="/event-invitation/:token" element={<EventInvitation />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/legal" element={<Legal />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/badges" element={<Badges />} />
-            <Route path="/post/share/:token" element={<SharedPost />} />
-            <Route path="/post/:id" element={<PostDetails />} />
-            <Route path="/feed" element={<Feed />} />
-            <Route path="/guides" element={<Guides />} />
-            <Route path="/favorites" element={<Favorites />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <ScrollToTop />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+              <Route path="/auth/confirm" element={<AuthConfirm />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/user/:slug" element={<UserProfile />} />
+              <Route path="/wine/:id" element={<WineDetails />} />
+              <Route path="/cellars" element={<Cellars />} />
+              <Route path="/cellar/:slug" element={<CellarDetails />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/event/:slug" element={<EventDetails />} />
+              <Route path="/domain/:id" element={<DomainDetails />} />
+              <Route path="/complete-profile" element={<CompleteProfile />} />
+              <Route path="/learning" element={<Learning />} />
+              <Route path="/course/:id" element={<CourseDetails />} />
+              <Route path="/course/locked/:id" element={<CourseLocked />} />
+              <Route path="/course/:courseId/lesson/:lessonId" element={<LessonDetails />} />
+              <Route path="/game" element={<GameMultiplayer />} />
+              <Route path="/game/play" element={<GamePlay />} />
+              <Route path="/cellar-invitation/:token" element={<CellarInvitation />} />
+              <Route path="/event-invitation/:token" element={<EventInvitation />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/legal" element={<Legal />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/badges" element={<Badges />} />
+              <Route path="/post/share/:token" element={<SharedPost />} />
+              <Route path="/post/:id" element={<PostDetails />} />
+              <Route path="/feed" element={<Feed />} />
+              <Route path="/guides" element={<Guides />} />
+              <Route path="/favorites" element={<Favorites />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

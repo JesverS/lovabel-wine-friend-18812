@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
@@ -25,6 +25,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Helmet } from 'react-helmet-async';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 
 interface Cellar {
   id: string;
@@ -203,9 +212,38 @@ export default function CellarDetails() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
+      <Helmet>
+        <title>{cellar.name} | Cave - Wine Note</title>
+        <meta name="description" content={cellar.description?.slice(0, 155) || `Découvrez la cave ${cellar.name}`} />
+        <meta property="og:title" content={`${cellar.name} - Wine Note`} />
+        <meta property="og:description" content={cellar.description?.slice(0, 155) || `Cave à vin ${cellar.name}`} />
+        {cellar.logo_url && <meta property="og:image" content={cellar.logo_url} />}
+        <meta property="og:type" content="website" />
+      </Helmet>
+
       <Header />
 
       <main className="container mx-auto px-4 py-24 flex-grow min-h-screen overflow-x-hidden w-full">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Accueil</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/cellars">Caves</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{cellar.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         {/* Banner */}
         {cellar.banner_url && (
           <div className="relative w-full h-64 mb-8 rounded-lg overflow-hidden">

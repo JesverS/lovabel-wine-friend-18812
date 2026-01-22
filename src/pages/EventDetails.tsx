@@ -43,6 +43,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Helmet } from "react-helmet-async";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface Event {
   id: string;
@@ -774,6 +783,15 @@ const EventDetails = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>{event.name} | Événement - Wine Note</title>
+        <meta name="description" content={event.description?.slice(0, 155) || `Détails de l'événement ${event.name}`} />
+        <meta property="og:title" content={event.name} />
+        <meta property="og:description" content={event.description?.slice(0, 155) || `Événement viticole - ${event.name}`} />
+        {event.banner_url && <meta property="og:image" content={event.banner_url} />}
+        <meta property="og:type" content="event" />
+      </Helmet>
+
       <Header />
       <main className="pt-20 flex-grow min-h-screen">
         {event.banner_url && (
@@ -788,6 +806,26 @@ const EventDetails = () => {
 
         <section className="container mx-auto px-4 py-16 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
+            {/* Breadcrumb */}
+            <Breadcrumb className="mb-6">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/">Accueil</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/events">Événements</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{event.name}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">

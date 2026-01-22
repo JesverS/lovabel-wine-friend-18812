@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import LessonPagination from "@/components/lesson/LessonPagination";
 import QuizPagination from "@/components/lesson/QuizPagination";
 import confetti from "canvas-confetti";
+import { Helmet } from "react-helmet-async";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface Course {
   id: number;
@@ -297,6 +306,14 @@ const LessonDetails = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF7F1]">
+      <Helmet>
+        <title>{lesson.title} | Leçon - Wine Note</title>
+        <meta name="description" content={`Leçon ${lesson.lesson_number} : ${lesson.title}. Durée estimée : ${lesson.estimated_time}.`} />
+        <meta property="og:title" content={`${lesson.title} - Wine Note`} />
+        <meta property="og:description" content={`Leçon d'oenologie : ${lesson.title}`} />
+        <meta property="og:type" content="article" />
+      </Helmet>
+
       {/* HEADER PREMIUM (Version A) */}
       <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4">
@@ -327,6 +344,35 @@ const LessonDetails = () => {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Breadcrumb sous le header */}
+        <div className="max-w-5xl mx-auto px-4 py-2 border-t border-gray-100">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/learning">Cours</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to={`/course/${courseId}`}>{course.title}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{lesson.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
       </header>
 

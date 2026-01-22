@@ -14,6 +14,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wine, MapPin, Calendar, Sparkles, Heart, ThumbsUp, ThumbsDown, Save, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { wineNoticeSchema } from '@/lib/validation-schemas';
+import { Helmet } from 'react-helmet-async';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 
 interface TastingDetails {
   rating: number;
@@ -305,9 +314,42 @@ export default function WineDetails() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>{wine.name} {wine.year ? `(${wine.year})` : ''} | Vin - Wine Note</title>
+        <meta name="description" content={wine.description?.slice(0, 155) || `Découvrez ${wine.name}${domaine ? ` du domaine ${domaine.name}` : ''}`} />
+        <meta property="og:title" content={`${wine.name} - Wine Note`} />
+        <meta property="og:description" content={wine.description?.slice(0, 155) || `Vin ${wine.name}`} />
+        {wine.label_url && <meta property="og:image" content={wine.label_url} />}
+        <meta property="og:type" content="product" />
+      </Helmet>
+
       <Header />
       
       <main className="container mx-auto px-4 py-12 pt-32 flex-grow min-h-screen">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Accueil</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            {domaine && (
+              <>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to={`/domain/${domaine.id}`}>{domaine.name}</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+              </>
+            )}
+            <BreadcrumbItem>
+              <BreadcrumbPage>{wine.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         {/* Wine Header */}
         <div className="grid md:grid-cols-2 gap-12 mb-12">
           <div className="flex justify-center">

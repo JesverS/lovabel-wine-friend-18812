@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,15 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Helmet } from "react-helmet-async";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface Course {
   id: number;
@@ -166,8 +175,37 @@ const CourseDetails = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
+      <Helmet>
+        <title>{course.title} | Cours d'oenologie - Wine Note</title>
+        <meta name="description" content={`Apprenez l'oenologie avec le cours ${course.title}. ${course.lesson_count} leçons interactives.`} />
+        <meta property="og:title" content={`${course.title} - Wine Note`} />
+        <meta property="og:description" content={`Cours d'oenologie : ${course.title}`} />
+        <meta property="og:type" content="website" />
+      </Helmet>
+
       <Header />
       <main className="flex-1 min-h-screen container mx-auto px-4 pt-32 pb-12">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Accueil</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/learning">Cours</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{course.title}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <Button
           variant="ghost"
           onClick={() => navigate("/learning")}
