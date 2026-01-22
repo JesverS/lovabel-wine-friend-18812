@@ -44,6 +44,8 @@ interface UserEvent extends Event {
   role: string;
 }
 
+const EVENTS_PER_PAGE = 12;
+
 const Events = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'public' | 'registered' | 'organizing'>('public');
@@ -53,23 +55,32 @@ const Events = () => {
   const [searchName, setSearchName] = useState("");
   const [searchCity, setSearchCity] = useState("");
   const [searchDate, setSearchDate] = useState<Date | undefined>(undefined);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'public') {
-      fetchPublicEvents();
+      setPage(0);
+      fetchPublicEvents(0, false);
     } else if (user) {
       fetchUserEvents();
     }
   }, [activeTab, searchName, searchCity, searchDate, user]);
 
-  const fetchPublicEvents = async () => {
-    setLoading(true);
+  const fetchPublicEvents = async (pageNum = 0, append = false) => {
+    if (pageNum === 0) setLoading(true);
+    else setLoadingMore(true);
 
     try {
+      const from = pageNum * EVENTS_PER_PAGE;
+      const to = from + EVENTS_PER_PAGE;
+
       let query = supabase
         .from("event_public_list")
         .select("id, slug, name, description, start_date, end_date, city, banner_url")
-        .order("start_date", { ascending: true });
+        .order("start_date", { ascending: true })
+        .range(from, to);
 
       if (searchName.trim()) {
         query = query.ilike("name", `%${searchName}%`);
@@ -93,13 +104,24 @@ const Events = () => {
       const { data, error } = await query;
 
       if (!error && data) {
-        setPublicEvents(data);
+        const hasMoreData = data.length > EVENTS_PER_PAGE;
+        const eventsToShow = hasMoreData ? data.slice(0, EVENTS_PER_PAGE) : data;
+        
+        setPublicEvents(prev => append ? [...prev, ...eventsToShow] : eventsToShow);
+        setHasMore(hasMoreData);
       }
     } catch (err) {
       console.error("Error fetching events:", err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchPublicEvents(nextPage, true);
   };
 
   const fetchUserEvents = async () => {
@@ -379,8 +401,21 @@ const Events = () => {
                   </Card>
                 </div>
               ) : (
-                <div className="grid gap-6">
-                  {publicEvents.map((event) => renderEventCard(event, false))}
+              <div className="space-y-6">
+                  <div className="grid gap-6">
+                    {publicEvents.map((event) => renderEventCard(event, false))}
+                  </div>
+                  {hasMore && (
+                    <div className="flex justify-center mt-8">
+                      <Button 
+                        variant="outline" 
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                      >
+                        {loadingMore ? 'Chargement...' : 'Charger plus d\'événements'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )
             ) : !user ? (

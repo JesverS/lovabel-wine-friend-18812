@@ -48,7 +48,6 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
     address: '',
     city: '',
     category: '',
-    registration_link: '',
     is_public: true,
     cellarId: null as string | null,
     cellarName: '',
@@ -112,7 +111,6 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
           address: data.address || '',
           city: data.city || '',
           category: data.category || '',
-          registration_link: data.registration_link || '',
           is_public: data.is_public ?? true,
           cellarId: (data as any).cellar_id || null,
           cellarName: cellarName,
@@ -207,7 +205,6 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
           city: formData.city,
           location: formData.address || formData.city,
           category: formData.category || null,
-          registration_link: formData.registration_link || null,
           is_public: formData.is_public,
           latitude,
           longitude,
@@ -372,16 +369,6 @@ export function EditEventDialog({ eventId, onEventUpdated, triggerButton }: Edit
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="registration_link">Lien d'inscription</Label>
-            <Input
-              id="registration_link"
-              type="url"
-              value={formData.registration_link}
-              onChange={(e) => setFormData({ ...formData, registration_link: e.target.value })}
-              placeholder="https://..."
-            />
-          </div>
 
           <CellarAutocomplete
             value={formData.cellarName}
