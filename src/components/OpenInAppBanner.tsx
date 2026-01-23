@@ -19,11 +19,11 @@ export function OpenInAppBanner({ deepLink }: OpenInAppBannerProps) {
   const [platform, setPlatform] = useState<'ios' | 'android' | null>(null);
 
   useEffect(() => {
-    // Only show on mobile devices and if not dismissed
+    // Only show on iOS devices (Android app not available yet) and if not dismissed
     const detectedPlatform = getMobilePlatform();
     setPlatform(detectedPlatform);
     
-    if (isMobileDevice() && !isBannerDismissed()) {
+    if (detectedPlatform === 'ios' && !isBannerDismissed()) {
       // Small delay to avoid layout shift on load
       const timer = setTimeout(() => setIsVisible(true), 500);
       return () => clearTimeout(timer);
