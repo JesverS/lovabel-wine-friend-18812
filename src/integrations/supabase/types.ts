@@ -1379,6 +1379,7 @@ export type Database = {
           lesson_number: number
           pages: Json
           quizzes: Json | null
+          status: string | null
           title: string | null
           updated_at: string
         }
@@ -1393,6 +1394,7 @@ export type Database = {
           lesson_number: number
           pages: Json
           quizzes?: Json | null
+          status?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -1407,6 +1409,7 @@ export type Database = {
           lesson_number?: number
           pages?: Json
           quizzes?: Json | null
+          status?: string | null
           title?: string | null
           updated_at?: string
         }

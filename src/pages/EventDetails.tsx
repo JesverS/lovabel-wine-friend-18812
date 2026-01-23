@@ -26,6 +26,8 @@ import { LeaveEventPaidSection } from "@/components/LeaveEventPaidSection";
 import { EventRefundRequestsManagement } from "@/components/EventRefundRequestsManagement";
 import { OrganizerStripeSetup } from "@/components/OrganizerStripeSetup";
 import { EventRevenueDashboard } from "@/components/EventRevenueDashboard";
+import { OpenInAppBanner } from "@/components/OpenInAppBanner";
+import { getEventDeepLink } from "@/lib/mobileAppUtils";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -792,6 +794,7 @@ const EventDetails = () => {
         <meta property="og:type" content="event" />
       </Helmet>
 
+      <OpenInAppBanner deepLink={getEventDeepLink(event.slug, searchParams.get('token') || event.private_token)} />
       <Header />
       <main className="pt-20 flex-grow min-h-screen">
         {event.banner_url && (
