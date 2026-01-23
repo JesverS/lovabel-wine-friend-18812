@@ -32,9 +32,9 @@ export function isMobileDevice(): boolean {
   return getMobilePlatform() !== null;
 }
 
-// App Store URLs - À mettre à jour avec les vraies URLs
-export const APP_STORE_URL = 'https://apps.apple.com/app/winenote/id6446381849';
-export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.lovable.644dfba3c5fa4e488a413bb694ee41e7';
+// App Store URLs
+export const APP_STORE_URL = 'https://apps.apple.com/fr/app/wine-note-meet-share-learn/id6757152544';
+export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.winenote.android';
 
 /**
  * Get the appropriate store URL for the current platform
