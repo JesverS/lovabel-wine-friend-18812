@@ -14,6 +14,8 @@ import { CellarCatalog } from '@/components/CellarCatalog';
 import { EditCellarDialog } from '@/components/EditCellarDialog';
 import { CellarMembers } from '@/components/CellarMembers';
 import { StockAlertBanner } from '@/components/StockAlertBanner';
+import { OpenInAppBanner } from '@/components/OpenInAppBanner';
+import { getCellarDeepLink } from '@/lib/mobileAppUtils';
 import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -221,6 +223,7 @@ export default function CellarDetails() {
         <meta property="og:type" content="website" />
       </Helmet>
 
+      <OpenInAppBanner deepLink={getCellarDeepLink(cellar.slug)} />
       <Header />
 
       <main className="container mx-auto px-4 py-24 flex-grow min-h-screen overflow-x-hidden w-full">

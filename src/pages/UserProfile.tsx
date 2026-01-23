@@ -28,6 +28,8 @@ import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTa
 import { FollowDialogs } from '@/components/FollowDialogs';
 import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 import { PrivacySettings } from '@/components/PrivacySettings';
+import { OpenInAppBanner } from '@/components/OpenInAppBanner';
+import { getProfileDeepLink } from '@/lib/mobileAppUtils';
 
 export default function UserProfile() {
   const { slug } = useParams<{ slug: string }>();
@@ -224,6 +226,7 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <OpenInAppBanner deepLink={getProfileDeepLink(profile.slug)} />
       <Header />
       
       <main className="container mx-auto px-4 py-12 max-w-4xl pt-32 flex-grow min-h-screen overflow-x-hidden">
