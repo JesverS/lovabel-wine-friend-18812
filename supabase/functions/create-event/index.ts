@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
 import { corsHeaders } from '../_shared/cors.ts';
+import { CreateEventSchema, validateInput } from '../_shared/validation.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -48,7 +49,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    const body = await req.json();
+    // Validation Zod des données d'entrée
+    const rawBody = await req.json();
+    const validation = validateInput(CreateEventSchema, rawBody);
+    
+    if (!validation.success) {
+      console.log('Validation error:', validation.error);
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const body = validation.data;
     const {
       name,
       description,
@@ -73,13 +86,6 @@ Deno.serve(async (req) => {
       contact_email,
       confidential_email,
     } = body;
-
-    if (!name || !start_date || !city) {
-      return new Response(
-        JSON.stringify({ error: 'Champs requis manquants (name, start_date, city)' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     // Validation du prix minimum pour les événements payants (doit couvrir les frais Stripe)
     const MIN_EVENT_PRICE = 3.00;

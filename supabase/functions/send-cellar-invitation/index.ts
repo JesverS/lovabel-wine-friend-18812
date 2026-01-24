@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { CellarInvitationSchema, validateInput } from '../_shared/validation.ts';
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") || "Vinotek <noreply@winenote.me>";
@@ -8,14 +9,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-interface InvitationRequest {
-  cellar_id: string;
-  invitee_email: string;
-  role: 'admin' | 'co_owner' | 'owner';
-  cellar_name: string;
-  inviter_name: string;
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -40,7 +33,26 @@ serve(async (req) => {
       throw new Error('Non authentifié');
     }
 
-    const { cellar_id, invitee_email, role, cellar_name, inviter_name }: InvitationRequest = await req.json();
+    // Validation Zod des données d'entrée
+    const rawBody = await req.json();
+    const validation = validateInput(CellarInvitationSchema, rawBody);
+    
+    if (!validation.success) {
+      console.log('Validation error:', validation.error);
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    const body = validation.data;
+    const { cellar_id, invitee_email, role, cellar_name, inviter_name } = body as {
+      cellar_id: string;
+      invitee_email: string;
+      role: 'admin' | 'co_owner' | 'owner';
+      cellar_name: string;
+      inviter_name: string;
+    };
 
     console.log('Processing invitation:', { cellar_id, invitee_email, role, user_id: user.id });
 
@@ -75,7 +87,7 @@ serve(async (req) => {
       .insert({
         cellar_id,
         inviter_id: user.id,
-        invitee_email: invitee_email.toLowerCase(),
+        invitee_email: invitee_email, // Already lowercased by Zod
         invitee_user_id: existingUser?.id || null,
         role,
         token: token_unique,
