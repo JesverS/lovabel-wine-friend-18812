@@ -1,14 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { AcceptInvitationSchema, validateInput } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-interface AcceptInvitationRequest {
-  token: string;
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,11 +21,23 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('Non authentifié');
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const authToken = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authToken);
     if (authError || !user) throw new Error('Non authentifié');
 
-    const { token: invitationToken }: AcceptInvitationRequest = await req.json();
+    // Validation Zod des données d'entrée
+    const rawBody = await req.json();
+    const validation = validateInput(AcceptInvitationSchema, rawBody);
+    
+    if (!validation.success) {
+      console.log('Validation error:', validation.error);
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    const { token: invitationToken } = validation.data as { token: string };
 
     console.log('Processing invitation acceptance:', { user_id: user.id, token: invitationToken });
 

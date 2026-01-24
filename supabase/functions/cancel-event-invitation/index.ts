@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { CancelInvitationSchema, validateInput } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,7 +28,19 @@ serve(async (req) => {
       );
     }
 
-    const { invitation_id } = await req.json();
+    // Validation Zod des données d'entrée
+    const rawBody = await req.json();
+    const validation = validateInput(CancelInvitationSchema, rawBody);
+    
+    if (!validation.success) {
+      console.log('Validation error:', validation.error);
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { invitation_id } = validation.data as { invitation_id: string };
 
     // Récupérer l'invitation pour obtenir l'event_id
     const { data: invitation, error: inviteError } = await supabase
