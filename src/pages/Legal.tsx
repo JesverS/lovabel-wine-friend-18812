@@ -28,7 +28,7 @@ export default function Legal() {
             </CardHeader>
             <CardContent className="space-y-2">
               <p><strong>Nom du site :</strong> Wine Note</p>
-              <p><strong>URL :</strong> https://winenote.fr</p>
+              <p><strong>URL :</strong> https://winenote.me</p>
               <p><strong>Propriétaire :</strong> Wine Note</p>
               <p><strong>Responsable de publication :</strong> Wine Note</p>
               <p><strong>Siège social :</strong> Paris, France</p>

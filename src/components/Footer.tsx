@@ -17,14 +17,14 @@ export const Footer = () => {
               passion de la communauté.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="hover:text-secondary transition-colors">
+              <a 
+                href="https://www.instagram.com/winenote.me" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-secondary transition-colors"
+                aria-label="Suivez-nous sur Instagram"
+              >
                 <Instagram className="h-5 w-5" />
-              </a>
-              <a href="#" className="hover:text-secondary transition-colors">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="#" className="hover:text-secondary transition-colors">
-                <Twitter className="h-5 w-5" />
               </a>
             </div>
           </div>

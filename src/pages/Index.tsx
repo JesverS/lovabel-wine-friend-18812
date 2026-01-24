@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
@@ -9,6 +10,18 @@ import { Footer } from "@/components/Footer";
 const Index = () => {
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>Wine Note - Découvrez, Partagez et Apprenez le Vin</title>
+        <meta 
+          name="description" 
+          content="Wine Note est la plateforme sociale dédiée aux amateurs de vin. Cours interactifs, dégustations entre amis, caves personnalisées et événements œnologiques." 
+        />
+        <meta property="og:title" content="Wine Note - Découvrez, Partagez et Apprenez le Vin" />
+        <meta property="og:description" content="La plateforme sociale dédiée aux amateurs de vin. Cours, dégustations, caves et événements." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://winenote.me" />
+        <link rel="canonical" href="https://winenote.me" />
+      </Helmet>
       <Header />
       <main className="flex-grow min-h-screen">
         <Hero />

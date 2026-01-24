@@ -59,7 +59,7 @@ export function getCellarDeepLink(slug: string): string {
 }
 
 export function getProfileDeepLink(slug: string): string {
-  return `winenote://profile/${slug}`;
+  return `winenote://user/${slug}`;
 }
 
 /**
