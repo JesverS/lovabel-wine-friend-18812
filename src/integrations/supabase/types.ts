@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          new_data: Json | null
+          old_data: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       badge_definition: {
         Row: {
           category: string

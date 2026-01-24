@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { UserFavorites } from "@/components/UserFavorites";
@@ -16,6 +17,15 @@ export default function Favorites() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Mes Favoris - Wine Note</title>
+        <meta 
+          name="description" 
+          content="Retrouvez tous les vins que vous avez aimés sur Wine Note. Gérez votre collection de vins favoris." 
+        />
+        <meta property="og:title" content="Mes Favoris - Wine Note" />
+        <meta property="og:description" content="Retrouvez tous les vins que vous avez aimés sur Wine Note." />
+      </Helmet>
       <Header />
 
       <main className="container mx-auto px-4 py-8 pt-28 flex-grow">

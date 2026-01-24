@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,6 +88,15 @@ const guides = [
 export default function Guides() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Guides & Conseils Vin - Wine Note</title>
+        <meta 
+          name="description" 
+          content="Découvrez nos guides pratiques sur le vin : accords mets-vins, conservation, dégustation, cépages et conseils d'achat." 
+        />
+        <meta property="og:title" content="Guides & Conseils Vin - Wine Note" />
+        <meta property="og:description" content="Tout ce qu'il faut savoir pour apprécier le vin comme un expert." />
+      </Helmet>
       <Header />
 
       <main className="container mx-auto px-4 py-8 pt-28 flex-grow">

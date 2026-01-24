@@ -185,7 +185,7 @@ export default function Contact() {
                   <Mail className="h-5 w-5 text-primary mt-1" />
                   <div>
                     <p className="font-semibold">Email</p>
-                    <p className="text-muted-foreground">contact@winenote.fr</p>
+                    <p className="text-muted-foreground">contact@winenote.me</p>
                   </div>
                 </div>
 
