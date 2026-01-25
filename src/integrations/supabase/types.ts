@@ -326,6 +326,53 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_moderation: {
+        Row: {
+          ai_reason: string | null
+          comment_id: string
+          created_at: string | null
+          flags: Json | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_reason?: string | null
+          comment_id: string
+          created_at?: string | null
+          flags?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_reason?: string | null
+          comment_id?: string
+          created_at?: string | null
+          flags?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_moderation_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: true
+            referencedRelation: "post_comment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_message: {
         Row: {
           admin_notes: string | null

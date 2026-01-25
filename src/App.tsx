@@ -39,6 +39,9 @@ import Feed from "./pages/Feed";
 import Guides from "./pages/Guides";
 import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
+import PaymentGateway from "./pages/PaymentGateway";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancelled from "./pages/PaymentCancelled";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +87,10 @@ const App = () => (
               <Route path="/feed" element={<Feed />} />
               <Route path="/guides" element={<Guides />} />
               <Route path="/favorites" element={<Favorites />} />
+              {/* Payment gateway routes */}
+              <Route path="/pay/:slug" element={<PaymentGateway />} />
+              <Route path="/pay/:slug/success" element={<PaymentSuccess />} />
+              <Route path="/pay/:slug/cancelled" element={<PaymentCancelled />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
