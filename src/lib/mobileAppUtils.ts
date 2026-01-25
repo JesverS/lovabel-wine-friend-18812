@@ -63,6 +63,14 @@ export function getProfileDeepLink(slug: string): string {
 }
 
 /**
+ * Get deep link for payment success redirect
+ * Includes payment=success parameter for app to refresh event data
+ */
+export function getPaymentSuccessDeepLink(slug: string): string {
+  return `winenote://event/${slug}?payment=success`;
+}
+
+/**
  * Attempt to open the app via deep link, with fallback to store
  * @param deepLink The deep link URL to open
  * @param fallbackDelay Delay before redirecting to store (ms)
