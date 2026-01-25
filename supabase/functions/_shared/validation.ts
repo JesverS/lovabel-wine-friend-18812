@@ -16,6 +16,7 @@ export const slugSchema = z.string()
 
 export const messageSchema = z.string()
   .max(2000, { message: "Message trop long (max 2000)" })
+  .nullable()
   .optional();
 
 export const priceSchema = z.number()
@@ -32,6 +33,7 @@ export const longitudeSchema = z.number()
 
 export const phoneSchema = z.string()
   .max(20, { message: "Téléphone trop long" })
+  .nullable()
   .optional();
 
 export const dateTimeSchema = z.string()
@@ -76,27 +78,27 @@ export function validateInput<T>(
 
 export const CreateEventSchema = z.object({
   name: z.string().min(1, "Nom requis").max(200, "Nom trop long"),
-  description: z.string().max(5000, "Description trop longue").optional(),
+  description: z.string().max(5000, "Description trop longue").nullable().optional(),
   start_date: dateTimeSchema,
-  end_date: dateTimeSchema.optional(),
-  address: z.string().max(500, "Adresse trop longue").optional(),
+  end_date: dateTimeSchema.nullable().optional(),
+  address: z.string().max(500, "Adresse trop longue").nullable().optional(),
   city: z.string().min(1, "Ville requise").max(100, "Ville trop longue"),
-  location: z.string().max(500, "Lieu trop long").optional(),
-  category: z.string().max(100, "Catégorie trop longue").optional(),
-  is_public: z.boolean().optional().default(true),
-  latitude: latitudeSchema.optional(),
-  longitude: longitudeSchema.optional(),
-  cellar_id: uuidSchema.optional(),
-  access_type: eventAccessTypeSchema.optional(),
-  price: z.number().min(3, "Prix minimum 3€").max(10000, "Prix max 10000€").optional(),
-  currency: currencySchema.optional(),
-  max_participants: z.number().int().min(1).max(10000).optional(),
-  confidential_address: z.boolean().optional(),
-  confidential_phone: z.boolean().optional(),
-  confidential_participant_list: z.boolean().optional(),
-  confidential_email: z.boolean().optional(),
+  location: z.string().max(500, "Lieu trop long").nullable().optional(),
+  category: z.string().max(100, "Catégorie trop longue").nullable().optional(),
+  is_public: z.boolean().nullable().optional().default(true),
+  latitude: latitudeSchema.nullable().optional(),
+  longitude: longitudeSchema.nullable().optional(),
+  cellar_id: uuidSchema.nullable().optional(),
+  access_type: eventAccessTypeSchema.nullable().optional(),
+  price: z.number().min(3, "Prix minimum 3€").max(10000, "Prix max 10000€").nullable().optional(),
+  currency: currencySchema.nullable().optional(),
+  max_participants: z.number().int().min(1).max(10000).nullable().optional(),
+  confidential_address: z.boolean().nullable().optional(),
+  confidential_phone: z.boolean().nullable().optional(),
+  confidential_participant_list: z.boolean().nullable().optional(),
+  confidential_email: z.boolean().nullable().optional(),
   contact_phone: phoneSchema,
-  contact_email: emailSchema.optional(),
+  contact_email: emailSchema.nullable().optional(),
 });
 
 export const EventInvitationSchema = z.object({
@@ -162,5 +164,5 @@ export const RequestRefundSchema = z.object({
 export const ProcessRefundSchema = z.object({
   requestId: uuidSchema,
   action: z.enum(["approve", "reject"]),
-  rejectionReason: z.string().max(500).optional(),
+  rejectionReason: z.string().max(500).nullable().optional(),
 });
