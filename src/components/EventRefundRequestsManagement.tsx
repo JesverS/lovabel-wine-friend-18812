@@ -64,22 +64,38 @@ export function EventRefundRequestsManagement({
 
   const fetchRequests = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch refund requests
+      const { data: requestsData, error: requestsError } = await supabase
         .from("event_refund_request")
-        .select(`
-          *,
-          user_profile:user_id (
-            full_name,
-            last_name,
-            logo_adress
-          )
-        `)
+        .select("*")
         .eq("event_id", eventId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (requestsError) throw requestsError;
 
-      setRequests((data as any[]) || []);
+      if (!requestsData || requestsData.length === 0) {
+        setRequests([]);
+        return;
+      }
+
+      // Fetch user profiles from public view
+      const userIds = [...new Set(requestsData.map(r => r.user_id))];
+      const { data: profilesData } = await supabase
+        .from("user_profiles_public")
+        .select("id, full_name, last_name, logo_adress")
+        .in("id", userIds);
+
+      // Merge data
+      const profilesMap = new Map(
+        (profilesData || []).map(p => [p.id, p])
+      );
+
+      const enrichedRequests = requestsData.map(request => ({
+        ...request,
+        user_profile: profilesMap.get(request.user_id) || null
+      }));
+
+      setRequests(enrichedRequests);
     } catch (error) {
       console.error("Erreur lors du chargement des demandes:", error);
     } finally {
