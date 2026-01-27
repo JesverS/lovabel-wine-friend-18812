@@ -170,7 +170,7 @@ export default function PaymentGateway() {
     } catch (err) {
       console.error("Payment error:", err);
       toast.error("Une erreur est survenue");
-      setPageState("processing");
+      setPageState("ready");
     }
   };
 

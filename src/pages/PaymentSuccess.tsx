@@ -11,6 +11,8 @@ import { getEventDeepLink, getStoreUrl, isMobileDevice } from "@/lib/mobileAppUt
 
 type VerificationState = "verifying" | "success" | "pending" | "error";
 
+const MAX_VERIFICATION_RETRIES = 15; // 15 tentatives x 2s = 30 secondes max
+
 export default function PaymentSuccess() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
@@ -18,15 +20,17 @@ export default function PaymentSuccess() {
   
   const [state, setState] = useState<VerificationState>("verifying");
   const [eventName, setEventName] = useState<string>("");
+  const [retryCount, setRetryCount] = useState(0);
 
   const sessionId = searchParams.get("session_id");
 
   useEffect(() => {
     if (!slug || !user) return;
-    verifyPayment();
+    setRetryCount(0); // Reset au montage
+    verifyPayment(0);
   }, [slug, user, sessionId]);
 
-  const verifyPayment = async () => {
+  const verifyPayment = async (currentRetry: number) => {
     if (!slug || !user) return;
 
     try {
@@ -45,7 +49,7 @@ export default function PaymentSuccess() {
           .select("user_id")
           .eq("event_id", eventResult.event.id)
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
         if (membership) {
           setState("success");
@@ -60,14 +64,21 @@ export default function PaymentSuccess() {
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (payment?.status === "completed") {
           setState("success");
         } else if (payment?.status === "pending") {
-          // Payment still processing, wait a bit and retry
-          setState("pending");
-          setTimeout(verifyPayment, 2000);
+          // Payment still processing, retry with limit
+          if (currentRetry < MAX_VERIFICATION_RETRIES) {
+            setState("pending");
+            setRetryCount(currentRetry + 1);
+            setTimeout(() => verifyPayment(currentRetry + 1), 2000);
+          } else {
+            // Max retries reached - show success anyway (webhook might be delayed)
+            // User can refresh the app to check actual status
+            setState("success");
+          }
         } else {
           setState("error");
         }
