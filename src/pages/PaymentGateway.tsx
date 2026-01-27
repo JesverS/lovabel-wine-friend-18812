@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { getEventDeepLink } from "@/lib/mobileAppUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +23,7 @@ interface EventData {
   city: string | null;
   access_type: string;
   max_participants: number | null;
+  private_token?: string | null;
 }
 
 type PageState = 
@@ -81,6 +83,11 @@ export default function PaymentGateway() {
       }
 
       const eventData = eventResult.event as EventData;
+
+      // Store private token for deep link usage after Stripe redirect
+      if (eventData.private_token) {
+        sessionStorage.setItem(`event_token_${eventData.slug}`, eventData.private_token);
+      }
 
       // Check if event is paid
       if (eventData.access_type !== "paid") {
@@ -310,7 +317,10 @@ export default function PaymentGateway() {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => window.location.href = `winenote://event/${slug}`}
+              onClick={() => {
+                const privateToken = event?.private_token || sessionStorage.getItem(`event_token_${slug}`);
+                window.location.href = getEventDeepLink(slug || "", privateToken);
+              }}
               className="w-full" 
               size="lg"
             >

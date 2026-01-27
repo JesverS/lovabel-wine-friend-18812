@@ -13,7 +13,9 @@ export default function PaymentCancelled() {
   };
 
   const handleBackToApp = () => {
-    const deepLink = getEventDeepLink(slug || "", null);
+    // Retrieve private token from sessionStorage (stored by PaymentGateway)
+    const privateToken = sessionStorage.getItem(`event_token_${slug}`);
+    const deepLink = getEventDeepLink(slug || "", privateToken);
     window.location.href = deepLink;
     
     // Fallback to store after delay if app doesn't open
