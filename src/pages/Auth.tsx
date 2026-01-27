@@ -49,6 +49,15 @@ export default function Auth() {
         setIsForgotPassword(false);
         setIsLogin(false);
       } else if (event === "SIGNED_IN" && session?.user && !isResetPassword) {
+        // Récupérer la redirection stockée avant OAuth OU depuis l'URL
+        const oauthRedirect = sessionStorage.getItem("oauth_redirect");
+        const effectiveRedirect = oauthRedirect || safeRedirectUrl;
+        
+        // Nettoyer le storage OAuth
+        if (oauthRedirect) {
+          sessionStorage.removeItem("oauth_redirect");
+        }
+        
         const { data: profile } = await supabase
           .from("user_profiles")
           .select("*")
@@ -57,14 +66,14 @@ export default function Auth() {
 
         if (!profile || !profile.full_name || !profile.last_name || !profile.city) {
           // Stocker la redirection pour après le complete-profile
-          if (safeRedirectUrl) {
-            sessionStorage.setItem("post_profile_redirect", safeRedirectUrl);
+          if (effectiveRedirect) {
+            sessionStorage.setItem("post_profile_redirect", effectiveRedirect);
           }
           toast({ title: "Bienvenue!", description: "Veuillez compléter votre profil" });
           navigate("/complete-profile");
         } else {
           toast({ title: "Connexion réussie!" });
-          navigate(safeRedirectUrl || "/");
+          navigate(effectiveRedirect || "/");
         }
       }
     });
@@ -77,6 +86,10 @@ export default function Auth() {
   const handleGoogleAuth = async () => {
     setLoading(true);
     try {
+      // Stocker la redirection AVANT l'appel OAuth (sera perdue après redirect)
+      if (safeRedirectUrl) {
+        sessionStorage.setItem("oauth_redirect", safeRedirectUrl);
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -94,6 +107,10 @@ export default function Auth() {
   const handleAppleAuth = async () => {
     setLoading(true);
     try {
+      // Stocker la redirection AVANT l'appel OAuth (sera perdue après redirect)
+      if (safeRedirectUrl) {
+        sessionStorage.setItem("oauth_redirect", safeRedirectUrl);
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "apple",
         options: {

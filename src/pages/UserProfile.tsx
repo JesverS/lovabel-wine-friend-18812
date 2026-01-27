@@ -104,12 +104,12 @@ export default function UserProfile() {
       setCellars(filteredCellars);
     }
 
-    // Fetch follow counts from optimized table
+    // Fetch follow counts from optimized table (peut ne pas exister pour nouveau user)
     const { data: followCounts } = await supabase
       .from('user_follow_counts')
       .select('followers_count, following_count')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     setFollowersCount(followCounts?.followers_count || 0);
     setFollowingCount(followCounts?.following_count || 0);
 
@@ -152,7 +152,7 @@ export default function UserProfile() {
         .select('status')
         .eq('follower_id', user.id)
         .eq('following_id', userId)
-        .single();
+        .maybeSingle();
       
       if (data) {
         setFollowStatus(data.status as 'pending' | 'accepted');
