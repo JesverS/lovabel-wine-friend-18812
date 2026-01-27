@@ -18,6 +18,15 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Helper pour valider les redirections (sécurité open redirect)
+  const isValidRedirect = (url: string | null): boolean => {
+    if (!url) return false;
+    return url.startsWith("/") && !url.startsWith("//");
+  };
+
+  const redirectUrl = searchParams.get("redirect");
+  const safeRedirectUrl = isValidRedirect(redirectUrl) ? redirectUrl : null;
+
   useEffect(() => {
     // Vérifier si on est en mode reset password via les paramètres URL
     const type = searchParams.get("type");
@@ -47,11 +56,15 @@ export default function Auth() {
           .maybeSingle();
 
         if (!profile || !profile.full_name || !profile.last_name || !profile.city) {
+          // Stocker la redirection pour après le complete-profile
+          if (safeRedirectUrl) {
+            sessionStorage.setItem("post_profile_redirect", safeRedirectUrl);
+          }
           toast({ title: "Bienvenue!", description: "Veuillez compléter votre profil" });
           navigate("/complete-profile");
         } else {
           toast({ title: "Connexion réussie!" });
-          navigate("/");
+          navigate(safeRedirectUrl || "/");
         }
       }
     });
@@ -59,7 +72,7 @@ export default function Auth() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [navigate, toast, searchParams, isResetPassword]);
+  }, [navigate, toast, searchParams, isResetPassword, safeRedirectUrl]);
 
   const handleGoogleAuth = async () => {
     setLoading(true);
@@ -156,11 +169,15 @@ export default function Auth() {
             .eq("id", data.user.id)
             .maybeSingle();
           if (!profile || !profile.full_name || !profile.last_name || !profile.city) {
+            // Stocker la redirection pour après le complete-profile
+            if (safeRedirectUrl) {
+              sessionStorage.setItem("post_profile_redirect", safeRedirectUrl);
+            }
             toast({ title: "Bienvenue!", description: "Veuillez compléter votre profil" });
             navigate("/complete-profile");
           } else {
             toast({ title: "Connexion réussie!" });
-            navigate("/");
+            navigate(safeRedirectUrl || "/");
           }
         }
       } else {

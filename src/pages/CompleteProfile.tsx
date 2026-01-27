@@ -240,7 +240,15 @@ export default function CompleteProfile() {
       if (error) throw error;
       
       toast({ title: "Profil complété avec succès!" });
-      navigate(`/user/${slug}`);
+      
+      // Vérifier s'il y a une redirection stockée (ex: depuis /pay/:slug)
+      const postProfileRedirect = sessionStorage.getItem("post_profile_redirect");
+      if (postProfileRedirect) {
+        sessionStorage.removeItem("post_profile_redirect");
+        navigate(postProfileRedirect);
+      } else {
+        navigate(`/user/${slug}`);
+      }
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } finally {
