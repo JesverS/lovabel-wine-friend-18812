@@ -65,9 +65,15 @@ export function getProfileDeepLink(slug: string): string {
 /**
  * Get deep link for payment success redirect
  * Includes payment=success parameter for app to refresh event data
+ * Optionally includes private token for private events
  */
-export function getPaymentSuccessDeepLink(slug: string): string {
-  return `winenote://event/${slug}?payment=success`;
+export function getPaymentSuccessDeepLink(slug: string, token?: string | null): string {
+  const params: string[] = [];
+  if (token) {
+    params.push(`token=${encodeURIComponent(token)}`);
+  }
+  params.push("payment=success");
+  return `winenote://event/${slug}?${params.join("&")}`;
 }
 
 /**

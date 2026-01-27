@@ -92,10 +92,18 @@ export default function PaymentSuccess() {
   };
 
   const handleOpenInApp = () => {
-    const deepLink = getEventDeepLink(slug || "", null);
-    // Add payment success parameter for app to refresh
-    const deepLinkWithPayment = deepLink + (deepLink.includes("?") ? "&" : "?") + "payment=success";
-    window.location.href = deepLinkWithPayment;
+    // Retrieve private token from sessionStorage (stored by PaymentGateway)
+    const privateToken = sessionStorage.getItem(`event_token_${slug}`);
+    
+    // Build deep link with token if private event + payment success
+    const params: string[] = [];
+    if (privateToken) {
+      params.push(`token=${encodeURIComponent(privateToken)}`);
+    }
+    params.push("payment=success");
+    
+    const deepLink = `winenote://event/${slug}?${params.join("&")}`;
+    window.location.href = deepLink;
     
     // Fallback to store after delay if app doesn't open
     if (isMobileDevice()) {
