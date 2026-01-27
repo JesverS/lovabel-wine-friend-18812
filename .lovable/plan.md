@@ -1,123 +1,214 @@
 
+# Analyse Approfondie - Bugs Potentiels et Problemes Identifies
 
-# Plan de Correction - Redirection Post-Authentification
+## 1. Bugs Critiques
 
-## Problème Identifié
+### 1.1 Utilisation de `.single()` Sans Gestion d'Erreur
+**Fichiers affectes** : 35 fichiers, 295 occurrences
 
-Le gateway de paiement web (`/pay/:slug`) est **fonctionnel**, mais la redirection après connexion ne ramène **pas** l'utilisateur vers la page de paiement. Il est systématiquement redirigé vers l'accueil (`/`).
+**Probleme** : L'utilisation de `.single()` provoque une erreur fatale (PGRST116) si aucun resultat n'est trouve. Plusieurs endroits utilisent `.single()` pour des donnees qui peuvent ne pas exister.
 
-**Flux actuel (cassé)** :
-```text
-App Mobile → /pay/event-slug → "Connexion requise" 
-→ /auth?redirect=/pay/event-slug → Connexion OK 
-→ / (accueil) ← BUG : redirect ignoré
+**Exemples a risque** :
+```typescript
+// src/pages/UserProfile.tsx ligne 111-112
+const { data: followCounts } = await supabase
+  .from('user_follow_counts')
+  .select('followers_count, following_count')
+  .eq('user_id', userId)
+  .single(); // PROBLEME : nouveau user = pas de ligne
 ```
 
-**Flux attendu (corrigé)** :
-```text
-App Mobile → /pay/event-slug → "Connexion requise" 
-→ /auth?redirect=/pay/event-slug → Connexion OK 
-→ /pay/event-slug ← Retour au paiement
-```
+**Fichiers concernes prioritaires** :
+- `src/pages/UserProfile.tsx` (ligne 112) - user_follow_counts peut ne pas exister
+- `src/pages/PaymentSuccess.tsx` (lignes 48, 63) - verification membership/payment
+- `src/components/FollowDialogs.tsx` - requetes de profils
+
+**Solution** : Remplacer `.single()` par `.maybeSingle()` pour les donnees optionnelles.
 
 ---
 
-## Modifications Requises
+### 1.2 Race Condition dans PaymentSuccess
+**Fichier** : `src/pages/PaymentSuccess.tsx`
 
-### 1. Modifier `src/pages/Auth.tsx`
+**Probleme** : La fonction `verifyPayment` peut etre appellee recursivement indefiniment si le webhook Stripe est lent a confirmer le paiement.
 
-Lire et utiliser le paramètre `?redirect=` après connexion réussie.
-
-**Changements :**
-
-- Dans `onAuthStateChange` (event SIGNED_IN) : 
-  - Si profil complet → rediriger vers `redirect` ou `/`
-  - Si profil incomplet → stocker `redirect` en sessionStorage, puis `/complete-profile`
-
-- Dans `handleAuth` (connexion email/password) :
-  - Même logique de redirection
-
-**Code à ajouter :**
 ```typescript
-// En haut du composant
-const [searchParams] = useSearchParams();
-const redirectUrl = searchParams.get("redirect");
-
-// Dans onAuthStateChange, après vérification profil
-if (!profile || !profile.full_name || !profile.last_name || !profile.city) {
-  if (redirectUrl) {
-    sessionStorage.setItem("post_profile_redirect", redirectUrl);
-  }
-  navigate("/complete-profile");
-} else {
-  navigate(redirectUrl || "/");
-}
-
-// Idem dans handleAuth pour login email/password
-```
-
-### 2. Modifier `src/pages/CompleteProfile.tsx`
-
-Récupérer la redirection stockée après complétion du profil.
-
-**Changements :**
-
-Dans `handleSubmit`, après succès :
-```typescript
-// Récupérer la redirection stockée
-const postProfileRedirect = sessionStorage.getItem("post_profile_redirect");
-if (postProfileRedirect) {
-  sessionStorage.removeItem("post_profile_redirect");
-  navigate(postProfileRedirect);
-} else {
-  navigate(`/user/${slug}`);
+// Ligne 68-70
+if (payment?.status === "pending") {
+  setState("pending");
+  setTimeout(verifyPayment, 2000); // Recursion sans limite !
 }
 ```
 
-### 3. Sécuriser la redirection
+**Impact** : Boucle infinie potentielle, surcharge serveur, mauvaise UX.
 
-Pour éviter les redirections malveillantes (open redirect), valider que l'URL commence par `/` :
+**Solution** : Ajouter un compteur de tentatives maximum (ex: 15 tentatives = 30 secondes).
+
+---
+
+### 1.3 OAuth Redirect Perd le Parametre Redirect
+**Fichier** : `src/pages/Auth.tsx` (lignes 83-84, 100)
+
+**Probleme** : Les redirections OAuth (Google/Apple) ne conservent pas le parametre `?redirect=`.
 
 ```typescript
-const isValidRedirect = (url: string | null): boolean => {
-  if (!url) return false;
-  // Autoriser uniquement les chemins relatifs internes
-  return url.startsWith("/") && !url.startsWith("//");
-};
-
-const safeRedirect = isValidRedirect(redirectUrl) ? redirectUrl : "/";
+const { error } = await supabase.auth.signInWithOAuth({
+  provider: "google",
+  options: {
+    redirectTo: `${window.location.origin}/auth`, // ← Perd ?redirect=/pay/slug
+  },
+});
 ```
 
----
+**Impact** : Un utilisateur venant de `/pay/slug` via OAuth sera redirige vers `/` au lieu de `/pay/slug` apres connexion.
 
-## Récapitulatif des Fichiers à Modifier
-
-| Fichier | Action |
-|---------|--------|
-| `src/pages/Auth.tsx` | Lire `?redirect=`, rediriger après connexion |
-| `src/pages/CompleteProfile.tsx` | Récupérer redirection depuis sessionStorage |
+**Solution** : Stocker le `redirectUrl` dans `sessionStorage` AVANT l'appel OAuth, puis le recuperer au retour.
 
 ---
 
-## Système de Paiement - État Global
+### 1.4 Etat `processing` Non Reset en Cas d'Erreur
+**Fichier** : `src/pages/PaymentGateway.tsx` (ligne 173)
 
-| Composant | État |
-|-----------|------|
-| Gateway `/pay/:slug` | ✅ Fonctionnel |
-| Checkout Stripe | ✅ Fonctionnel |
-| Webhook confirmation | ✅ Fonctionnel |
-| Deep link retour app | ✅ Fonctionnel |
-| Remboursements | ✅ Fonctionnel |
-| Paiements en attente | ✅ Fonctionnel |
-| **Redirection post-auth** | ❌ À corriger |
+**Probleme** :
+```typescript
+} catch (err) {
+  console.error("Payment error:", err);
+  toast.error("Une erreur est survenue");
+  setPageState("processing"); // ← Devrait etre "ready" !
+}
+```
+
+**Impact** : L'utilisateur reste bloque sur "Redirection vers Stripe..." apres une erreur.
+
+**Solution** : Changer en `setPageState("ready")`.
 
 ---
 
-## Tests Post-Correction
+## 2. Bugs Moderes
 
-1. Aller sur `/pay/event-slug` sans être connecté
-2. Cliquer sur "Se connecter" → redirigé vers `/auth?redirect=/pay/event-slug`
-3. Se connecter (profil complet) → doit revenir sur `/pay/event-slug`
-4. Se connecter (profil incomplet) → `/complete-profile` → après soumission → `/pay/event-slug`
-5. Tester avec OAuth Google/Apple → même comportement attendu
+### 2.1 Hashtag Usage Count Non Atomique
+**Fichier** : `src/components/CreatePost.tsx` (lignes 200-222)
 
+**Probleme** : Le compteur d'utilisation des hashtags est incremente via une lecture puis une ecriture separee, ce qui peut causer des pertes de comptage en cas de creations simultanees.
+
+```typescript
+// Lecture
+const { data: existingHashtag } = await supabase
+  .from('hashtag')
+  .select('id')
+  .eq('tag', tag)
+  .maybeSingle();
+
+if (existingHashtag) {
+  // Ecriture separee - race condition possible
+  await supabase
+    .from('hashtag')
+    .update({ usage_count: (existingHashtag as any).usage_count + 1 })
+    .eq('id', hashtagId);
+}
+```
+
+**Solution** : Utiliser une fonction RPC avec `UPDATE ... SET usage_count = usage_count + 1` atomique.
+
+---
+
+### 2.2 Fuites de Memoire Potentielles dans usePendingPayment
+**Fichier** : `src/hooks/usePendingPayment.ts`
+
+**Probleme** : L'intervalle du countdown peut continuer a tourner meme si le composant est demonte.
+
+**Verification** : Le code semble correct avec `clearInterval` dans le cleanup. OK.
+
+---
+
+### 2.3 Token Prive Non Preserve dans Deep Links
+**Fichier** : `src/pages/PaymentGateway.tsx` (ligne 313)
+
+**Probleme** :
+```typescript
+<Button 
+  onClick={() => window.location.href = `winenote://event/${slug}`}
+  // ← Manque le token pour les evenements prives
+>
+```
+
+**Impact** : Les utilisateurs d'evenements prives payes ne peuvent pas rouvrir l'app avec le bon token.
+
+**Solution** : Recuperer et inclure le token prive dans le deep link.
+
+---
+
+## 3. Ameliorations de Securite
+
+### 3.1 Validation Zod Non Appliquee Partout
+**Edge Functions sans validation Zod active** :
+- `send-event-invitation` - Schema existe mais non utilise
+- `request-event-access` - Schema existe mais non utilise
+- `request-event-refund` - Schema existe mais non utilise
+- `create-cellar` - Schema existe mais non utilise
+
+**Recommandation** : Uniformiser l'utilisation de `validateInput()` dans toutes les fonctions.
+
+---
+
+### 3.2 Logging Sensible en Production
+**Fichier** : `src/pages/Auth.tsx` (ligne 44)
+
+```typescript
+console.log("Auth event:", event);
+```
+
+**Recommandation** : Utiliser le logger centralise (`src/lib/logger.ts`) qui desactive les logs en production.
+
+---
+
+## 4. Problemes de Performance
+
+### 4.1 Requetes N+1 dans useSocialFeed
+**Fichier** : `src/hooks/useSocialFeed.ts`
+
+**Probleme** : Les fonctions `fetchFriendsPosts` et `fetchDiscoveryPosts` font des requetes separees, puis `enrichPosts` fait 3 requetes supplementaires.
+
+**Impact** : 5+ requetes par page de feed.
+
+**Recommandation** : Considerer une vue materialisee ou une fonction RPC optimisee.
+
+---
+
+### 4.2 Double Fetch de Profil
+**Fichier** : `src/pages/CompleteProfile.tsx` (lignes 54, 59)
+
+```typescript
+const { data: { user: currentUser } } = await supabase.auth.getUser();
+// Puis
+const { data: profile } = await supabase.from("user_profiles").select("*").eq("id", user.id).maybeSingle();
+```
+
+**Impact mineur** : 2 requetes au lieu d'une possible optimisation.
+
+---
+
+## 5. Resume des Corrections Prioritaires
+
+| Priorite | Bug | Fichier | Action |
+|----------|-----|---------|--------|
+| CRITIQUE | OAuth perd redirect | Auth.tsx | Stocker redirect dans sessionStorage avant OAuth |
+| CRITIQUE | PageState "processing" non reset | PaymentGateway.tsx | Corriger catch block |
+| HAUTE | `.single()` sans maybeSingle | UserProfile.tsx | Utiliser maybeSingle pour user_follow_counts |
+| HAUTE | Boucle infinie verification paiement | PaymentSuccess.tsx | Limiter retries |
+| MOYENNE | Token prive manquant dans deep link | PaymentGateway.tsx | Ajouter token au deep link |
+| BASSE | Hashtag race condition | CreatePost.tsx | Utiliser RPC atomique |
+
+---
+
+## 6. Actions Recommandees
+
+**Corrections immediates** (4 fichiers a modifier) :
+1. `src/pages/Auth.tsx` - Conserver redirect OAuth via sessionStorage
+2. `src/pages/PaymentGateway.tsx` - Fix catch block + token dans deep link
+3. `src/pages/PaymentSuccess.tsx` - Limiter retries a 15 tentatives
+4. `src/pages/UserProfile.tsx` - Remplacer .single() par .maybeSingle() pour follow_counts
+
+**Consolidation (optionnel)** :
+- Appliquer validation Zod dans toutes les Edge Functions
+- Migrer les console.log vers le logger centralise
