@@ -10,6 +10,7 @@ import { Loader2, Plus, ArrowLeft, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateDomainForGameDialog } from "./CreateDomainForGameDialog";
+import { AppellationSelect } from "@/components/wine/AppellationSelect";
 
 interface CreateWineForGameDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
     labelPreview: "",
     cepages: "",
     wineType: 1, // 1 = rouge par défaut (ID numérique)
+    appellationId: null as number | null,
   });
 
   // Recherche de domaines
@@ -119,9 +121,10 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
           year: wineData.year,
           label_url: publicUrl,
           type: wineData.wineType,
-          is_playable: true,
-          cepages: wineData.cepages ? { cepages: wineData.cepages } : null,
-        })
+        is_playable: true,
+        cepages: wineData.cepages ? { cepages: wineData.cepages } : null,
+        appellation_id: wineData.appellationId,
+      })
         .select(
           `
           id, name, year, label_url, type,
@@ -158,7 +161,8 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
       labelFile: null,
       labelPreview: "",
       cepages: "",
-      wineType: 1, // 1 = rouge par défaut
+      wineType: 1,
+      appellationId: null,
     });
   };
 
@@ -309,10 +313,22 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
                         <SelectItem value="8">Effervescent</SelectItem>
                         <SelectItem value="7">Autre</SelectItem>
                       </SelectContent>
-                    </Select>
-                  </div>
+                  </Select>
+                </div>
 
-                  {/* Photo (OBLIGATOIRE) */}
+                {/* Appellation (optionnel) */}
+                <div className="space-y-2">
+                  <AppellationSelect
+                    value={wineData.appellationId}
+                    onChange={(id) => setWineData({ ...wineData, appellationId: id })}
+                    wineTypeId={wineData.wineType}
+                    label="Appellation"
+                    required={false}
+                    allowCreate={true}
+                  />
+                </div>
+
+                {/* Photo (OBLIGATOIRE) */}
                   <div className="space-y-2">
                     <Label htmlFor="wine-photo" className="text-sm font-medium">
                       <span className="hidden sm:inline">Photo de la bouteille</span>
