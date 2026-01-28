@@ -9,24 +9,28 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 
-// Types de vin statiques (source de vérité)
-const WINE_TYPES = [
-  { value: 'rouge', label: 'Rouge' },
-  { value: 'blanc', label: 'Blanc' },
-  { value: 'rosé', label: 'Rosé' },
-  { value: 'effervescent', label: 'Effervescent' },
-  { value: 'autre', label: 'Autre' },
-] as const;
-
-export type WineTypeValue = typeof WINE_TYPES[number]['value'];
+interface WineType {
+  id: number;
+  type: string;
+}
 
 interface WineTypeSelectProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: number | null;
+  onChange: (value: number | null) => void;
   label?: string;
   required?: boolean;
   className?: string;
 }
+
+// Labels d'affichage pour les types de vin
+const WINE_TYPE_LABELS: Record<string, string> = {
+  'rouge': 'Rouge',
+  'blanc': 'Blanc',
+  'rosé': 'Rosé',
+  'rose': 'Rosé',
+  'effervescent': 'Effervescent',
+  'autre': 'Autre',
+};
 
 export function WineTypeSelect({
   value,
@@ -35,6 +39,29 @@ export function WineTypeSelect({
   required = false,
   className = '',
 }: WineTypeSelectProps) {
+  const [wineTypes, setWineTypes] = useState<WineType[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWineTypes = async () => {
+      const { data, error } = await supabase
+        .from('wine_type')
+        .select('id, type')
+        .order('id');
+
+      if (!error && data) {
+        setWineTypes(data);
+      }
+      setLoading(false);
+    };
+
+    fetchWineTypes();
+  }, []);
+
+  const getDisplayLabel = (type: string): string => {
+    return WINE_TYPE_LABELS[type.toLowerCase()] || type;
+  };
+
   return (
     <div className={`space-y-2 ${className}`}>
       {label && (
@@ -43,14 +70,18 @@ export function WineTypeSelect({
           {required && <span className="text-destructive"> *</span>}
         </Label>
       )}
-      <Select value={value} onValueChange={onChange}>
+      <Select 
+        value={value?.toString() || ''} 
+        onValueChange={(val) => onChange(val ? parseInt(val) : null)}
+        disabled={loading}
+      >
         <SelectTrigger className="h-11">
-          <SelectValue placeholder="Sélectionner un type" />
+          <SelectValue placeholder={loading ? 'Chargement...' : 'Sélectionner un type'} />
         </SelectTrigger>
         <SelectContent>
-          {WINE_TYPES.map((type) => (
-            <SelectItem key={type.value} value={type.value}>
-              {type.label}
+          {wineTypes.map((wineType) => (
+            <SelectItem key={wineType.id} value={wineType.id.toString()}>
+              {getDisplayLabel(wineType.type)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -59,5 +90,5 @@ export function WineTypeSelect({
   );
 }
 
-// Export pour réutilisation
-export { WINE_TYPES };
+// Export pour compatibilité avec l'ancien code (mapping ID -> label)
+export { WINE_TYPE_LABELS };
