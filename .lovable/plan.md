@@ -1,91 +1,106 @@
 
-# Correction de WineDetailsDialog.tsx pour les Sliders Dynamiques
+# Correction de ShareStoryDialog.tsx pour les Sliders Dynamiques
 
 ## Probleme Identifie
 
-Le fichier `WineDetailsDialog.tsx` n'a pas ete mis a jour lors de l'implementation des sliders dynamiques. Il utilise encore :
-- L'ancienne interface `TastingDetails` avec les cles `acidity`, `tannins`, `body`, `sweetness`
-- Des sliders hardcodes avec les labels fixes (Acidite, Tanins, Corps, Douceur)
-- L'ancien format de sauvegarde
+Le fichier `ShareStoryDialog.tsx` est le **dernier composant** qui n'utilise pas le systeme de sliders dynamiques. Il affiche les labels hardcodes ("Acidite", "Tanins", "Corps", "Douceur") au lieu de s'adapter au type de vin.
 
-Ceci fait que ce composant ne beneficie pas des labels dynamiques selon le type de vin.
+### Analyse du fichier actuel
 
-## Verification Effectuee
-
-| Fichier | Status | Notes |
-|---------|--------|-------|
-| `WineInteractionDialog.tsx` | OK | Utilise `TastingSliders` avec `wine.type` |
-| `CellarWineDetailsDialog.tsx` | OK | Utilise `TastingSliders` avec `wineData.wine?.type` |
-| `SpontaneousTastingDialog.tsx` | OK | Utilise `TastingSliders` avec `selectedWine?.type` |
-| `WineDetails.tsx` | OK | Utilise `TastingSlidersGrid` |
-| `WineTastingNotes.tsx` | OK | Utilise labels dynamiques |
-| `PostCard.tsx` | OK | Passe `wineTypeId={wine?.type}` |
-| `PostDetails.tsx` | OK | Passe `wineTypeId={post.wine?.type}` |
-| `SharedPost.tsx` | OK | Passe `wineTypeId={post.wine?.type}` |
-| `useSocialFeed.ts` | OK | Recupere `type` dans la requete |
-| **`WineDetailsDialog.tsx`** | **A CORRIGER** | Utilise encore l'ancien format |
+| Element | Probleme |
+|---------|----------|
+| Interface `WineNotice` (lignes 15-21) | Utilise `acidity, tannins, body, sweetness` |
+| Interface `Wine` (lignes 23-32) | Ne contient pas le champ `type` |
+| Composant `TastingBarCard` (ligne 179-182) | Labels hardcodes |
+| `StoryTemplateCard` | Accede a `wineNotice.acidity`, etc. |
 
 ## Solution Proposee
 
-Modifier `WineDetailsDialog.tsx` pour :
-
-### 1. Mettre a jour les imports
+### 1. Ajouter le type de vin dans l'interface Wine
 
 ```typescript
-import { TastingSliders } from '@/components/TastingSliders';
-import { TastingDetails, migrateTastingDetails, tastingDetailsToDbFormat } from '@/lib/tastingSliderConfig';
-```
-
-### 2. Remplacer l'interface TastingDetails locale
-
-Supprimer l'interface locale (lignes 56-63) et utiliser celle importee de `tastingSliderConfig.ts`.
-
-### 3. Mettre a jour l'etat initial
-
-```typescript
-const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
-  rating: 5.0,
-  slot1: 5.0,
-  slot2: 5.0,
-  slot3: 5.0,
-  slot4: 5.0,
-  remarks: "",
-});
-```
-
-### 4. Adapter la lecture des donnees existantes (useEffect)
-
-Utiliser `migrateTastingDetails` pour la retrocompatibilite :
-
-```typescript
-if (noticeData.details && typeof noticeData.details === 'object' && !Array.isArray(noticeData.details)) {
-  const migrated = migrateTastingDetails(noticeData.details);
-  setTastingDetails(migrated);
+interface Wine {
+  id: string;
+  name: string;
+  label_url?: string;
+  color?: string;
+  type?: number | null; // AJOUTER
+  domain?: {
+    name: string;
+    region?: string;
+  };
 }
 ```
 
-### 5. Adapter la sauvegarde
-
-Utiliser `tastingDetailsToDbFormat` pour sauvegarder au nouveau format :
+### 2. Mettre a jour l'interface WineNotice pour supporter les deux formats
 
 ```typescript
-const roundedDetails = tastingDetailsToDbFormat(tastingDetails);
+interface WineNotice {
+  rating: number;
+  // Ancien format (retrocompatibilite)
+  acidity?: number;
+  tannins?: number;
+  body?: number;
+  sweetness?: number;
+  // Nouveau format
+  slot1?: number;
+  slot2?: number;
+  slot3?: number;
+  slot4?: number;
+}
 ```
 
-### 6. Remplacer les sliders hardcodes par le composant TastingSliders
-
-Remplacer les 4 blocs de sliders (Acidite, Tanins, Corps, Douceur) par :
+### 3. Importer les utilitaires de configuration
 
 ```typescript
-<TastingSliders
-  wineTypeId={wine.type}
-  values={{
-    slot1: tastingDetails.slot1,
-    slot2: tastingDetails.slot2,
-    slot3: tastingDetails.slot3,
-    slot4: tastingDetails.slot4,
-  }}
-  onChange={(key, value) => setTastingDetails(prev => ({ ...prev, [key]: value }))}
+import { getSlidersForWineType, migrateTastingDetails } from '@/lib/tastingSliderConfig';
+```
+
+### 4. Modifier StoryTemplateCard pour accepter le wineTypeId
+
+```typescript
+const StoryTemplateCard = ({
+  wineName,
+  domainName,
+  imageUrl,
+  wineNotice,
+  wineTypeId,  // AJOUTER
+  content,
+  backgroundColor,
+}: {
+  // ...
+  wineTypeId?: number | null;  // AJOUTER
+  // ...
+}) => {
+  // Migrer et obtenir les labels dynamiques
+  const migratedNotice = wineNotice ? migrateTastingDetails(wineNotice) : null;
+  const sliders = getSlidersForWineType(wineTypeId);
+  
+  // ...
+  
+  {/* Tasting bars grid avec labels dynamiques */}
+  <div className="grid grid-cols-2 gap-x-12 gap-y-6 mt-4">
+    <TastingBarCard label={sliders.slot1.label} value={migratedNotice.slot1} />
+    <TastingBarCard label={sliders.slot2.label} value={migratedNotice.slot2} />
+    <TastingBarCard label={sliders.slot3.label} value={migratedNotice.slot3} />
+    <TastingBarCard label={sliders.slot4.label} value={migratedNotice.slot4} />
+  </div>
+}
+```
+
+### 5. Passer le wineTypeId au composant
+
+Dans le rendu principal :
+
+```typescript
+<StoryTemplateCard
+  wineName={wineName}
+  domainName={domainName}
+  imageUrl={displayImage}
+  wineNotice={wineNotice}
+  wineTypeId={wine?.type}  // AJOUTER
+  content={post.content}
+  backgroundColor={selectedColor}
 />
 ```
 
@@ -93,24 +108,39 @@ Remplacer les 4 blocs de sliders (Acidite, Tanins, Corps, Douceur) par :
 
 | Element | Avant | Apres |
 |---------|-------|-------|
-| Interface | `TastingDetails` locale | Import de `tastingSliderConfig` |
-| Etat | `acidity, tannins, body, sweetness` | `slot1, slot2, slot3, slot4` |
-| Lecture | Directe | Via `migrateTastingDetails()` |
-| Sauvegarde | Manuelle | Via `tastingDetailsToDbFormat()` |
-| UI Sliders | 4 blocs hardcodes | Composant `TastingSliders` |
-| Labels | Fixes | Dynamiques selon `wine.type` |
+| Interface `Wine` | Pas de `type` | `type?: number \| null` |
+| Interface `WineNotice` | `acidity, tannins, body, sweetness` | Support des deux formats |
+| Labels | Hardcodes | Dynamiques via `getSlidersForWineType` |
+| Valeurs | `wineNotice.acidity` | `migratedNotice.slot1` via migration |
 
 ## Impact
 
-Apres cette correction :
-- Les utilisateurs verront les bons labels selon le type de vin dans WineDetailsDialog
-- Vin rouge : Fruite, Epice, Tannique, Boise
+Apres cette correction, les stories Instagram generees afficheront les bons labels selon le type de vin :
+- Vin rouge/autre : Fruite, Epice, Tannique, Boise
 - Vin blanc : Acidite, Sec, Sucrosite, Gras
 - Rose : Acidite, Fruite, Sec, Frais
 - Effervescent : Acidite, Sec, Sucrosite, Effervescence
-- Les donnees existantes seront automatiquement migrees a la lecture
-- Les nouvelles sauvegardes utiliseront le format `slot1-4`
+
+## Verification Finale
+
+Apres cette correction, **100% des composants** du site utiliseront le systeme de sliders dynamiques :
+
+| Composant | Status |
+|-----------|--------|
+| `TastingSliders.tsx` | OK - Composant central |
+| `tastingSliderConfig.ts` | OK - Configuration |
+| `WineDetailsDialog.tsx` | OK - Utilise TastingSliders |
+| `WineInteractionDialog.tsx` | OK - Utilise TastingSliders |
+| `CellarWineDetailsDialog.tsx` | OK - Utilise TastingSliders |
+| `SpontaneousTastingDialog.tsx` | OK - Utilise TastingSliders |
+| `WineDetails.tsx` | OK - Utilise TastingSlidersGrid |
+| `WineTastingNotes.tsx` | OK - Labels dynamiques |
+| `PostCard.tsx` | OK - Passe wineTypeId |
+| `PostDetails.tsx` | OK - Passe wineTypeId |
+| `SharedPost.tsx` | OK - Passe wineTypeId |
+| `useSocialFeed.ts` | OK - Recupere type |
+| **`ShareStoryDialog.tsx`** | **A CORRIGER** |
 
 ## Fichier Unique a Modifier
 
-`src/components/WineDetailsDialog.tsx`
+`src/components/ShareStoryDialog.tsx`
