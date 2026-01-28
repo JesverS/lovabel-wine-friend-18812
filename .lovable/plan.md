@@ -1,60 +1,133 @@
 
 
-# Simplification de la Recherche d'Appellations
+# Ajout du Selecteur d'Appellation dans CreateWineForGameDialog
 
-## Probleme
+## Probleme Identifie
 
-Le filtre `type_vin_suggere` (lignes 101-104) bloque la recherche. Si tu tapes "Champagne" mais que le type de vin selectionne est "rouge", aucun resultat n'apparait.
+Le formulaire de creation de bouteille pour le jeu (`CreateWineForGameDialog.tsx`) ne permet pas de selectionner ou creer une appellation. La colonne `appellation_id` existe dans la table `wine` mais n'est jamais remplie lors de la creation via le jeu.
 
 ## Solution
 
-Supprimer le filtre par type et faire une recherche simple par nom avec `ilike` sur la colonne `normalized_nom` (qui existe deja et est insensible aux accents).
+Integrer le composant `AppellationSelect` existant dans le formulaire de creation de vin. Ce composant gere deja :
+- La recherche d'appellations existantes
+- La creation de nouvelles appellations (avec insertion dans la table `appellation`)
+- Le retour de l'ID pour liaison avec la table `wine`
 
 ## Modification Unique
 
-**Fichier** : `src/components/wine/AppellationSelect.tsx`
+**Fichier** : `src/components/game/CreateWineForGameDialog.tsx`
 
-**Changement** (lignes 93-120) :
+### Changement 1 : Ajouter l'import du composant
 
 ```typescript
-const loadAppellations = async () => {
-  setLoading(true);
-  try {
-    let query = supabase
-      .from('appellation')
-      .select('*')
-      .order('nom');
+import { AppellationSelect } from "@/components/wine/AppellationSelect";
+```
 
-    // Recherche simple par nom uniquement (insensible aux accents via normalized_nom)
-    if (search.trim()) {
-      // Utiliser ilike sur normalized_nom pour ignorer accents et majuscules
-      query = query.ilike('normalized_nom', `%${search.toLowerCase()}%`);
-    }
+### Changement 2 : Ajouter l'etat pour l'appellation dans wineData
 
-    // PAS DE FILTRE par type_vin_suggere - on affiche toutes les appellations
+```typescript
+const [wineData, setWineData] = useState({
+  name: "",
+  year: new Date().getFullYear(),
+  labelFile: null as File | null,
+  labelPreview: "",
+  cepages: "",
+  wineType: 1,
+  appellationId: null as number | null,  // NOUVEAU
+});
+```
 
-    const { data, error } = await query.limit(50);
+### Changement 3 : Ajouter le champ AppellationSelect dans le formulaire (apres le type de vin)
 
-    if (error) throw error;
-    setAppellations(data || []);
-  } catch (error: any) {
-    toast.error('Erreur lors du chargement des appellations');
-  } finally {
-    setLoading(false);
-  }
+```typescript
+{/* Appellation (optionnel) */}
+<div className="space-y-2">
+  <AppellationSelect
+    value={wineData.appellationId}
+    onChange={(id) => setWineData({ ...wineData, appellationId: id })}
+    wineTypeId={wineData.wineType}
+    label="Appellation"
+    required={false}
+    allowCreate={true}
+  />
+</div>
+```
+
+### Changement 4 : Inclure appellation_id dans l'insertion
+
+```typescript
+const { data: wine, error: wineError } = await supabase
+  .from("wine")
+  .insert({
+    domain_id: selectedDomain.id,
+    name: wineData.name.trim(),
+    year: wineData.year,
+    label_url: publicUrl,
+    type: wineData.wineType,
+    is_playable: true,
+    cepages: wineData.cepages ? { cepages: wineData.cepages } : null,
+    appellation_id: wineData.appellationId,  // NOUVEAU
+  })
+  // ...
+```
+
+### Changement 5 : Reset l'appellation dans resetForm
+
+```typescript
+const resetForm = () => {
+  setStep(1);
+  setSelectedDomain(null);
+  setDomainSearch("");
+  setDomains([]);
+  setWineData({
+    name: "",
+    year: new Date().getFullYear(),
+    labelFile: null,
+    labelPreview: "",
+    cepages: "",
+    wineType: 1,
+    appellationId: null,  // NOUVEAU
+  });
 };
 ```
 
-## Comportement Apres Correction
+## Flux de Creation d'une Nouvelle Appellation
 
-| Recherche | Resultat |
-|-----------|----------|
-| "Champagne" | Trouve "Champagne" quel que soit le type selectionne |
-| "cremant" | Trouve "Cremant d'Alsace", "Cremant de Bourgogne", etc. |
-| "cotes" | Trouve "Cotes du Rhone", "Cotes de Provence", etc. |
-| "" (vide) | Affiche les 50 premieres appellations par ordre alphabetique |
+```text
+Utilisateur tape "Sancerre" dans AppellationSelect
+       |
+       v
+Aucun resultat trouve
+       |
+       v
+Click sur "Creer une appellation"
+       |
+       v
+CreateAppellationDialog s'ouvre (deja integre dans AppellationSelect)
+       |
+       v
+Utilisateur remplit : nom="Sancerre", region="Loire", pays="France"
+       |
+       v
+INSERT INTO appellation (nom, region, pays) VALUES (...)
+       |
+       v
+Retour de l'ID (ex: 42) via onChange(42, appellation)
+       |
+       v
+wineData.appellationId = 42
+       |
+       v
+Lors du submit, INSERT INTO wine (..., appellation_id) VALUES (..., 42)
+```
 
-## Nettoyage Optionnel
+## Resume
 
-Le mapping `WINE_TYPE_ID_TO_TEXT` (lignes 39-46) et la variable `wineTypeText` (ligne 65) ne seront plus utilises pour le filtrage. On peut les conserver pour le `CreateAppellationDialog` qui les utilise encore pour pre-remplir le `type_vin_suggere` lors de la creation.
+| Element | Action |
+|---------|--------|
+| Import | Ajouter `AppellationSelect` |
+| State | Ajouter `appellationId: null` dans wineData |
+| UI | Ajouter le composant apres le select de type de vin |
+| Insert | Ajouter `appellation_id: wineData.appellationId` |
+| Reset | Reinitialiser `appellationId` a null |
 
