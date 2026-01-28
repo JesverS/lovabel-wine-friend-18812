@@ -2959,7 +2959,7 @@ export type Database = {
           name: string
           normalized_name: string | null
           price: number | null
-          type: string | null
+          type: number | null
           updated_at: string | null
           volume_ml: number | null
           website_order_url: string | null
@@ -2981,7 +2981,7 @@ export type Database = {
           name: string
           normalized_name?: string | null
           price?: number | null
-          type?: string | null
+          type?: number | null
           updated_at?: string | null
           volume_ml?: number | null
           website_order_url?: string | null
@@ -3003,7 +3003,7 @@ export type Database = {
           name?: string
           normalized_name?: string | null
           price?: number | null
-          type?: string | null
+          type?: number | null
           updated_at?: string | null
           volume_ml?: number | null
           website_order_url?: string | null
@@ -3030,6 +3030,13 @@ export type Database = {
             columns: ["mode_culture"]
             isOneToOne: false
             referencedRelation: "mode_culture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wine_type_fkey"
+            columns: ["type"]
+            isOneToOne: false
+            referencedRelation: "wine_type"
             referencedColumns: ["id"]
           },
           {
@@ -3116,17 +3123,17 @@ export type Database = {
         Row: {
           id: number
           normalized_type: string | null
-          type: Database["public"]["Enums"]["wine_type_enum"]
+          type: string
         }
         Insert: {
           id?: number
           normalized_type?: string | null
-          type: Database["public"]["Enums"]["wine_type_enum"]
+          type: string
         }
         Update: {
           id?: number
           normalized_type?: string | null
-          type?: Database["public"]["Enums"]["wine_type_enum"]
+          type?: string
         }
         Relationships: []
       }
