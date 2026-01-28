@@ -34,6 +34,7 @@ interface PostData {
     id: string;
     name: string;
     label_url: string | null;
+    type: number | null;
     domain: { name: string } | null;
   } | null;
 }
@@ -107,7 +108,7 @@ export default function PostDetails() {
       if (postData.wine_id) {
         const { data } = await supabase
           .from('wine')
-          .select('id, name, label_url, domain:domain_id(name)')
+          .select('id, name, label_url, type, domain:domain_id(name)')
           .eq('id', postData.wine_id)
           .maybeSingle();
         wineData = data;
@@ -266,7 +267,7 @@ export default function PostDetails() {
 
           {/* Notes de dégustation */}
           {post.is_wine_notice && post.wine_notice && (
-            <WineTastingNotes wineNotice={post.wine_notice} />
+            <WineTastingNotes wineNotice={post.wine_notice} wineTypeId={post.wine?.type ?? null} />
           )}
 
           {/* Stats */}

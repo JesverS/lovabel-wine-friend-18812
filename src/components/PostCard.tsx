@@ -635,7 +635,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
 
       {/* Impressions de dégustation */}
       {post.is_wine_notice && post.wine_notice && (
-        <WineTastingNotes wineNotice={post.wine_notice} />
+        <WineTastingNotes wineNotice={post.wine_notice} wineTypeId={wine?.type ?? null} />
       )}
 
       <div className="flex items-center gap-4 pt-2 border-t">
