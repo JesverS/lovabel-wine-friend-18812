@@ -14,6 +14,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Upload, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CreateDomainDialog } from './CreateDomainDialog';
+import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
+import { AppellationSelect } from '@/components/wine/AppellationSelect';
 
 interface CreateWineForPostDialogProps {
   open: boolean;
@@ -33,6 +35,8 @@ export function CreateWineForPostDialog({
   const [year, setYear] = useState('');
   const [volume, setVolume] = useState('750');
   const [description, setDescription] = useState('');
+  const [wineType, setWineType] = useState('rouge');
+  const [appellationId, setAppellationId] = useState<number | null>(null);
   const [labelFile, setLabelFile] = useState<File | null>(null);
   const [labelPreview, setLabelPreview] = useState<string>('');
   
@@ -135,11 +139,12 @@ export function CreateWineForPostDialog({
           volume_ml: parseInt(volume),
           description: description.trim() || null,
           label_url: labelUrl,
+          type: wineType,
+          appellation_id: appellationId,
         })
         .select(`
           *,
-          domain:domain_id(id, name, region, logo_url),
-          wine_type:type(id, type)
+          domain:domain_id(id, name, region, logo_url)
         `)
         .single();
 
@@ -169,6 +174,8 @@ export function CreateWineForPostDialog({
     setYear('');
     setVolume('750');
     setDescription('');
+    setWineType('rouge');
+    setAppellationId(null);
     setLabelFile(null);
     setLabelPreview('');
     setDomainSearch('');
@@ -314,6 +321,17 @@ export function CreateWineForPostDialog({
                   />
                 </div>
               </div>
+
+              <WineTypeSelect
+                value={wineType}
+                onChange={setWineType}
+              />
+
+              <AppellationSelect
+                value={appellationId}
+                onChange={(id) => setAppellationId(id)}
+                wineType={wineType}
+              />
 
               <div>
                 <Label htmlFor="wine-description">Description</Label>

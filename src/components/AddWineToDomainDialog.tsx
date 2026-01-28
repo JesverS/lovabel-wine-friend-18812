@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
+import { AppellationSelect } from '@/components/wine/AppellationSelect';
 
 interface AddWineToDomainDialogProps {
   domainId: string;
@@ -32,6 +34,8 @@ export function AddWineToDomainDialog({
   const [description, setDescription] = useState('');
   const [alcoholPercentage, setAlcoholPercentage] = useState('');
   const [stock, setStock] = useState('0');
+  const [wineType, setWineType] = useState('rouge');
+  const [appellationId, setAppellationId] = useState<number | null>(null);
   const [labelFile, setLabelFile] = useState<File | null>(null);
   const [labelPreview, setLabelPreview] = useState<string>('');
 
@@ -88,6 +92,8 @@ export function AddWineToDomainDialog({
           label_url: urlData.publicUrl,
           alcohol_percentage: alcoholPercentage ? parseFloat(alcoholPercentage) : null,
           stock: parseInt(stock),
+          type: wineType,
+          appellation_id: appellationId,
         });
 
       if (wineError) throw wineError;
@@ -111,6 +117,8 @@ export function AddWineToDomainDialog({
     setDescription('');
     setAlcoholPercentage('');
     setStock('0');
+    setWineType('rouge');
+    setAppellationId(null);
     setLabelFile(null);
     setLabelPreview('');
   };
@@ -198,6 +206,18 @@ export function AddWineToDomainDialog({
               />
             </div>
           </div>
+
+          <WineTypeSelect
+            value={wineType}
+            onChange={setWineType}
+            required
+          />
+
+          <AppellationSelect
+            value={appellationId}
+            onChange={(id) => setAppellationId(id)}
+            wineType={wineType}
+          />
 
           <div>
             <Label htmlFor="wine-stock">Stock</Label>

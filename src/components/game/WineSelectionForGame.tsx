@@ -45,9 +45,8 @@ export function WineSelectionForGame({ onWineSelected }: WineSelectionForGamePro
         .from("wine")
         .select(
           `
-          id, name, year, label_url,
-          domain:domain_id(id, name, logo_url, region),
-          wine_type:type(id, type)
+          id, name, year, label_url, type,
+          domain:domain_id(id, name, logo_url, region)
         `,
         )
         .eq("is_playable", true)

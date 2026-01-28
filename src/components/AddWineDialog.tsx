@@ -16,6 +16,8 @@ import { Plus, Loader2, Upload, X, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CreateDomainDialog } from './CreateDomainDialog';
+import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
+import { AppellationSelect } from '@/components/wine/AppellationSelect';
 
 interface AddWineDialogProps {
   cellarId: string;
@@ -55,6 +57,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [description, setDescription] = useState('');
+  const [wineType, setWineType] = useState('rouge');
+  const [appellationId, setAppellationId] = useState<number | null>(null);
   const [labelFile, setLabelFile] = useState<File | null>(null);
   const [labelPreview, setLabelPreview] = useState<string>('');
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -328,6 +332,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
           price: price ? parseFloat(price) : null,
           description,
           label_url: domainUrlData.publicUrl,
+          type: wineType,
+          appellation_id: appellationId,
         })
         .select()
         .single();
@@ -389,6 +395,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
     setPrice('');
     setQuantity('1');
     setDescription('');
+    setWineType('rouge');
+    setAppellationId(null);
     setLabelFile(null);
     setLabelPreview('');
   };
@@ -773,6 +781,17 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
                 min="1"
               />
             </div>
+
+            <WineTypeSelect
+              value={wineType}
+              onChange={setWineType}
+            />
+
+            <AppellationSelect
+              value={appellationId}
+              onChange={(id) => setAppellationId(id)}
+              wineType={wineType}
+            />
 
             <div>
               <Label htmlFor="description">Description</Label>

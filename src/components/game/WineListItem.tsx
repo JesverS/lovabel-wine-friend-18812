@@ -6,19 +6,36 @@ interface WineListItemProps {
     name: string;
     year: number | null;
     label_url: string;
+    type?: string;
     domain: {
       id: string;
       name: string;
       region: string | null;
     };
-    wine_type: {
+    wine_type?: {
       type: string;
     };
   };
   onSelect: (wine: any) => void;
 }
 
+// Mapping pour afficher les types de vin
+const WINE_TYPE_LABELS: Record<string, string> = {
+  rouge: 'Rouge',
+  blanc: 'Blanc',
+  rosé: 'Rosé',
+  effervescent: 'Effervescent',
+  autre: 'Autre',
+};
+
 export function WineListItem({ wine, onSelect }: WineListItemProps) {
+  // Supporter à la fois le nouveau format (type texte) et l'ancien (wine_type objet)
+  const wineTypeLabel = wine.type 
+    ? WINE_TYPE_LABELS[wine.type] || wine.type
+    : wine.wine_type?.type 
+      ? WINE_TYPE_LABELS[wine.wine_type.type] || wine.wine_type.type
+      : null;
+
   return (
     <div
       onClick={() => onSelect(wine)}
@@ -43,9 +60,11 @@ export function WineListItem({ wine, onSelect }: WineListItemProps) {
               <span>{wine.year}</span>
             </>
           )}
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-            {wine.wine_type.type}
-          </Badge>
+          {wineTypeLabel && (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+              {wineTypeLabel}
+            </Badge>
+          )}
           {wine.domain.region && (
             <>
               <span>•</span>
