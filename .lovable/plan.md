@@ -1,7 +1,7 @@
 
-# Adaptation des Sliders de Degustation selon le Type de Vin
+# ✅ IMPLÉMENTÉ - Adaptation des Sliders de Degustation selon le Type de Vin
 
-## Contexte et Probleme
+## Statut: Terminé
 
 Les sliders actuels (`acidite`, `tanins`, `corps`, `douceur`) ne sont pas pertinents pour tous les types de vins :
 - Les **tanins** n'existent que dans les vins rouges

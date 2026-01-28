@@ -49,6 +49,8 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { TastingSliders } from '@/components/TastingSliders';
+import { TastingDetails, migrateTastingDetails, tastingDetailsToDbFormat } from '@/lib/tastingSliderConfig';
 
 interface WineData {
   wine_id: string;
@@ -91,14 +93,6 @@ interface CellarWineDetailsDialogProps {
   onUpdated: () => void;
 }
 
-interface TastingDetails {
-  rating: number;
-  acidity: number;
-  tannins: number;
-  body: number;
-  sweetness: number;
-  remarks?: string;
-}
 
 interface UserComment {
   id: string;
@@ -136,10 +130,10 @@ export function CellarWineDetailsDialog({
   const [liked, setLiked] = useState<number>(0);
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
     rating: 5.0,
-    acidity: 5.0,
-    tannins: 5.0,
-    body: 5.0,
-    sweetness: 5.0,
+    slot1: 5.0,
+    slot2: 5.0,
+    slot3: 5.0,
+    slot4: 5.0,
     remarks: '',
   });
   
@@ -221,15 +215,8 @@ export function CellarWineDetailsDialog({
         setLiked(likedValue);
         
         if (noticeData.details && typeof noticeData.details === 'object' && !Array.isArray(noticeData.details)) {
-          const details = noticeData.details as any;
-          setTastingDetails({
-            rating: details.rating ?? 5.0,
-            acidity: details.acidity ?? 5.0,
-            tannins: details.tannins ?? 5.0,
-            body: details.body ?? 5.0,
-            sweetness: details.sweetness ?? 5.0,
-            remarks: details.remarks || '',
-          });
+          const migrated = migrateTastingDetails(noticeData.details);
+          setTastingDetails(migrated);
         }
       }
 
@@ -370,7 +357,7 @@ export function CellarWineDetailsDialog({
         user_id: user.id,
         wine_id: wineData.wine_id,
         liked: newLiked as any,
-        details: tastingDetails as any,
+        details: tastingDetailsToDbFormat(tastingDetails) as any,
       } as any, {
         onConflict: 'user_id,wine_id'
       })
@@ -427,7 +414,7 @@ export function CellarWineDetailsDialog({
       .upsert({
         user_id: user.id,
         wine_id: wineData.wine_id,
-        details: tastingDetails as any,
+        details: tastingDetailsToDbFormat(tastingDetails) as any,
         liked: liked as any,
       } as any, {
         onConflict: 'user_id,wine_id'
@@ -1083,50 +1070,19 @@ export function CellarWineDetailsDialog({
                   className="mt-2"
                 />
               </div>
-              <div>
-                <Label>Acidité</Label>
-                <Slider
-                  value={[tastingDetails.acidity]}
-                  onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, acidity: Math.round(val * 10) / 10 }))}
-                  min={0}
-                  max={10}
-                  step={0.1}
-                />
-                <p className="text-xs text-muted-foreground mt-1">{tastingDetails.acidity.toFixed(1)}/10 • 0 = Très faible • 10 = Très marquée</p>
-              </div>
-              <div>
-                <Label>Tanins</Label>
-                <Slider
-                  value={[tastingDetails.tannins]}
-                  onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, tannins: Math.round(val * 10) / 10 }))}
-                  min={0}
-                  max={10}
-                  step={0.1}
-                />
-                <p className="text-xs text-muted-foreground mt-1">{tastingDetails.tannins.toFixed(1)}/10 • 0 = Très doux • 10 = Très tannique</p>
-              </div>
-              <div>
-                <Label>Corps</Label>
-                <Slider
-                  value={[tastingDetails.body]}
-                  onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, body: Math.round(val * 10) / 10 }))}
-                  min={0}
-                  max={10}
-                  step={0.1}
-                />
-                <p className="text-xs text-muted-foreground mt-1">{tastingDetails.body.toFixed(1)}/10 • 0 = Très léger • 10 = Très corpulent</p>
-              </div>
-              <div>
-                <Label>Douceur</Label>
-                <Slider
-                  value={[tastingDetails.sweetness]}
-                  onValueChange={([val]) => setTastingDetails(prev => ({ ...prev, sweetness: Math.round(val * 10) / 10 }))}
-                  min={0}
-                  max={10}
-                  step={0.1}
-                />
-                <p className="text-xs text-muted-foreground mt-1">{tastingDetails.sweetness.toFixed(1)}/10 • 0 = Très sec • 10 = Très sucré</p>
-              </div>
+              {/* Sliders dynamiques selon le type de vin */}
+              <TastingSliders
+                wineTypeId={wineData.wine?.type}
+                values={{
+                  slot1: tastingDetails.slot1,
+                  slot2: tastingDetails.slot2,
+                  slot3: tastingDetails.slot3,
+                  slot4: tastingDetails.slot4,
+                }}
+                onChange={(key, value) => 
+                  setTastingDetails(prev => ({ ...prev, [key]: value }))
+                }
+              />
               </div>
 
               <div>
