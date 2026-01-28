@@ -32,7 +32,7 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
     labelFile: null as File | null,
     labelPreview: "",
     cepages: "",
-    wineType: "rouge", // rouge par défaut (texte)
+    wineType: 1, // 1 = rouge par défaut (ID numérique)
   });
 
   // Recherche de domaines
@@ -158,7 +158,7 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
       labelFile: null,
       labelPreview: "",
       cepages: "",
-      wineType: "rouge",
+      wineType: 1, // 1 = rouge par défaut
     });
   };
 
@@ -296,18 +296,18 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
                       Type de vin <span className="text-destructive">*</span>
                     </Label>
                     <Select
-                      value={wineData.wineType}
-                      onValueChange={(v) => setWineData({ ...wineData, wineType: v })}
+                      value={wineData.wineType.toString()}
+                      onValueChange={(v) => setWineData({ ...wineData, wineType: parseInt(v) })}
                     >
                       <SelectTrigger id="wine-type" className="h-11">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="rouge">Rouge</SelectItem>
-                        <SelectItem value="blanc">Blanc</SelectItem>
-                        <SelectItem value="rosé">Rosé</SelectItem>
-                        <SelectItem value="effervescent">Effervescent</SelectItem>
-                        <SelectItem value="autre">Autre</SelectItem>
+                        <SelectItem value="1">Rouge</SelectItem>
+                        <SelectItem value="2">Blanc</SelectItem>
+                        <SelectItem value="5">Rosé</SelectItem>
+                        <SelectItem value="8">Effervescent</SelectItem>
+                        <SelectItem value="7">Autre</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

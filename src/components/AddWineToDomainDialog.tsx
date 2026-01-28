@@ -34,7 +34,7 @@ export function AddWineToDomainDialog({
   const [description, setDescription] = useState('');
   const [alcoholPercentage, setAlcoholPercentage] = useState('');
   const [stock, setStock] = useState('0');
-  const [wineType, setWineType] = useState('rouge');
+  const [wineType, setWineType] = useState<number | null>(1); // 1 = rouge par défaut
   const [appellationId, setAppellationId] = useState<number | null>(null);
   const [labelFile, setLabelFile] = useState<File | null>(null);
   const [labelPreview, setLabelPreview] = useState<string>('');
@@ -117,7 +117,7 @@ export function AddWineToDomainDialog({
     setDescription('');
     setAlcoholPercentage('');
     setStock('0');
-    setWineType('rouge');
+    setWineType(1);
     setAppellationId(null);
     setLabelFile(null);
     setLabelPreview('');
@@ -216,7 +216,7 @@ export function AddWineToDomainDialog({
           <AppellationSelect
             value={appellationId}
             onChange={(id) => setAppellationId(id)}
-            wineType={wineType}
+            wineTypeId={wineType}
           />
 
           <div>

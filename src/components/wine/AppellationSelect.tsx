@@ -29,17 +29,26 @@ interface Appellation {
 interface AppellationSelectProps {
   value: number | null;
   onChange: (id: number | null, appellation?: Appellation) => void;
-  wineType?: string;
+  wineTypeId?: number | null; // ID du type de vin (vers wine_type.id)
   label?: string;
   required?: boolean;
   allowCreate?: boolean;
   className?: string;
 }
 
+// Mapping des IDs vers les textes pour filtrer les appellations
+const WINE_TYPE_ID_TO_TEXT: Record<number, string> = {
+  1: 'rouge',
+  2: 'blanc',
+  5: 'rosé',
+  7: 'autre',
+  8: 'effervescent',
+};
+
 export function AppellationSelect({
   value,
   onChange,
-  wineType,
+  wineTypeId,
   label = 'Appellation',
   required = false,
   allowCreate = true,
@@ -51,6 +60,9 @@ export function AppellationSelect({
   const [appellations, setAppellations] = useState<Appellation[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedAppellation, setSelectedAppellation] = useState<Appellation | null>(null);
+
+  // Convertir l'ID en texte pour le filtrage
+  const wineTypeText = wineTypeId ? WINE_TYPE_ID_TO_TEXT[wineTypeId] : undefined;
 
   // Charger l'appellation sélectionnée au montage
   useEffect(() => {
@@ -64,7 +76,7 @@ export function AppellationSelect({
     if (open) {
       loadAppellations();
     }
-  }, [open, wineType, search]);
+  }, [open, wineTypeId, search]);
 
   const loadSelectedAppellation = async (id: number) => {
     const { data } = await supabase
@@ -87,8 +99,8 @@ export function AppellationSelect({
         .order('nom');
 
       // Filtrer par type de vin si spécifié
-      if (wineType) {
-        query = query.eq('type_vin_suggere', wineType);
+      if (wineTypeText) {
+        query = query.eq('type_vin_suggere', wineTypeText);
       }
 
       // Recherche par nom
@@ -229,7 +241,7 @@ export function AppellationSelect({
       <CreateAppellationDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        suggestedType={wineType}
+        suggestedType={wineTypeText}
         initialName={search}
         onCreated={(appellation) => {
           handleSelect(appellation);
