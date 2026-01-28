@@ -30,6 +30,7 @@ export interface PostWithRelations {
     id: string;
     name: string;
     label_url: string | null;
+    type: number | null;
     domain: {
       id: string;
       name: string;
@@ -183,7 +184,7 @@ async function enrichPosts(
     wineIds.length > 0
       ? supabase
           .from('wine' as any)
-          .select('id, name, label_url, domain:domain!wine_domain_id_fkey(id, name)')
+          .select('id, name, label_url, type, domain:domain!wine_domain_id_fkey(id, name)')
           .in('id', wineIds)
       : Promise.resolve({ data: [] }),
     userId
