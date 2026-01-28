@@ -9,6 +9,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { MapPin, Loader2, ThumbsUp, ThumbsDown, Minus } from 'lucide-react';
 import { WineAutocomplete } from './wine/WineAutocomplete';
+import { TastingSliders } from './TastingSliders';
+import { TastingDetails, tastingDetailsToDbFormat } from '@/lib/tastingSliderConfig';
 
 interface SpontaneousTastingDialogProps {
   open: boolean;
@@ -30,10 +32,12 @@ export default function SpontaneousTastingDialog({
   const [selectedWine, setSelectedWine] = useState<any>(null);
   const [liked, setLiked] = useState<number>(0);
   const [rating, setRating] = useState<number>(5);
-  const [acidity, setAcidity] = useState<number>(5);
-  const [tannins, setTannins] = useState<number>(5);
-  const [body, setBody] = useState<number>(5);
-  const [sweetness, setSweetness] = useState<number>(5);
+  const [tastingSlots, setTastingSlots] = useState({
+    slot1: 5.0,
+    slot2: 5.0,
+    slot3: 5.0,
+    slot4: 5.0,
+  });
   const [remarks, setRemarks] = useState('');
 
   const requestLocation = async () => {
@@ -94,12 +98,12 @@ export default function SpontaneousTastingDialog({
     setIsSaving(true);
 
     try {
-      const details = {
+      const details: TastingDetails = {
         rating: rating,
-        acidity: acidity,
-        tannins: tannins,
-        body: body,
-        sweetness: sweetness,
+        slot1: tastingSlots.slot1,
+        slot2: tastingSlots.slot2,
+        slot3: tastingSlots.slot3,
+        slot4: tastingSlots.slot4,
         remarks: remarks || undefined,
       };
 
@@ -107,7 +111,7 @@ export default function SpontaneousTastingDialog({
         user_id: user.id,
         wine_id: selectedWine.id,
         liked,
-        details,
+        details: tastingDetailsToDbFormat(details),
         spontaneous: true,
         latitude: location.latitude,
         longitude: location.longitude,
@@ -123,10 +127,7 @@ export default function SpontaneousTastingDialog({
       setSelectedWine(null);
       setLiked(0);
       setRating(5);
-      setAcidity(5);
-      setTannins(5);
-      setBody(5);
-      setSweetness(5);
+      setTastingSlots({ slot1: 5.0, slot2: 5.0, slot3: 5.0, slot4: 5.0 });
       setRemarks('');
       setLocation(null);
     } catch (error) {
@@ -229,59 +230,24 @@ export default function SpontaneousTastingDialog({
                 </div>
               </div>
 
-              {/* Sliders pour les caractéristiques */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="font-semibold">Note globale : {rating.toFixed(1)}/10</Label>
-                  <Slider
-                    value={[rating]}
-                    onValueChange={(v) => setRating(v[0])}
-                    max={10}
-                    step={0.5}
-                    className="py-2"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Acidité : {acidity.toFixed(1)}/10</Label>
-                  <Slider
-                    value={[acidity]}
-                    onValueChange={(v) => setAcidity(v[0])}
-                    max={10}
-                    step={0.5}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Tanins : {tannins.toFixed(1)}/10</Label>
-                  <Slider
-                    value={[tannins]}
-                    onValueChange={(v) => setTannins(v[0])}
-                    max={10}
-                    step={0.5}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Corps : {body.toFixed(1)}/10</Label>
-                  <Slider
-                    value={[body]}
-                    onValueChange={(v) => setBody(v[0])}
-                    max={10}
-                    step={0.5}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Sucrosité : {sweetness.toFixed(1)}/10</Label>
-                  <Slider
-                    value={[sweetness]}
-                    onValueChange={(v) => setSweetness(v[0])}
-                    max={10}
-                    step={0.5}
-                  />
-                </div>
+              {/* Note globale */}
+              <div className="space-y-2">
+                <Label className="font-semibold">Note globale : {rating.toFixed(1)}/10</Label>
+                <Slider
+                  value={[rating]}
+                  onValueChange={(v) => setRating(v[0])}
+                  max={10}
+                  step={0.5}
+                  className="py-2"
+                />
               </div>
+
+              {/* Sliders dynamiques selon le type de vin */}
+              <TastingSliders
+                wineTypeId={selectedWine?.type}
+                values={tastingSlots}
+                onChange={(key, value) => setTastingSlots(prev => ({ ...prev, [key]: value }))}
+              />
 
               {/* Remarques */}
               <div className="space-y-2">

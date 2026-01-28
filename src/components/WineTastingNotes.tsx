@@ -1,14 +1,23 @@
+import { getSlidersForWineType, migrateTastingDetails } from '@/lib/tastingSliderConfig';
+
 interface WineNotice {
   rating: number;
-  acidity: number;
-  tannins: number;
-  body: number;
-  sweetness: number;
+  // Ancien format
+  acidity?: number;
+  tannins?: number;
+  body?: number;
+  sweetness?: number;
+  // Nouveau format
+  slot1?: number;
+  slot2?: number;
+  slot3?: number;
+  slot4?: number;
   liked?: number;
 }
 
 interface WineTastingNotesProps {
   wineNotice: WineNotice;
+  wineTypeId?: number | null;
 }
 
 const TastingBar = ({ label, value }: { label: string; value: number }) => (
@@ -26,23 +35,27 @@ const TastingBar = ({ label, value }: { label: string; value: number }) => (
   </div>
 );
 
-export const WineTastingNotes = ({ wineNotice }: WineTastingNotesProps) => {
+export const WineTastingNotes = ({ wineNotice, wineTypeId }: WineTastingNotesProps) => {
+  // Migrer les données vers le nouveau format si nécessaire
+  const migratedDetails = migrateTastingDetails(wineNotice);
+  const sliders = getSlidersForWineType(wineTypeId);
+
   return (
     <div className="bg-[#f5f0e8] dark:bg-muted/50 rounded-lg p-4 space-y-3">
       {/* Header avec titre et note */}
       <div className="flex items-center justify-between">
         <h4 className="font-semibold text-sm text-foreground">Impressions de dégustation</h4>
         <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-          {wineNotice.rating}/10
+          {migratedDetails.rating}/10
         </span>
       </div>
       
-      {/* Grille 2x2 des caractéristiques */}
+      {/* Grille 2x2 des caractéristiques avec labels dynamiques */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <TastingBar label="Acidité" value={wineNotice.acidity} />
-        <TastingBar label="Tanins" value={wineNotice.tannins} />
-        <TastingBar label="Corps" value={wineNotice.body} />
-        <TastingBar label="Douceur" value={wineNotice.sweetness} />
+        <TastingBar label={sliders.slot1.label} value={migratedDetails.slot1} />
+        <TastingBar label={sliders.slot2.label} value={migratedDetails.slot2} />
+        <TastingBar label={sliders.slot3.label} value={migratedDetails.slot3} />
+        <TastingBar label={sliders.slot4.label} value={migratedDetails.slot4} />
       </div>
     </div>
   );

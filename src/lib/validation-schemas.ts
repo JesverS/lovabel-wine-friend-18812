@@ -17,6 +17,8 @@ export const gameFeedbackSchema = z.object({
 
 /**
  * Schéma de validation pour les notices de vin (likes et détails de dégustation)
+ * Compatible avec l'ancien format (acidity, tannins, body, sweetness) 
+ * et le nouveau format (slot1, slot2, slot3, slot4)
  */
 export const wineNoticeSchema = z.object({
   liked: z.number()
@@ -25,10 +27,16 @@ export const wineNoticeSchema = z.object({
     .max(1, 'Valeur maximale : 1'),
   details: z.object({
     rating: z.number().min(0).max(10).optional(),
+    // Ancien format (rétrocompatibilité)
     acidity: z.number().min(0).max(10).optional(),
     tannins: z.number().min(0).max(10).optional(),
     body: z.number().min(0).max(10).optional(),
     sweetness: z.number().min(0).max(10).optional(),
+    // Nouveau format (slots génériques)
+    slot1: z.number().min(0).max(10).optional(),
+    slot2: z.number().min(0).max(10).optional(),
+    slot3: z.number().min(0).max(10).optional(),
+    slot4: z.number().min(0).max(10).optional(),
     remarks: z.string().max(500).optional(),
   }).optional(),
 });

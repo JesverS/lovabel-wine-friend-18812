@@ -23,15 +23,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-
-interface TastingDetails {
-  rating: number;
-  acidity: number;
-  tannins: number;
-  body: number;
-  sweetness: number;
-  remarks: string;
-}
+import { TastingSlidersGrid } from '@/components/TastingSliders';
+import { TastingDetails, migrateTastingDetails, tastingDetailsToDbFormat } from '@/lib/tastingSliderConfig';
 
 export default function WineDetails() {
   const { id } = useParams<{ id: string }>();
@@ -48,10 +41,10 @@ export default function WineDetails() {
   const [liked, setLiked] = useState<number>(0);
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
     rating: 5.0,
-    acidity: 5.0,
-    tannins: 5.0,
-    body: 5.0,
-    sweetness: 5.0,
+    slot1: 5.0,
+    slot2: 5.0,
+    slot3: 5.0,
+    slot4: 5.0,
     remarks: '',
   });
   const [saving, setSaving] = useState(false);
@@ -118,14 +111,8 @@ export default function WineDetails() {
     if (noticeData) {
       setLiked((noticeData as any).liked || 0);
       if ((noticeData as any).details) {
-        setTastingDetails({
-          rating: (noticeData as any).details.rating ?? 5.0,
-          acidity: (noticeData as any).details.acidity ?? 5.0,
-          tannins: (noticeData as any).details.tannins ?? 5.0,
-          body: (noticeData as any).details.body ?? 5.0,
-          sweetness: (noticeData as any).details.sweetness ?? 5.0,
-          remarks: (noticeData as any).details.remarks ?? '',
-        });
+        const migrated = migrateTastingDetails((noticeData as any).details);
+        setTastingDetails(migrated);
       }
     }
   };
@@ -271,7 +258,7 @@ export default function WineDetails() {
             user_id: user.id,
             wine_id: id,
             liked,
-            details: tastingDetails,
+            details: tastingDetailsToDbFormat(tastingDetails),
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'user_id,wine_id' }
@@ -516,64 +503,17 @@ export default function WineDetails() {
                 />
               </div>
 
-              {/* Characteristics Sliders */}
-              <div className="grid sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label className="flex justify-between">
-                    <span>Acidité</span>
-                    <span className="text-muted-foreground">{tastingDetails.acidity.toFixed(1)}</span>
-                  </Label>
-                  <Slider
-                    value={[tastingDetails.acidity]}
-                    onValueChange={([v]) => setTastingDetails(prev => ({ ...prev, acidity: v }))}
-                    min={0}
-                    max={10}
-                    step={0.5}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex justify-between">
-                    <span>Tanins</span>
-                    <span className="text-muted-foreground">{tastingDetails.tannins.toFixed(1)}</span>
-                  </Label>
-                  <Slider
-                    value={[tastingDetails.tannins]}
-                    onValueChange={([v]) => setTastingDetails(prev => ({ ...prev, tannins: v }))}
-                    min={0}
-                    max={10}
-                    step={0.5}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex justify-between">
-                    <span>Corps</span>
-                    <span className="text-muted-foreground">{tastingDetails.body.toFixed(1)}</span>
-                  </Label>
-                  <Slider
-                    value={[tastingDetails.body]}
-                    onValueChange={([v]) => setTastingDetails(prev => ({ ...prev, body: v }))}
-                    min={0}
-                    max={10}
-                    step={0.5}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex justify-between">
-                    <span>Douceur</span>
-                    <span className="text-muted-foreground">{tastingDetails.sweetness.toFixed(1)}</span>
-                  </Label>
-                  <Slider
-                    value={[tastingDetails.sweetness]}
-                    onValueChange={([v]) => setTastingDetails(prev => ({ ...prev, sweetness: v }))}
-                    min={0}
-                    max={10}
-                    step={0.5}
-                  />
-                </div>
-              </div>
+              {/* Characteristics Sliders - dynamiques selon le type */}
+              <TastingSlidersGrid
+                wineTypeId={wine.type}
+                values={{
+                  slot1: tastingDetails.slot1,
+                  slot2: tastingDetails.slot2,
+                  slot3: tastingDetails.slot3,
+                  slot4: tastingDetails.slot4,
+                }}
+                onChange={(key, value) => setTastingDetails(prev => ({ ...prev, [key]: value }))}
+              />
 
               {/* Remarks Textarea */}
               <div className="space-y-2">
