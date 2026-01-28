@@ -56,6 +56,39 @@ export type Database = {
         }
         Relationships: []
       }
+      appellation: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: number
+          nom: string
+          normalized_nom: string | null
+          pays: string | null
+          region: string | null
+          type_vin_suggere: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          nom: string
+          normalized_nom?: string | null
+          pays?: string | null
+          region?: string | null
+          type_vin_suggere?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          nom?: string
+          normalized_nom?: string | null
+          pays?: string | null
+          region?: string | null
+          type_vin_suggere?: string | null
+        }
+        Relationships: []
+      }
       badge_definition: {
         Row: {
           category: string
@@ -2913,6 +2946,7 @@ export type Database = {
       wine: {
         Row: {
           alcohol_percentage: number | null
+          appellation_id: number | null
           cepages: Json | null
           characteristics: Json | null
           created_at: string | null
@@ -2934,6 +2968,7 @@ export type Database = {
         }
         Insert: {
           alcohol_percentage?: number | null
+          appellation_id?: number | null
           cepages?: Json | null
           characteristics?: Json | null
           created_at?: string | null
@@ -2955,6 +2990,7 @@ export type Database = {
         }
         Update: {
           alcohol_percentage?: number | null
+          appellation_id?: number | null
           cepages?: Json | null
           characteristics?: Json | null
           created_at?: string | null
@@ -2975,6 +3011,13 @@ export type Database = {
           year?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "wine_appellation_id_fkey"
+            columns: ["appellation_id"]
+            isOneToOne: false
+            referencedRelation: "appellation"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wine_domain_id_fkey"
             columns: ["domain_id"]

@@ -32,7 +32,7 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
     labelFile: null as File | null,
     labelPreview: "",
     cepages: "",
-    wineTypeId: 1, // rouge par défaut
+    wineType: "rouge", // rouge par défaut (texte)
   });
 
   // Recherche de domaines
@@ -118,15 +118,14 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
           name: wineData.name.trim(),
           year: wineData.year,
           label_url: publicUrl,
-          type: wineData.wineTypeId,
+          type: wineData.wineType,
           is_playable: true,
           cepages: wineData.cepages ? { cepages: wineData.cepages } : null,
         })
         .select(
           `
-          id, name, year, label_url,
-          domain:domain_id(id, name, logo_url, region),
-          wine_type:type(id, type)
+          id, name, year, label_url, type,
+          domain:domain_id(id, name, logo_url, region)
         `,
         )
         .single();
@@ -159,7 +158,7 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
       labelFile: null,
       labelPreview: "",
       cepages: "",
-      wineTypeId: 1,
+      wineType: "rouge",
     });
   };
 
@@ -297,20 +296,18 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
                       Type de vin <span className="text-destructive">*</span>
                     </Label>
                     <Select
-                      value={wineData.wineTypeId.toString()}
-                      onValueChange={(v) => setWineData({ ...wineData, wineTypeId: parseInt(v) })}
+                      value={wineData.wineType}
+                      onValueChange={(v) => setWineData({ ...wineData, wineType: v })}
                     >
                       <SelectTrigger id="wine-type" className="h-11">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">Rouge</SelectItem>
-                        <SelectItem value="2">Blanc</SelectItem>
-                        <SelectItem value="5">Rosé</SelectItem>
-                        <SelectItem value="3">Champagne</SelectItem>
-                        <SelectItem value="4">Crémant</SelectItem>
-                        <SelectItem value="6">Prosecco</SelectItem>
-                        <SelectItem value="7">Autre</SelectItem>
+                        <SelectItem value="rouge">Rouge</SelectItem>
+                        <SelectItem value="blanc">Blanc</SelectItem>
+                        <SelectItem value="rosé">Rosé</SelectItem>
+                        <SelectItem value="effervescent">Effervescent</SelectItem>
+                        <SelectItem value="autre">Autre</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

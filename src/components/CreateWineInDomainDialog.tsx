@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Loader2, Upload } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
+import { AppellationSelect } from '@/components/wine/AppellationSelect';
 
 interface CreateWineInDomainDialogProps {
   eventId: string;
@@ -36,6 +38,8 @@ export function CreateWineInDomainDialog({
   const [volume, setVolume] = useState('750');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [wineType, setWineType] = useState('rouge');
+  const [appellationId, setAppellationId] = useState<number | null>(null);
   const [labelFile, setLabelFile] = useState<File | null>(null);
   const [labelPreview, setLabelPreview] = useState<string>('');
 
@@ -98,6 +102,8 @@ export function CreateWineInDomainDialog({
           price: price ? parseFloat(price) : null,
           description: description.trim() || null,
           label_url: urlData.publicUrl,
+          type: wineType,
+          appellation_id: appellationId,
         })
         .select()
         .single();
@@ -140,6 +146,8 @@ export function CreateWineInDomainDialog({
     setVolume('750');
     setPrice('');
     setDescription('');
+    setWineType('rouge');
+    setAppellationId(null);
     setLabelFile(null);
     setLabelPreview('');
   };
@@ -212,6 +220,18 @@ export function CreateWineInDomainDialog({
               min="0"
             />
           </div>
+
+          <WineTypeSelect
+            value={wineType}
+            onChange={setWineType}
+            required
+          />
+
+          <AppellationSelect
+            value={appellationId}
+            onChange={(id) => setAppellationId(id)}
+            wineType={wineType}
+          />
 
           <div>
             <Label htmlFor="wine-description">Description</Label>
