@@ -98,14 +98,9 @@ export function AppellationSelect({
         .select('*')
         .order('nom');
 
-      // Filtrer par type de vin si spécifié
-      if (wineTypeText) {
-        query = query.eq('type_vin_suggere', wineTypeText);
-      }
-
-      // Recherche par nom
+      // Recherche simple par nom (insensible aux accents via normalized_nom)
       if (search.trim()) {
-        query = query.ilike('nom', `%${search}%`);
+        query = query.ilike('normalized_nom', `%${search.toLowerCase()}%`);
       }
 
       const { data, error } = await query.limit(50);
