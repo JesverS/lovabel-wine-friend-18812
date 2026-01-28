@@ -11,20 +11,28 @@ import { Button } from '@/components/ui/button';
 import { Download, Copy, Loader2, Check, Instagram, Wine } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { getSlidersForWineType, migrateTastingDetails } from '@/lib/tastingSliderConfig';
 
 interface WineNotice {
   rating: number;
-  acidity: number;
-  tannins: number;
-  body: number;
-  sweetness: number;
+  // Ancien format (rétrocompatibilité)
+  acidity?: number;
+  tannins?: number;
+  body?: number;
+  sweetness?: number;
+  // Nouveau format
+  slot1?: number;
+  slot2?: number;
+  slot3?: number;
+  slot4?: number;
 }
 
-interface Wine {
+interface WineData {
   id: string;
   name: string;
   label_url?: string;
   color?: string;
+  type?: number | null;
   domain?: {
     name: string;
     region?: string;
@@ -45,7 +53,7 @@ interface ShareStoryDialogProps {
     is_wine_notice?: boolean;
     wine_notice?: WineNotice;
   };
-  wine?: Wine | null;
+  wine?: WineData | null;
   author?: Author | null;
 }
 
@@ -90,6 +98,7 @@ const StoryTemplateCard = ({
   domainName,
   imageUrl,
   wineNotice,
+  wineTypeId,
   content,
   backgroundColor,
 }: {
@@ -97,9 +106,15 @@ const StoryTemplateCard = ({
   domainName?: string;
   imageUrl?: string;
   wineNotice?: WineNotice | null;
+  wineTypeId?: number | null;
   content?: string;
   backgroundColor: string;
-}) => (
+}) => {
+  // Migrer les données et obtenir les labels dynamiques
+  const migratedNotice = wineNotice ? migrateTastingDetails(wineNotice) : null;
+  const sliders = getSlidersForWineType(wineTypeId);
+
+  return (
   <div 
     className="relative w-[1080px] h-[1920px] overflow-hidden"
     style={{ backgroundColor }}
@@ -157,14 +172,14 @@ const StoryTemplateCard = ({
       </div>
 
       {/* Rating */}
-      {wineNotice && (
+      {migratedNotice && (
         <>
           <div className="text-center mb-8">
             <span 
               className="text-gray-900 font-bold"
               style={{ fontSize: '80px', lineHeight: 1 }}
             >
-              {wineNotice.rating}
+              {migratedNotice.rating}
             </span>
             <span 
               className="text-gray-400"
@@ -174,12 +189,12 @@ const StoryTemplateCard = ({
             </span>
           </div>
 
-          {/* Tasting bars grid */}
+          {/* Tasting bars grid avec labels dynamiques */}
           <div className="grid grid-cols-2 gap-x-12 gap-y-6 mt-4">
-            <TastingBarCard label="Acidité" value={wineNotice.acidity} />
-            <TastingBarCard label="Tanins" value={wineNotice.tannins} />
-            <TastingBarCard label="Corps" value={wineNotice.body} />
-            <TastingBarCard label="Douceur" value={wineNotice.sweetness} />
+            <TastingBarCard label={sliders.slot1.label} value={migratedNotice.slot1} />
+            <TastingBarCard label={sliders.slot2.label} value={migratedNotice.slot2} />
+            <TastingBarCard label={sliders.slot3.label} value={migratedNotice.slot3} />
+            <TastingBarCard label={sliders.slot4.label} value={migratedNotice.slot4} />
           </div>
         </>
       )}
@@ -204,7 +219,8 @@ const StoryTemplateCard = ({
       <Wine className="w-8 h-8 text-white" />
     </div>
   </div>
-);
+  );
+};
 
 export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: ShareStoryDialogProps) => {
   const { toast } = useToast();
@@ -330,6 +346,7 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
                 domainName={domainName}
                 imageUrl={displayImage}
                 wineNotice={wineNotice}
+                wineTypeId={wine?.type}
                 content={post.content}
                 backgroundColor={selectedColor}
               />
