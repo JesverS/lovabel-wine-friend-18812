@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { TastingSliders } from "@/components/TastingSliders";
+import { TastingDetails, migrateTastingDetails, tastingDetailsToDbFormat } from "@/lib/tastingSliderConfig";
 import {
   X,
   User,
@@ -53,14 +55,7 @@ interface WineDetailsDialogProps {
   eventId?: string;
 }
 
-interface TastingDetails {
-  rating: number;
-  acidity: number;
-  tannins: number;
-  body: number;
-  sweetness: number;
-  remarks?: string;
-}
+// TastingDetails is now imported from tastingSliderConfig
 
 interface UserComment {
   id: string;
@@ -97,10 +92,10 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
 
   const [tastingDetails, setTastingDetails] = useState<TastingDetails>({
     rating: 5.0,
-    acidity: 5.0,
-    tannins: 5.0,
-    body: 5.0,
-    sweetness: 5.0,
+    slot1: 5.0,
+    slot2: 5.0,
+    slot3: 5.0,
+    slot4: 5.0,
     remarks: "",
   });
 
@@ -141,15 +136,8 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
         const likedValue = typeof noticeData.liked === "number" ? noticeData.liked : noticeData.liked ? 1 : 0;
         setLiked(likedValue);
         if (noticeData.details && typeof noticeData.details === "object" && !Array.isArray(noticeData.details)) {
-          const details = noticeData.details as any;
-          setTastingDetails({
-            rating: details.rating ?? 5.0,
-            acidity: details.acidity ?? 5.0,
-            tannins: details.tannins ?? 5.0,
-            body: details.body ?? 5.0,
-            sweetness: details.sweetness ?? 5.0,
-            remarks: details.remarks || "",
-          });
+          const migrated = migrateTastingDetails(noticeData.details);
+          setTastingDetails(migrated);
         }
       }
 
@@ -263,14 +251,7 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
     const newLiked = liked === status ? 0 : status;
 
     // Arrondir les valeurs au dixième avant sauvegarde
-    const roundedDetails = {
-      rating: Math.round(tastingDetails.rating * 10) / 10,
-      acidity: Math.round(tastingDetails.acidity * 10) / 10,
-      tannins: Math.round(tastingDetails.tannins * 10) / 10,
-      body: Math.round(tastingDetails.body * 10) / 10,
-      sweetness: Math.round(tastingDetails.sweetness * 10) / 10,
-      remarks: tastingDetails.remarks,
-    };
+    const roundedDetails = tastingDetailsToDbFormat(tastingDetails);
 
     if (eventId) {
       // Use RPC to upsert notice and link to event
@@ -354,14 +335,7 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
     setLoading(true);
 
     // Arrondir les valeurs au dixième avant sauvegarde
-    const roundedDetails = {
-      rating: Math.round(tastingDetails.rating * 10) / 10,
-      acidity: Math.round(tastingDetails.acidity * 10) / 10,
-      tannins: Math.round(tastingDetails.tannins * 10) / 10,
-      body: Math.round(tastingDetails.body * 10) / 10,
-      sweetness: Math.round(tastingDetails.sweetness * 10) / 10,
-      remarks: tastingDetails.remarks,
-    };
+    const roundedDetails = tastingDetailsToDbFormat(tastingDetails);
 
     if (eventId) {
       // Use RPC to upsert notice and link to event
@@ -887,85 +861,16 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
               </div>
             </div>
 
-            <div className="space-y-1">
-              <div className="flex items-center gap-4">
-                <Label className="text-sm font-medium min-w-[120px]">Acidité</Label>
-                <Slider
-                  value={[tastingDetails.acidity]}
-                  onValueChange={([value]) =>
-                    setTastingDetails({ ...tastingDetails, acidity: Math.round(value * 10) / 10 })
-                  }
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  className="flex-1"
-                />
-                <span className="text-sm font-semibold min-w-[40px] text-right text-primary">
-                  {tastingDetails.acidity.toFixed(1)}/10
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground pl-[136px]">0 = Très faible • 10 = Très marquée</p>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center gap-4">
-                <Label className="text-sm font-medium min-w-[120px]">Tanins</Label>
-                <Slider
-                  value={[tastingDetails.tannins]}
-                  onValueChange={([value]) =>
-                    setTastingDetails({ ...tastingDetails, tannins: Math.round(value * 10) / 10 })
-                  }
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  className="flex-1"
-                />
-                <span className="text-sm font-semibold min-w-[40px] text-right text-primary">
-                  {tastingDetails.tannins.toFixed(1)}/10
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground pl-[136px]">0 = Très doux • 10 = Très tannique</p>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center gap-4">
-                <Label className="text-sm font-medium min-w-[120px]">Corps</Label>
-                <Slider
-                  value={[tastingDetails.body]}
-                  onValueChange={([value]) =>
-                    setTastingDetails({ ...tastingDetails, body: Math.round(value * 10) / 10 })
-                  }
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  className="flex-1"
-                />
-                <span className="text-sm font-semibold min-w-[40px] text-right text-primary">
-                  {tastingDetails.body.toFixed(1)}/10
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground pl-[136px]">0 = Très léger • 10 = Très corpulent</p>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center gap-4">
-                <Label className="text-sm font-medium min-w-[120px]">Douceur</Label>
-                <Slider
-                  value={[tastingDetails.sweetness]}
-                  onValueChange={([value]) =>
-                    setTastingDetails({ ...tastingDetails, sweetness: Math.round(value * 10) / 10 })
-                  }
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  className="flex-1"
-                />
-                <span className="text-sm font-semibold min-w-[40px] text-right text-primary">
-                  {tastingDetails.sweetness.toFixed(1)}/10
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground pl-[136px]">0 = Très sec • 10 = Très sucré</p>
-            </div>
+            <TastingSliders
+              wineTypeId={wine.type}
+              values={{
+                slot1: tastingDetails.slot1,
+                slot2: tastingDetails.slot2,
+                slot3: tastingDetails.slot3,
+                slot4: tastingDetails.slot4,
+              }}
+              onChange={(key, value) => setTastingDetails(prev => ({ ...prev, [key]: value }))}
+            />
 
             <div>
               <Label htmlFor="remarks">Remarques supplémentaires</Label>
