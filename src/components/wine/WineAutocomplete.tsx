@@ -5,6 +5,15 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+// Mapping ID type vers label pour affichage
+const WINE_TYPE_LABELS: Record<number, string> = {
+  1: 'Rouge',
+  2: 'Blanc',
+  5: 'Rosé',
+  7: 'Autre',
+  8: 'Effervescent',
+};
+
 interface WineAutocompleteProps {
   domainId?: string;
   onSelect: (wine: any) => void;
@@ -52,8 +61,7 @@ export function WineAutocomplete({
         .from('wine')
         .select(`
           *,
-          domain:domain_id(id, name, logo_url),
-          wine_type:type(id, type)
+          domain:domain_id(id, name, logo_url)
         `)
         .eq('domain_id', domainId)
         .order('year', { ascending: false })
@@ -84,8 +92,7 @@ export function WineAutocomplete({
         .from('wine')
         .select(`
           *,
-          domain:domain_id(id, name, logo_url),
-          wine_type:type(id, type)
+          domain:domain_id(id, name, logo_url)
         `);
 
       if (domainId) {
@@ -166,8 +173,8 @@ export function WineAutocomplete({
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {wine.domain?.name && <span>{wine.domain.name}</span>}
                         {wine.year && <span>• {wine.year}</span>}
-                        {wine.wine_type?.type && (
-                          <span>• {wine.wine_type.type.charAt(0).toUpperCase() + wine.wine_type.type.slice(1)}</span>
+                        {wine.type && WINE_TYPE_LABELS[wine.type] && (
+                          <span>• {WINE_TYPE_LABELS[wine.type]}</span>
                         )}
                       </div>
                     </div>

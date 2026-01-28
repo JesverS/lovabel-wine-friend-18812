@@ -55,6 +55,15 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
+// Mapping ID type vers label pour affichage
+const WINE_TYPE_LABELS: Record<number, string> = {
+  1: 'Rouge',
+  2: 'Blanc',
+  5: 'Rosé',
+  7: 'Autre',
+  8: 'Effervescent',
+};
+
 interface Event {
   id: string;
   slug: string;
@@ -336,7 +345,6 @@ const EventDetails = () => {
             mode_culture,
             wine_classification,
             website_order_url,
-            wine_type:type(type),
             wine_classification_data:wine_classification(nom)
           )
         `)
@@ -461,7 +469,6 @@ const EventDetails = () => {
           mode_culture,
           wine_classification,
           website_order_url,
-          wine_type:type(type),
           wine_classification_data:wine_classification(nom)
         )
       `)
@@ -1278,12 +1285,12 @@ const EventDetails = () => {
                                           <span className="text-xs sm:text-sm text-muted-foreground">{wine.year}</span>
                                         )}
                                       </div>
-                                      {(wine.wine_type?.type || wine.wine_classification_data?.nom) && (
+                                      {(wine.type || wine.wine_classification_data?.nom) && (
                                         <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                                          {wine.wine_type?.type && (
-                                            <span className="capitalize">{wine.wine_type.type}</span>
+                                          {wine.type && WINE_TYPE_LABELS[wine.type] && (
+                                            <span>{WINE_TYPE_LABELS[wine.type]}</span>
                                           )}
-                                          {wine.wine_type?.type && wine.wine_classification_data?.nom && (
+                                          {wine.type && WINE_TYPE_LABELS[wine.type] && wine.wine_classification_data?.nom && (
                                             <span> - </span>
                                           )}
                                           {wine.wine_classification_data?.nom && (
