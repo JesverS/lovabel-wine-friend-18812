@@ -63,14 +63,13 @@ Deno.serve(async (req) => {
     const wineRegion = domain.region;
     
     // Mapper le type de vin vers la couleur (correspondant à la table wine_type)
+    // Types: 1=rouge, 2=blanc, 5=rosé, 7=autre, 8=effervescent
     const wineTypeMap: { [key: number]: string } = {
       1: 'red',     // rouge
       2: 'white',   // blanc
-      3: 'eff',     // champagne (effervescent)
-      4: 'eff',     // crémant (effervescent)
       5: 'rose',    // rosé
-      6: 'eff',     // prosecco (effervescent)
       7: 'all',     // autre
+      8: 'eff',     // effervescent
     };
     
     const wineColor = wineTypeMap[wine.type] || 'all';

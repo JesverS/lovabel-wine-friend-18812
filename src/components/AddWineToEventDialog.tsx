@@ -14,6 +14,15 @@ import { Plus, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CreateWineInDomainDialog } from './CreateWineInDomainDialog';
 
+// Mapping ID type vers label pour affichage
+const WINE_TYPE_LABELS: Record<number, string> = {
+  1: 'Rouge',
+  2: 'Blanc',
+  5: 'Rosé',
+  7: 'Autre',
+  8: 'Effervescent',
+};
+
 interface AddWineToEventDialogProps {
   eventId: string;
   domainId: string;
@@ -53,7 +62,6 @@ export function AddWineToEventDialog({ eventId, domainId, domainName, onWineAdde
         .select(`
           *,
           domain:domain_id(id, name, logo_url),
-          wine_type:type(id, type),
           wine_classification:wine_classification(id, nom, region)
         `)
         .eq('domain_id', domainId)
@@ -228,8 +236,8 @@ export function AddWineToEventDialog({ eventId, domainId, domainName, onWineAdde
                         {wine.year && (
                           <p className="text-sm text-muted-foreground">{wine.year}</p>
                         )}
-                        {wine.wine_type?.type && (
-                          <p className="text-sm text-muted-foreground capitalize">{wine.wine_type.type}</p>
+                        {wine.type && WINE_TYPE_LABELS[wine.type] && (
+                          <p className="text-sm text-muted-foreground">{WINE_TYPE_LABELS[wine.type]}</p>
                         )}
                         {wine.wine_classification?.nom && (
                           <p className="text-sm text-muted-foreground">{wine.wine_classification.nom}</p>
