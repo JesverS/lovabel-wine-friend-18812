@@ -1,217 +1,342 @@
 
-# Refonte du Design Story Instagram - Style Carte Elegant
+# Plan de Migration : Types de Vins et Appellations
 
-## Resume
+## Resume du Probleme
 
-Transformer le composant `ShareStoryDialog` pour adopter un nouveau design epure inspire de l'image de reference : un fond pastel avec une carte blanche centrale contenant les informations du vin/post. Ajouter un selecteur de 4 couleurs pastel pour personnaliser le fond.
+La base de donnees presente une confusion entre **types de vins** et **appellations** :
 
----
+| Actuel (incorrect) | Correct |
+|-------------------|---------|
+| Type: Champagne | Type: Effervescent, Appellation: Champagne |
+| Type: Cremant | Type: Effervescent, Appellation: Cremant de [Region] |
+| Type: Prosecco | Type: Effervescent, Appellation: Prosecco |
 
-## Analyse du Design de Reference
-
-Le nouveau design comprend :
-
-```text
-+------------------------------------------+
-|  \\ (traits decoratifs)                  |
-|                                          |
-|    +--------------------------------+    |
-|    |     NOM DU VIN (majuscules)   |    |
-|    |     Domaine WineNote          |    |
-|    |                               |    |
-|    |    +--------------------+     |    |
-|    |    |                    |     |    |
-|    |    |   PHOTO/IMAGE      |     |    |
-|    |    |   (grande)         |     |    |
-|    |    |                    |     |    |
-|    |    +--------------------+     |    |
-|    |                               |    |
-|    |         10/10                 |    |
-|    |                               |    |
-|    |  Acidite ====   Tanins ====   |    |
-|    |  Corps   ====   Douceur ===   |    |
-|    |                               |    |
-|    +--------------------------------+    |
-|                                          |
-|          @winenote    (icone verre)      |
-+------------------------------------------+
-```
+**Objectif** : Avoir uniquement 5 types de vins (Rouge, Blanc, Rose, Effervescent, Autre) et introduire une table `appellation` pour les denominations d'origine.
 
 ---
 
-## Modifications Prevues
+## Phase 1 : Preparation de la Base de Donnees
 
-### 1. Nouveau Template Unifie
+### Etape 1.1 : Creer la table `appellation`
 
-Creer un seul template `StoryTemplateCard` qui remplace les 4 templates actuels :
-
-**Caracteristiques :**
-- Fond pastel uni (couleur selectionnable)
-- Traits decoratifs SVG en haut a gauche
-- Carte blanche centree avec ombre douce
-- Image principale : photo du post OU etiquette du vin
-- Nom du vin en majuscules (police serif)
-- Nom du domaine en gris
-- Note en grand format avec slash stylise
-- Barres de degustation compactes en grille 2x2
-- Footer avec @winenote et icone de verre a vin
-
-### 2. Selecteur de Couleurs Pastel
-
-Ajouter 4 options de couleurs pastel :
-
-| Couleur | Code Hex | Description |
-|---------|----------|-------------|
-| Taupe | `#A89F91` | Gris-beige (comme l'image) |
-| Rose | `#D4A5A5` | Rose poudre |
-| Sauge | `#A5B5A5` | Vert sauge |
-| Lavande | `#B5A5C5` | Violet lavande |
-
-Interface : 4 cercles cliquables au-dessus de la preview
-
-### 3. Logique d'Affichage de l'Image
-
-**Priorite d'affichage :**
-1. Si le post a une `image_url` -> Utiliser la photo du post
-2. Sinon si le vin a une `label_url` -> Utiliser l'etiquette du vin
-3. Sinon -> Afficher un placeholder avec icone Wine
-
-### 4. Traits Decoratifs
-
-Ajouter des traits SVG simples en haut a gauche du fond :
-- 3 lignes blanches inclinees
-- Style minimaliste "eclat/rayons"
-
----
-
-## Structure du Code
-
-### Nouveau Composant de Barre de Degustation
-
-```typescript
-const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
-  <div className="space-y-1">
-    <span className="text-xs text-gray-500 italic">{label}</span>
-    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-      <div 
-        className="h-full bg-gray-800 rounded-full"
-        style={{ width: `${(value / 10) * 100}%` }}
-      />
-    </div>
-  </div>
+```sql
+CREATE TABLE public.appellation (
+  id SERIAL PRIMARY KEY,
+  nom VARCHAR(255) NOT NULL UNIQUE,
+  region VARCHAR(255),
+  pays VARCHAR(100) DEFAULT 'France',
+  type_vin_suggere INTEGER REFERENCES wine_type(id),
+  description TEXT,
+  normalized_nom TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Trigger pour la recherche accent-insensitive
+CREATE TRIGGER trg_appellation_normalize_nom
+  BEFORE INSERT OR UPDATE ON appellation
+  FOR EACH ROW
+  EXECUTE FUNCTION appellation_normalize_nom();
+
+-- Index pour la recherche
+CREATE INDEX idx_appellation_normalized_nom ON appellation USING gin(normalized_nom gin_trgm_ops);
 ```
 
-### Template Principal
+### Etape 1.2 : Ajouter le type "Effervescent" a wine_type
 
-```typescript
-const StoryTemplateCard = ({
-  wineName,
-  domainName,
-  imageUrl,      // Photo du post OU etiquette du vin
-  wineNotice,
-  backgroundColor
-}: Props) => (
-  <div style={{ backgroundColor }} className="w-[1080px] h-[1920px] relative">
-    {/* Traits decoratifs */}
-    <DecorativeLines />
-    
-    {/* Carte blanche centrale */}
-    <div className="absolute inset-x-[100px] top-[280px] bottom-[200px] bg-white rounded-3xl shadow-xl p-12">
-      {/* Contenu */}
-    </div>
-    
-    {/* Footer @winenote */}
-    <div className="absolute bottom-16 left-0 right-0 flex justify-center">
-      <span>@winenote</span>
-      <WineGlassIcon />
-    </div>
-  </div>
-);
+```sql
+-- Ajouter le nouveau type Effervescent (id = 8)
+INSERT INTO wine_type (id, type, normalized_type) 
+VALUES (8, 'effervescent', 'effervescent');
 ```
 
-### Interface du Dialog
+### Etape 1.3 : Ajouter la colonne `appellation` a la table `wine`
 
-Ajouter le selecteur de couleurs :
+```sql
+ALTER TABLE wine 
+ADD COLUMN appellation_id INTEGER REFERENCES appellation(id);
 
-```typescript
-const PASTEL_COLORS = [
-  { name: 'Taupe', value: '#A89F91' },
-  { name: 'Rose', value: '#D4A5A5' },
-  { name: 'Sauge', value: '#A5B5A5' },
-  { name: 'Lavande', value: '#B5A5C5' },
-];
-
-// Dans le dialog, avant la preview :
-<div className="flex justify-center gap-3 mb-4">
-  {PASTEL_COLORS.map((color) => (
-    <button
-      key={color.value}
-      onClick={() => setSelectedColor(color.value)}
-      className={cn(
-        "w-8 h-8 rounded-full border-2 transition-all",
-        selectedColor === color.value 
-          ? "border-primary scale-110" 
-          : "border-transparent"
-      )}
-      style={{ backgroundColor: color.value }}
-    />
-  ))}
-</div>
+CREATE INDEX idx_wine_appellation ON wine(appellation_id);
 ```
 
 ---
 
-## Fichiers a Modifier
+## Phase 2 : Migration des Donnees Existantes
+
+### Etape 2.1 : Creer les appellations initiales
+
+```sql
+INSERT INTO appellation (nom, region, pays, type_vin_suggere, description)
+VALUES 
+  ('Champagne', 'Champagne', 'France', 8, 'Appellation d''origine controlee pour les vins effervescents de Champagne'),
+  ('Cremant d''Alsace', 'Alsace', 'France', 8, 'Vin effervescent AOC d''Alsace'),
+  ('Cremant de Bourgogne', 'Bourgogne', 'France', 8, 'Vin effervescent AOC de Bourgogne'),
+  ('Cremant de Loire', 'Loire', 'France', 8, 'Vin effervescent AOC de Loire'),
+  ('Cremant de Bordeaux', 'Bordeaux', 'France', 8, 'Vin effervescent AOC de Bordeaux'),
+  ('Cremant de Limoux', 'Languedoc', 'France', 8, 'Vin effervescent AOC de Limoux'),
+  ('Cremant du Jura', 'Jura', 'France', 8, 'Vin effervescent AOC du Jura'),
+  ('Prosecco', 'Venetie', 'Italie', 8, 'Appellation italienne pour vins effervescents'),
+  ('Cava', 'Catalogne', 'Espagne', 8, 'Appellation espagnole pour vins effervescents'),
+  ('Franciacorta', 'Lombardie', 'Italie', 8, 'Appellation italienne premium'),
+  ('Sekt', 'Allemagne', 'Allemagne', 8, 'Vin mousseux allemand');
+```
+
+### Etape 2.2 : Migrer les vins "Champagne" (type=3)
+
+```sql
+-- Affecter l'appellation Champagne aux vins actuellement de type "champagne"
+UPDATE wine 
+SET appellation_id = (SELECT id FROM appellation WHERE nom = 'Champagne')
+WHERE type = 3;
+
+-- Changer leur type vers "effervescent" (id=8)
+UPDATE wine 
+SET type = 8 
+WHERE type = 3;
+```
+
+### Etape 2.3 : Migrer les vins "Cremant" (type=4)
+
+```sql
+-- Pour simplifier, attribuer "Cremant de Bourgogne" par defaut
+-- (peut etre affine manuellement apres)
+UPDATE wine 
+SET appellation_id = (SELECT id FROM appellation WHERE nom = 'Cremant de Bourgogne')
+WHERE type = 4;
+
+-- Changer leur type vers "effervescent"
+UPDATE wine 
+SET type = 8 
+WHERE type = 4;
+```
+
+### Etape 2.4 : Migrer les vins "Prosecco" (type=6) si existants
+
+```sql
+UPDATE wine 
+SET appellation_id = (SELECT id FROM appellation WHERE nom = 'Prosecco')
+WHERE type = 6;
+
+UPDATE wine 
+SET type = 8 
+WHERE type = 6;
+```
+
+---
+
+## Phase 3 : Nettoyage de la Table wine_type
+
+### Etape 3.1 : Supprimer les anciens types devenus obsoletes
+
+```sql
+-- Supprimer les types qui sont maintenant des appellations
+-- ATTENTION: S'assurer qu'aucun vin ne reference plus ces types
+DELETE FROM wine_type WHERE id IN (3, 4, 6);
+```
+
+**Etat final de wine_type :**
+
+| id | type |
+|----|------|
+| 1 | rouge |
+| 2 | blanc |
+| 5 | rose |
+| 8 | effervescent |
+| 7 | autre |
+
+---
+
+## Phase 4 : Modifications du Code Frontend
+
+### Fichiers a Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/components/ShareStoryDialog.tsx` | Refonte complete du design |
+| `CreateWineForGameDialog.tsx` | Remplacer types hardcodes, ajouter select appellation |
+| `AddWineToDomainDialog.tsx` | Ajouter select type + appellation |
+| `AddWineDialog.tsx` | Ajouter select type + appellation |
+| `CreateWineForPostDialog.tsx` | Ajouter select type + appellation |
+| `CreateWineInDomainDialog.tsx` | Ajouter select type + appellation |
+| `WineSearchFilter.tsx` | Ajouter filtre par appellation |
+| `CellarCatalog.tsx` | Afficher appellation, ajouter filtre |
+| Queries avec `wine_type:type(type)` | Ajouter `appellation:appellation_id(nom, region)` |
+
+### Composant Reutilisable a Creer
+
+```typescript
+// src/components/wine/AppellationSelect.tsx
+interface AppellationSelectProps {
+  value: number | null;
+  onChange: (id: number | null) => void;
+  wineTypeId?: number; // Pour filtrer les appellations par type de vin
+  allowCreate?: boolean; // Pour permettre la creation d'une nouvelle appellation
+}
+```
+
+### Logique de Selection Type/Appellation
+
+1. L'utilisateur selectionne d'abord le **type de vin** (Rouge, Blanc, Rose, Effervescent, Autre)
+2. Si le type est "Effervescent", proposer la liste des appellations effervescentes (Champagne, Cremant, Prosecco, etc.)
+3. Pour tous les types, permettre de selectionner une appellation optionnelle
+4. Ajouter un bouton "Creer une appellation" si elle n'existe pas
 
 ---
 
-## Details Techniques
+## Phase 5 : Fonctionnalite de Creation d'Appellation
 
-### Dimensions (format Story 9:16)
-- Canvas : 1080 x 1920 pixels
-- Carte blanche : ~880px large, ~1400px haut
-- Padding carte : 48-60px
-- Image principale : ~700px x ~700px (carre ou ratio original)
+### Nouveau Composant Dialog
 
-### Typographie
-- Nom du vin : Serif, majuscules, ~48px
-- Domaine : Sans-serif, gris, ~24px
-- Note : ~80px pour le chiffre, ~40px pour "/10"
-- Labels barres : Italique, gris, ~16px
+```typescript
+// src/components/wine/CreateAppellationDialog.tsx
+interface CreateAppellationDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAppellationCreated: (appellation: any) => void;
+  initialName?: string;
+  suggestedType?: number;
+}
+```
 
-### Couleurs de la Carte
-- Fond carte : `#FFFFFF`
-- Texte principal : `#1a1a1a`
-- Texte secondaire : `#666666`
-- Barres remplies : `#1a1a1a`
-- Barres vides : `#e5e5e5`
-- Separateur : `#e5e5e5`
+### Champs du Formulaire
 
----
-
-## Gestion des Cas
-
-| Type de Post | Image Affichee | Notes Affichees |
-|--------------|----------------|-----------------|
-| Degustation avec photo | Photo du post | Oui |
-| Degustation sans photo | Etiquette du vin | Oui |
-| Post avec photo (sans notes) | Photo du post | Non |
-| Post avec vin (sans photo ni notes) | Etiquette du vin | Non |
-| Post texte seul | Placeholder Wine | Non |
+- **Nom** (obligatoire) : ex. "Cotes du Rhone"
+- **Region** (optionnel) : ex. "Rhone"
+- **Pays** (defaut: France)
+- **Type de vin suggere** (optionnel) : pour filtrer les appellations
 
 ---
 
-## Resume des Changements
+## Resume des Migrations SQL
 
-1. **Supprimer** les 4 templates actuels (Tasting, Photo, Quote, Wine)
-2. **Creer** un seul template `StoryTemplateCard` avec le nouveau design
-3. **Ajouter** un state `selectedColor` pour la couleur de fond
-4. **Ajouter** le selecteur de 4 couleurs pastel dans le dialog
-5. **Modifier** la logique pour prioriser la photo du post sur l'etiquette du vin
-6. **Ajouter** les traits decoratifs SVG en haut a gauche
-7. **Adapter** les barres de degustation au nouveau style (noir sur gris clair)
+### Migration 1 : Structure
+
+```sql
+-- 1. Creer fonction de normalisation
+CREATE OR REPLACE FUNCTION public.appellation_normalize_nom()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public', 'extensions'
+AS $$
+BEGIN
+  NEW.normalized_nom := extensions.unaccent(lower(NEW.nom));
+  RETURN NEW;
+END;
+$$;
+
+-- 2. Creer table appellation
+CREATE TABLE public.appellation (
+  id SERIAL PRIMARY KEY,
+  nom VARCHAR(255) NOT NULL UNIQUE,
+  region VARCHAR(255),
+  pays VARCHAR(100) DEFAULT 'France',
+  type_vin_suggere INTEGER REFERENCES wine_type(id),
+  description TEXT,
+  normalized_nom TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Trigger
+CREATE TRIGGER trg_appellation_normalize_nom
+  BEFORE INSERT OR UPDATE ON appellation
+  FOR EACH ROW
+  EXECUTE FUNCTION appellation_normalize_nom();
+
+-- 4. Index
+CREATE INDEX idx_appellation_normalized_nom 
+  ON appellation USING gin(normalized_nom extensions.gin_trgm_ops);
+
+-- 5. Ajouter type effervescent
+INSERT INTO wine_type (id, type, normalized_type) 
+VALUES (8, 'effervescent', 'effervescent')
+ON CONFLICT (id) DO NOTHING;
+
+-- 6. Ajouter colonne appellation a wine
+ALTER TABLE wine 
+ADD COLUMN appellation_id INTEGER REFERENCES appellation(id);
+
+CREATE INDEX idx_wine_appellation ON wine(appellation_id);
+
+-- 7. RLS pour appellation (lecture publique, ecriture authentifie)
+ALTER TABLE appellation ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Appellations visibles par tous" 
+  ON appellation FOR SELECT USING (true);
+
+CREATE POLICY "Utilisateurs authentifies peuvent creer des appellations"
+  ON appellation FOR INSERT 
+  WITH CHECK (auth.uid() IS NOT NULL);
+```
+
+### Migration 2 : Donnees
+
+```sql
+-- Inserer les appellations principales
+INSERT INTO appellation (nom, region, pays, type_vin_suggere, description) VALUES
+  ('Champagne', 'Champagne', 'France', 8, 'AOC Champagne'),
+  ('Cremant de Bourgogne', 'Bourgogne', 'France', 8, 'AOC Cremant de Bourgogne'),
+  ('Cremant d''Alsace', 'Alsace', 'France', 8, 'AOC Cremant d''Alsace'),
+  ('Cremant de Loire', 'Loire', 'France', 8, 'AOC Cremant de Loire'),
+  ('Prosecco', 'Venetie', 'Italie', 8, 'DOC/DOCG Prosecco'),
+  ('Cava', 'Catalogne', 'Espagne', 8, 'DO Cava');
+
+-- Migrer les vins champagne -> effervescent + appellation champagne
+UPDATE wine 
+SET 
+  appellation_id = (SELECT id FROM appellation WHERE nom = 'Champagne'),
+  type = 8
+WHERE type = 3;
+
+-- Migrer les vins cremant -> effervescent + appellation cremant
+UPDATE wine 
+SET 
+  appellation_id = (SELECT id FROM appellation WHERE nom = 'Cremant de Bourgogne'),
+  type = 8
+WHERE type = 4;
+
+-- Migrer les vins prosecco (si existants)
+UPDATE wine 
+SET 
+  appellation_id = (SELECT id FROM appellation WHERE nom = 'Prosecco'),
+  type = 8
+WHERE type = 6;
+```
+
+### Migration 3 : Nettoyage (A EXECUTER APRES VERIFICATION)
+
+```sql
+-- Supprimer les anciens types devenus obsoletes
+-- UNIQUEMENT apres avoir verifie que plus aucun vin ne les utilise
+DELETE FROM wine_type WHERE id IN (3, 4, 6);
+```
+
+---
+
+## Ordre d'Execution Recommande
+
+1. **Migration 1** : Creer la structure (table appellation, colonne wine.appellation_id)
+2. **Migration 2** : Migrer les donnees existantes
+3. **Verification** : S'assurer que tous les vins champagne/cremant/prosecco ont ete migres
+4. **Code Frontend** : Modifier les formulaires et affichages
+5. **Tests** : Verifier que tout fonctionne
+6. **Migration 3** : Supprimer les anciens types (optionnel, peut etre fait plus tard)
+
+---
+
+## Risques et Precautions
+
+| Risque | Mitigation |
+|--------|------------|
+| Perte de donnees d'appellation | Migration preserve les infos avant de changer le type |
+| Formulaires casses | Les anciennes valeurs (3, 4, 6) continueront a fonctionner jusqu'a la suppression |
+| Recherche cassee | Les fonctions RPC doivent etre mises a jour pour inclure appellation |
+| Types hardcodes dans le code | Mise a jour progressive des composants |
+
+---
+
+## Impact sur les Fonctionnalites
+
+- **Recherche de vins** : Pourra filtrer par type ET par appellation
+- **Jeu de degustation** : Affichera le bon type + appellation
+- **Cave virtuelle** : Filtres ameliores
+- **Posts et degustations** : Information plus precise
+
+Ce plan est concu pour etre execute en plusieurs etapes sans casser l'existant.
