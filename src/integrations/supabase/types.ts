@@ -2925,7 +2925,7 @@ export type Database = {
           name: string
           normalized_name: string | null
           price: number | null
-          type: number | null
+          type: string | null
           updated_at: string | null
           volume_ml: number | null
           website_order_url: string | null
@@ -2946,7 +2946,7 @@ export type Database = {
           name: string
           normalized_name?: string | null
           price?: number | null
-          type?: number | null
+          type?: string | null
           updated_at?: string | null
           volume_ml?: number | null
           website_order_url?: string | null
@@ -2967,7 +2967,7 @@ export type Database = {
           name?: string
           normalized_name?: string | null
           price?: number | null
-          type?: number | null
+          type?: string | null
           updated_at?: string | null
           volume_ml?: number | null
           website_order_url?: string | null
@@ -2987,13 +2987,6 @@ export type Database = {
             columns: ["mode_culture"]
             isOneToOne: false
             referencedRelation: "mode_culture"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wine_type_fkey"
-            columns: ["type"]
-            isOneToOne: false
-            referencedRelation: "wine_type"
             referencedColumns: ["id"]
           },
           {
@@ -3433,20 +3426,10 @@ export type Database = {
       search_wines: {
         Args: { query: string }
         Returns: {
-          alcohol_percentage: number
-          characteristics: Json
-          created_at: string
-          description: string
           domain: Json
-          domain_id: string
           id: string
           label_url: string
           name: string
-          price: number
-          updated_at: string
-          volume_ml: number
-          website_order_url: string
-          wine_classification: Json
           wine_type: Json
           year: number
         }[]
@@ -3454,11 +3437,12 @@ export type Database = {
       search_wines_game: {
         Args: { query: string }
         Returns: {
-          domain_name: string
+          domain: Json
           id: string
-          similarity_score: number
-          wine_name: string
-          wine_year: number
+          label_url: string
+          name: string
+          wine_type: Json
+          year: number
         }[]
       }
       unlock_next_lesson: { Args: { p_user_id: string }; Returns: number }
