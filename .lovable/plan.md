@@ -1,129 +1,109 @@
 
 
-# Optimisation du Carré Blanc et Troncature Dynamique des Textes
+# Correction du Problème de Capture d'Image
 
-## Objectif
+## Problème Identifié
 
-Resserrer les éléments du carré blanc pour réduire sa taille et ajouter une troncature dynamique pour les textes longs (nom du vin, domaine, contenu du post).
+Le `ref` est actuellement attaché à un élément qui a une transformation CSS `scale(0.25)` appliquée pour l'aperçu. Quand `html2canvas` capture cet élément :
+- Il voit un élément de 1080x1920px transformé à 25%
+- Mais les options `width: 1080, height: 1920` forcent un canvas de cette taille
+- Résultat : une grande image blanche avec le contenu minuscule dans un coin
 
----
-
-## Modifications à Apporter
-
-### 1. Réduction des Espacements du Carré Blanc
-
-**État actuel :**
-- Padding : `60px`
-- Position : `top: 200px`, `bottom: 160px`
-- Marges internes : `mb-8`, `mb-6`
-
-**Nouvelles valeurs :**
-- Padding : `48px`
-- Position : `top: 240px`, `bottom: 200px`
-- Marges internes réduites : `mb-6` → `mb-4`, `mb-8` → `mb-5`
-
-### 2. Troncature Dynamique des Textes
-
-| Élément | Limite | Style CSS |
-|---------|--------|-----------|
-| Nom du vin | 2 lignes max | `line-clamp-2` + `overflow: hidden` |
-| Nom du domaine | 1 ligne max | `truncate` (ellipsis) |
-| Contenu/citation | 3 lignes max | `line-clamp-3` + `overflow: hidden` |
-
-**Technique utilisée :**
-- CSS `display: -webkit-box` avec `-webkit-line-clamp`
-- Fallback avec `overflow: hidden` et `text-overflow: ellipsis`
-
----
-
-## Détails Techniques
-
-### Styles de Troncature à Ajouter
-
-```tsx
-// Nom du vin - 2 lignes max
-<h2 
-  className="text-gray-900 font-serif uppercase tracking-wide leading-tight"
-  style={{ 
-    fontSize: '48px', 
-    fontWeight: 600,
-    display: '-webkit-box',
-    WebkitLineClamp: 2,
-    WebkitBoxOrient: 'vertical',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  }}
->
-  {wineName}
-</h2>
-
-// Domaine - 1 ligne avec ellipsis
-<p 
-  className="text-gray-500 mt-2 truncate"
-  style={{ 
-    fontSize: '26px',
-    maxWidth: '100%',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  }}
->
-  {domainName}
-</p>
-
-// Citation/contenu - 3 lignes max
-<p 
-  style={{ 
-    fontSize: '24px',
-    display: '-webkit-box',
-    WebkitLineClamp: 3,
-    WebkitBoxOrient: 'vertical',
-    overflow: 'hidden',
-  }}
->
-  "{content}"
-</p>
+```
+┌─────────────────────────────────┐
+│ ┌──────┐                        │
+│ │Story │  ← Contenu à 25%       │
+│ │ mini │                        │
+│ └──────┘                        │
+│                                 │
+│        Grande zone blanche      │
+│                                 │
+└─────────────────────────────────┘
 ```
 
-### Valeurs de Positionnement Révisées
+## Solution
+
+Séparer le conteneur de capture du conteneur d'aperçu :
+
+1. Créer un conteneur caché (hors écran) contenant le template à taille réelle (1080x1920)
+2. Le `ref` pointe vers ce conteneur caché
+3. L'aperçu visible reste avec `scale(0.25)` mais sans le `ref`
+
+---
+
+## Modifications Techniques
+
+### Structure Actuelle (Problématique)
 
 ```tsx
+<div 
+  ref={storyRef}  // ← ref sur l'élément transformé
+  style={{ transform: 'scale(0.25)' }}  // ← problème!
+>
+  <StoryTemplateCard ... />
+</div>
+```
+
+### Nouvelle Structure (Corrigée)
+
+```tsx
+{/* Conteneur caché pour capture - taille réelle, hors écran */}
 <div
-  className="absolute bg-white rounded-[48px] flex flex-col"
+  ref={storyRef}
   style={{
-    left: '80px',
-    right: '80px',
-    top: '240px',      // Avant: 200px
-    bottom: '200px',   // Avant: 160px  
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-    padding: '48px',   // Avant: 60px
+    position: 'fixed',
+    left: '-9999px',
+    top: '-9999px',
+    width: '1080px',
+    height: '1920px',
+    pointerEvents: 'none',
+    zIndex: -1,
   }}
 >
+  <StoryTemplateCard ... />
+</div>
+
+{/* Aperçu visible - transformé pour affichage */}
+<div style={{ transform: 'scale(0.25)' }}>
+  <StoryTemplateCard ... />  {/* Même composant, sans ref */}
+</div>
 ```
 
-### Réduction des Espacements Internes
+### Mise à Jour de generateImage
 
-| Élément | Avant | Après |
-|---------|-------|-------|
-| Header (mb) | `mb-8` | `mb-5` |
-| Separator (mb) | `mb-8` | `mb-5` |
-| Image container (mb) | `mb-6` | `mb-4` |
-| Content quote (mb) | `mb-6` | `mb-4` |
-| Rating (mb) | `mb-6` | `mb-4` |
-| Tasting grid (mt) | `mt-4` | `mt-3` |
+Supprimer les options `width` et `height` qui forcent une taille incorrecte :
+
+```tsx
+const generateImage = async (): Promise<Blob | null> => {
+  if (!storyRef.current) return null;
+  try {
+    const canvas = await html2canvas(storyRef.current, { 
+      scale: 1, 
+      useCORS: true, 
+      allowTaint: true, 
+      backgroundColor: null,
+      // width et height supprimés - html2canvas prendra les dimensions naturelles
+      logging: false 
+    });
+    return new Promise((resolve) => { 
+      canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0); 
+    });
+  } catch (error) { 
+    console.error('Erreur génération image:', error); 
+    return null; 
+  }
+};
+```
 
 ---
 
-## Résumé des Changements
+## Résultat Attendu
 
-| Élément | Modification |
-|---------|--------------|
-| Carré blanc | Plus compact (-12px padding, +40px top, +40px bottom) |
-| Nom du vin | Max 2 lignes + "..." + taille réduite à 48px |
-| Domaine | Max 1 ligne + "..." + taille réduite à 26px |
-| Citation | Max 3 lignes + "..." + taille réduite à 24px |
-| Note | Taille réduite à 64px |
-| Espacements | Tous réduits d'environ 20-30% |
+| Avant | Après |
+|-------|-------|
+| Image 1080x1920 avec contenu à 25% | Image 1080x1920 avec contenu plein format |
+| Grande zone blanche | Pas de zone blanche |
+| Qualité dégradée | Qualité optimale |
 
 ---
 
