@@ -115,10 +115,10 @@ const StoryTemplateCard = ({
       style={{
         left: '80px',
         right: '80px',
-        top: '240px',
-        bottom: '200px',
+        top: '280px',
+        bottom: '240px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-        padding: '48px',
+        padding: '40px',
       }}
     >
       {/* Wine name and domain */}
@@ -163,12 +163,12 @@ const StoryTemplateCard = ({
             src={imageUrl} 
             alt={wineName}
             className="max-w-full max-h-full object-contain rounded-2xl"
-            style={{ maxHeight: migratedNotice ? '450px' : '550px' }}
+            style={{ maxHeight: migratedNotice ? '520px' : '650px' }}
           />
         ) : (
           <div 
             className="bg-gray-100 rounded-2xl flex items-center justify-center"
-            style={{ width: '400px', height: migratedNotice ? '350px' : '450px' }}
+            style={{ width: '400px', height: migratedNotice ? '420px' : '550px' }}
           >
             <Wine className="w-32 h-32 text-gray-300" />
           </div>
