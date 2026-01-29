@@ -58,7 +58,7 @@ const STORY_COLORS = [
 
 // Tasting bar component
 const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
-  <div style={{ marginBottom: "8px" }}>
+  <div style={{ marginBottom: "8px", backgroundColor: "#FFFFFF" }}>
     <span
       style={{
         color: "#6B7280",
@@ -66,6 +66,7 @@ const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
         fontStyle: "italic",
         display: "block",
         marginBottom: "8px",
+        backgroundColor: "#FFFFFF",
       }}
     >
       {label}
@@ -90,7 +91,7 @@ const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
   </div>
 );
 
-// Story Template - dimensions fixes, pas de flex dynamique
+// Story Template - NO FLEXBOX, only fixed positioning
 const StoryTemplateCard = ({
   wineName,
   domainName,
@@ -114,13 +115,6 @@ const StoryTemplateCard = ({
   const isLightBackground = backgroundColor === "#C9A227" || backgroundColor === "#F5F0E8";
   const footerTextColor = isLightBackground ? "#1A1A1A" : "#FFFFFF";
 
-  // Dimensions fixes
-  const CARD_LEFT = 80;
-  const CARD_WIDTH = 920; // 1080 - 80*2
-  const CARD_TOP = 200;
-  const CARD_BOTTOM = 180;
-  const CARD_HEIGHT = 1920 - CARD_TOP - CARD_BOTTOM; // 1540px
-
   return (
     <div
       style={{
@@ -131,153 +125,177 @@ const StoryTemplateCard = ({
         overflow: "hidden",
       }}
     >
-      {/* White card - position absolute mais bien contenue */}
+      {/* White card - fond blanc explicite sur TOUT */}
       <div
         style={{
           position: "absolute",
-          left: `${CARD_LEFT}px`,
-          top: `${CARD_TOP}px`,
-          width: `${CARD_WIDTH}px`,
-          height: `${CARD_HEIGHT}px`,
+          left: "80px",
+          top: "200px",
+          width: "920px",
+          height: "1540px",
           backgroundColor: "#FFFFFF",
           borderRadius: "48px",
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)",
-          padding: "48px",
-          boxSizing: "border-box",
-          display: "flex",
-          flexDirection: "column",
           overflow: "hidden",
         }}
       >
-        {/* Wine name */}
-        <div style={{ textAlign: "center", marginBottom: "16px" }}>
-          <h2
-            style={{
-              fontFamily: "Georgia, Times, serif",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              lineHeight: 1.1,
-              fontSize: "52px",
-              fontWeight: 700,
-              color: "#111827",
-              margin: 0,
-              wordBreak: "break-word",
-            }}
-          >
-            {wineName}
-          </h2>
-          {domainName && (
-            <p
-              style={{
-                fontSize: "28px",
-                color: "#6B7280",
-                margin: "12px 0 0 0",
-              }}
-            >
-              {domainName}
-            </p>
-          )}
-        </div>
-
-        {/* Separator */}
+        {/* Inner content with padding - fond blanc aussi */}
         <div
           style={{
-            width: "100px",
-            height: "3px",
-            backgroundColor: "#D1D5DB",
-            margin: "0 auto 24px auto",
-          }}
-        />
-
-        {/* Main image */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "300px",
-            maxHeight: migratedNotice ? "550px" : "750px",
-            marginBottom: "20px",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            padding: "48px",
+            backgroundColor: "#FFFFFF",
           }}
         >
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={wineName}
-              crossOrigin="anonymous"
+          {/* Wine name */}
+          <div
+            style={{
+              textAlign: "center",
+              marginBottom: "16px",
+              backgroundColor: "#FFFFFF",
+            }}
+          >
+            <h2
               style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-                borderRadius: "16px",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "350px",
-                height: "350px",
-                backgroundColor: "#F3F4F6",
-                borderRadius: "16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                fontFamily: "Georgia, Times, serif",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                lineHeight: 1.1,
+                fontSize: "52px",
+                fontWeight: 700,
+                color: "#111827",
+                margin: 0,
+                wordBreak: "break-word",
+                backgroundColor: "#FFFFFF",
               }}
             >
-              <Wine style={{ width: "120px", height: "120px", color: "#D1D5DB" }} />
+              {wineName}
+            </h2>
+            {domainName && (
+              <p
+                style={{
+                  fontSize: "28px",
+                  color: "#6B7280",
+                  margin: "12px 0 0 0",
+                  backgroundColor: "#FFFFFF",
+                }}
+              >
+                {domainName}
+              </p>
+            )}
+          </div>
+
+          {/* Separator */}
+          <div
+            style={{
+              width: "100px",
+              height: "3px",
+              backgroundColor: "#D1D5DB",
+              margin: "0 auto 24px auto",
+            }}
+          />
+
+          {/* Main image container - hauteur fixe */}
+          <div
+            style={{
+              height: migratedNotice ? "550px" : "850px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "20px",
+              backgroundColor: "#FFFFFF",
+            }}
+          >
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={wineName}
+                crossOrigin="anonymous"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  objectFit: "contain",
+                  borderRadius: "16px",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "350px",
+                  height: "350px",
+                  backgroundColor: "#F3F4F6",
+                  borderRadius: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Wine style={{ width: "120px", height: "120px", color: "#D1D5DB" }} />
+              </div>
+            )}
+          </div>
+
+          {/* Content quote */}
+          {content && (
+            <p
+              style={{
+                textAlign: "center",
+                fontStyle: "italic",
+                lineHeight: 1.5,
+                marginBottom: "16px",
+                fontSize: "32px",
+                color: "#4B5563",
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              "{content}"
+            </p>
+          )}
+
+          {/* Rating and tasting bars */}
+          {migratedNotice && (
+            <div style={{ backgroundColor: "#FFFFFF" }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  marginBottom: "16px",
+                  backgroundColor: "#FFFFFF",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "72px",
+                    lineHeight: 1,
+                    color: "#111827",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {migratedNotice.rating}
+                </span>
+                <span style={{ fontSize: "48px", color: "#9CA3AF" }}>/10</span>
+              </div>
+
+              {/* Tasting bars - 2x2 grid avec fond blanc */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "16px 32px",
+                  backgroundColor: "#FFFFFF",
+                }}
+              >
+                <TastingBarCard label={sliders.slot1.label} value={migratedNotice.slot1} />
+                <TastingBarCard label={sliders.slot2.label} value={migratedNotice.slot2} />
+                <TastingBarCard label={sliders.slot3.label} value={migratedNotice.slot3} />
+                <TastingBarCard label={sliders.slot4.label} value={migratedNotice.slot4} />
+              </div>
             </div>
           )}
         </div>
-
-        {/* Content quote */}
-        {content && (
-          <p
-            style={{
-              textAlign: "center",
-              fontStyle: "italic",
-              lineHeight: 1.5,
-              marginBottom: "16px",
-              fontSize: "32px",
-              color: "#4B5563",
-            }}
-          >
-            "{content}"
-          </p>
-        )}
-
-        {/* Rating and tasting bars */}
-        {migratedNotice && (
-          <div>
-            <div style={{ textAlign: "center", marginBottom: "16px" }}>
-              <span
-                style={{
-                  fontSize: "72px",
-                  lineHeight: 1,
-                  color: "#111827",
-                  fontWeight: "bold",
-                }}
-              >
-                {migratedNotice.rating}
-              </span>
-              <span style={{ fontSize: "48px", color: "#9CA3AF" }}>/10</span>
-            </div>
-
-            {/* Tasting bars - 2 colonnes */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "16px 32px",
-              }}
-            >
-              <TastingBarCard label={sliders.slot1.label} value={migratedNotice.slot1} />
-              <TastingBarCard label={sliders.slot2.label} value={migratedNotice.slot2} />
-              <TastingBarCard label={sliders.slot3.label} value={migratedNotice.slot3} />
-              <TastingBarCard label={sliders.slot4.label} value={migratedNotice.slot4} />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Footer */}
@@ -324,10 +342,9 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryD
     if (!storyRef.current) return null;
 
     try {
-      // Import dynamique de html2canvas
       const html2canvas = (await import("html2canvas")).default;
 
-      // Créer un conteneur temporaire DANS le body, visible
+      // Créer un conteneur temporaire visible
       const tempContainer = document.createElement("div");
       tempContainer.style.cssText = `
         position: fixed;
@@ -336,27 +353,23 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryD
         width: 1080px;
         height: 1920px;
         z-index: 999999;
-        background: ${selectedColor};
+        background-color: ${selectedColor};
         overflow: hidden;
       `;
 
       // Cloner le contenu
-      const clone = storyRef.current.cloneNode(true) as HTMLElement;
-      clone.style.cssText = `
-        position: relative;
-        left: 0;
-        top: 0;
-        width: 1080px;
-        height: 1920px;
-        visibility: visible;
-        opacity: 1;
-      `;
+      const clone = storyRef.current.firstElementChild?.cloneNode(true) as HTMLElement;
+      if (clone) {
+        clone.style.position = "relative";
+        clone.style.left = "0";
+        clone.style.top = "0";
+        tempContainer.appendChild(clone);
+      }
 
-      tempContainer.appendChild(clone);
       document.body.appendChild(tempContainer);
 
-      // Attendre le rendu
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Attendre le rendu complet
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Capturer
       const canvas = await html2canvas(tempContainer, {
