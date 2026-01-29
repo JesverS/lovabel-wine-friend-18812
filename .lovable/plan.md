@@ -1,136 +1,129 @@
 
 
-# Modifications du Template Story Instagram
+# Optimisation du Carré Blanc et Troncature Dynamique des Textes
 
 ## Objectif
 
-Améliorer le visuel des stories Instagram générées pour :
-1. Supprimer les traits décoratifs
-2. Afficher le texte du post en dessous de la photo
-3. Utiliser les couleurs de l'application pour la cohérence visuelle
+Resserrer les éléments du carré blanc pour réduire sa taille et ajouter une troncature dynamique pour les textes longs (nom du vin, domaine, contenu du post).
 
 ---
 
 ## Modifications à Apporter
 
-### 1. Suppression des Traits Décoratifs
+### 1. Réduction des Espacements du Carré Blanc
 
-**Fichier** : `src/components/ShareStoryDialog.tsx`
+**État actuel :**
+- Padding : `60px`
+- Position : `top: 200px`, `bottom: 160px`
+- Marges internes : `mb-8`, `mb-6`
 
-- Supprimer le composant `DecorativeLines` (lignes 67-80)
-- Supprimer l'appel `<DecorativeLines />` dans `StoryTemplateCard` (ligne 123)
+**Nouvelles valeurs :**
+- Padding : `48px`
+- Position : `top: 240px`, `bottom: 200px`
+- Marges internes réduites : `mb-6` → `mb-4`, `mb-8` → `mb-5`
 
-### 2. Afficher le Texte en Dessous de la Photo
+### 2. Troncature Dynamique des Textes
 
-**Modification du layout** dans `StoryTemplateCard` :
+| Élément | Limite | Style CSS |
+|---------|--------|-----------|
+| Nom du vin | 2 lignes max | `line-clamp-2` + `overflow: hidden` |
+| Nom du domaine | 1 ligne max | `truncate` (ellipsis) |
+| Contenu/citation | 3 lignes max | `line-clamp-3` + `overflow: hidden` |
 
-Actuellement le texte (`content`) n'est affiché que si `!wineNotice`. Changer pour :
-- Afficher le texte `content` **toujours** après l'image (s'il existe)
-- Positionner avant la note et les sliders de dégustation
+**Technique utilisée :**
+- CSS `display: -webkit-box` avec `-webkit-line-clamp`
+- Fallback avec `overflow: hidden` et `text-overflow: ellipsis`
 
-**Nouveau flux visuel :**
-```
-┌─────────────────────────┐
-│      Nom du Vin         │
-│       Domaine           │
-├─────────────────────────┤
-│                         │
-│        [Photo]          │
-│                         │
-├─────────────────────────┤
-│   "Texte du post..."    │  ← NOUVEAU : toujours affiché si présent
-├─────────────────────────┤
-│         8.5/10          │
-│  [Sliders dégustation]  │
-└─────────────────────────┘
-```
-
-### 3. Nouvelles Couleurs de Fond
-
-Remplacer les couleurs pastel par les couleurs de la charte :
-
-| Ancienne | Nouvelle | Description |
-|----------|----------|-------------|
-| Taupe #A89F91 | **#6A1B2B** | Bordeaux (Primary) |
-| Rose #D4A5A5 | **#8B2438** | Bordeaux Clair (Primary Light) |
-| Sauge #A5B5A5 | **#C9A227** | Or (Secondary) |
-| Lavande #B5A5C5 | **#1A1A1A** | Noir Élégant (Slate) |
-
-**Code mis à jour :**
-```typescript
-const STORY_COLORS = [
-  { name: 'Bordeaux', value: '#6A1B2B' },
-  { name: 'Bordeaux Clair', value: '#8B2438' },
-  { name: 'Or', value: '#C9A227' },
-  { name: 'Noir', value: '#1A1A1A' },
-];
-```
-Ajout une 5eme couleur un beige claire comme sur le site 
 ---
 
 ## Détails Techniques
 
-### Structure Modifiée de StoryTemplateCard
+### Styles de Troncature à Ajouter
 
 ```tsx
-const StoryTemplateCard = ({ ... }) => {
-  return (
-    <div style={{ backgroundColor }}>
-      {/* SUPPRIMÉ : DecorativeLines */}
-      
-      <div className="white-card">
-        {/* Nom et domaine */}
-        <h2>{wineName}</h2>
-        <p>{domainName}</p>
-        
-        {/* Séparateur */}
-        <div className="separator" />
-        
-        {/* Image */}
-        <div className="image-container">
-          <img src={imageUrl} />
-        </div>
-        
-        {/* NOUVEAU : Texte toujours affiché */}
-        {content && (
-          <p className="quote">"{content}"</p>
-        )}
-        
-        {/* Note et sliders (si wine_notice) */}
-        {migratedNotice && (
-          <>
-            <div className="rating">{rating}/10</div>
-            <div className="sliders-grid">...</div>
-          </>
-        )}
-      </div>
-      
-      {/* Footer @winenote */}
-    </div>
-  );
-};
+// Nom du vin - 2 lignes max
+<h2 
+  className="text-gray-900 font-serif uppercase tracking-wide leading-tight"
+  style={{ 
+    fontSize: '48px', 
+    fontWeight: 600,
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  }}
+>
+  {wineName}
+</h2>
+
+// Domaine - 1 ligne avec ellipsis
+<p 
+  className="text-gray-500 mt-2 truncate"
+  style={{ 
+    fontSize: '26px',
+    maxWidth: '100%',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  }}
+>
+  {domainName}
+</p>
+
+// Citation/contenu - 3 lignes max
+<p 
+  style={{ 
+    fontSize: '24px',
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  }}
+>
+  "{content}"
+</p>
 ```
 
-### Ajustements de Couleur du Texte Footer
+### Valeurs de Positionnement Révisées
 
-Pour les couleurs sombres (Bordeaux, Noir), le texte blanc reste lisible.
-Pour la couleur Or (#C9A227), le texte devra être noir pour le contraste :
-
-```typescript
-const isLightBackground = backgroundColor === '#C9A227';
-const footerTextColor = isLightBackground ? '#1A1A1A' : '#FFFFFF';
+```tsx
+<div
+  className="absolute bg-white rounded-[48px] flex flex-col"
+  style={{
+    left: '80px',
+    right: '80px',
+    top: '240px',      // Avant: 200px
+    bottom: '200px',   // Avant: 160px  
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+    padding: '48px',   // Avant: 60px
+  }}
+>
 ```
+
+### Réduction des Espacements Internes
+
+| Élément | Avant | Après |
+|---------|-------|-------|
+| Header (mb) | `mb-8` | `mb-5` |
+| Separator (mb) | `mb-8` | `mb-5` |
+| Image container (mb) | `mb-6` | `mb-4` |
+| Content quote (mb) | `mb-6` | `mb-4` |
+| Rating (mb) | `mb-6` | `mb-4` |
+| Tasting grid (mt) | `mt-4` | `mt-3` |
 
 ---
 
 ## Résumé des Changements
 
-| Élément | Avant | Après |
-|---------|-------|-------|
-| Traits décoratifs | 3 lignes SVG | Supprimés |
-| Position du texte | Seulement si pas de note | Toujours sous la photo |
-| Couleurs | Pastel (Taupe, Rose, Sauge, Lavande) | Charte app (Bordeaux, Or, Noir) |
-| Footer | Toujours blanc | Adaptatif selon fond |
+| Élément | Modification |
+|---------|--------------|
+| Carré blanc | Plus compact (-12px padding, +40px top, +40px bottom) |
+| Nom du vin | Max 2 lignes + "..." + taille réduite à 48px |
+| Domaine | Max 1 ligne + "..." + taille réduite à 26px |
+| Citation | Max 3 lignes + "..." + taille réduite à 24px |
+| Note | Taille réduite à 64px |
+| Espacements | Tous réduits d'environ 20-30% |
 
 ---
 
