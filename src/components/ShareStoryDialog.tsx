@@ -57,27 +57,13 @@ interface ShareStoryDialogProps {
   author?: Author | null;
 }
 
-const PASTEL_COLORS = [
-  { name: 'Taupe', value: '#A89F91' },
-  { name: 'Rose', value: '#D4A5A5' },
-  { name: 'Sauge', value: '#A5B5A5' },
-  { name: 'Lavande', value: '#B5A5C5' },
+const STORY_COLORS = [
+  { name: 'Bordeaux', value: '#6A1B2B' },
+  { name: 'Bordeaux Clair', value: '#8B2438' },
+  { name: 'Or', value: '#C9A227' },
+  { name: 'Noir', value: '#1A1A1A' },
+  { name: 'Beige', value: '#F5F0E8' },
 ];
-
-// Decorative lines SVG component
-const DecorativeLines = () => (
-  <svg 
-    className="absolute top-12 left-12" 
-    width="120" 
-    height="120" 
-    viewBox="0 0 120 120" 
-    fill="none"
-  >
-    <line x1="0" y1="80" x2="80" y2="0" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
-    <line x1="0" y1="100" x2="100" y2="0" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
-    <line x1="0" y1="120" x2="120" y2="0" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.2" />
-  </svg>
-);
 
 // Tasting bar component for card style
 const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
@@ -113,17 +99,18 @@ const StoryTemplateCard = ({
   // Migrer les données et obtenir les labels dynamiques
   const migratedNotice = wineNotice ? migrateTastingDetails(wineNotice) : null;
   const sliders = getSlidersForWineType(wineTypeId);
+  
+  // Couleurs claires nécessitant texte foncé pour le footer
+  const isLightBackground = backgroundColor === '#C9A227' || backgroundColor === '#F5F0E8';
+  const footerTextColor = isLightBackground ? '#1A1A1A' : '#FFFFFF';
 
   return (
   <div 
     className="relative w-[1080px] h-[1920px] overflow-hidden"
     style={{ backgroundColor }}
   >
-    {/* Decorative lines */}
-    <DecorativeLines />
-    
     {/* White card */}
-    <div 
+    <div
       className="absolute bg-white rounded-[48px] flex flex-col"
       style={{
         left: '80px',
@@ -153,31 +140,41 @@ const StoryTemplateCard = ({
       <div className="w-24 h-0.5 bg-gray-200 mx-auto mb-8" />
 
       {/* Main image */}
-      <div className="flex-1 flex items-center justify-center mb-8">
+      <div className="flex-1 flex items-center justify-center mb-6">
         {imageUrl ? (
           <img 
             src={imageUrl} 
             alt={wineName}
             className="max-w-full max-h-full object-contain rounded-2xl"
-            style={{ maxHeight: '600px' }}
+            style={{ maxHeight: migratedNotice ? '500px' : '600px' }}
           />
         ) : (
           <div 
             className="bg-gray-100 rounded-2xl flex items-center justify-center"
-            style={{ width: '400px', height: '500px' }}
+            style={{ width: '400px', height: migratedNotice ? '400px' : '500px' }}
           >
             <Wine className="w-32 h-32 text-gray-300" />
           </div>
         )}
       </div>
 
+      {/* Content quote - toujours affiché si présent */}
+      {content && (
+        <p 
+          className="text-gray-600 text-center italic leading-relaxed mb-6"
+          style={{ fontSize: '26px' }}
+        >
+          "{content}"
+        </p>
+      )}
+
       {/* Rating */}
       {migratedNotice && (
         <>
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <span 
               className="text-gray-900 font-bold"
-              style={{ fontSize: '80px', lineHeight: 1 }}
+              style={{ fontSize: '72px', lineHeight: 1 }}
             >
               {migratedNotice.rating}
             </span>
@@ -199,15 +196,6 @@ const StoryTemplateCard = ({
         </>
       )}
 
-      {/* Content quote (if no wine notice) */}
-      {!wineNotice && content && (
-        <p 
-          className="text-gray-600 text-center italic leading-relaxed mt-auto"
-          style={{ fontSize: '28px' }}
-        >
-          "{content}"
-        </p>
-      )}
     </div>
 
     {/* Footer */}
@@ -215,8 +203,8 @@ const StoryTemplateCard = ({
       className="absolute left-0 right-0 flex items-center justify-center gap-4"
       style={{ bottom: '60px' }}
     >
-      <span className="text-white text-3xl font-medium">@winenote</span>
-      <Wine className="w-8 h-8 text-white" />
+      <span className="text-3xl font-medium" style={{ color: footerTextColor }}>@winenote</span>
+      <Wine className="w-8 h-8" style={{ color: footerTextColor }} />
     </div>
   </div>
   );
@@ -227,7 +215,7 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
   const storyRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [selectedColor, setSelectedColor] = useState(PASTEL_COLORS[0].value);
+  const [selectedColor, setSelectedColor] = useState(STORY_COLORS[0].value);
 
   // Determine the image to display (priority: post photo > wine label > none)
   const displayImage = post.image_url || wine?.label_url;
@@ -308,7 +296,7 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
 
         {/* Color selector */}
         <div className="flex justify-center gap-3 py-2">
-          {PASTEL_COLORS.map((color) => (
+          {STORY_COLORS.map((color) => (
             <button
               key={color.value}
               onClick={() => setSelectedColor(color.value)}
