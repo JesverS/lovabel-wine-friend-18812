@@ -9,12 +9,10 @@ import { getSlidersForWineType, migrateTastingDetails } from "@/lib/tastingSlide
 
 interface WineNotice {
   rating: number;
-  // Ancien format (rétrocompatibilité)
   acidity?: number;
   tannins?: number;
   body?: number;
   sweetness?: number;
-  // Nouveau format
   slot1?: number;
   slot2?: number;
   slot3?: number;
@@ -59,22 +57,41 @@ const STORY_COLORS = [
   { name: "Beige", value: "#F5F0E8" },
 ];
 
-// Tasting bar component for card style
+// Tasting bar component - inline styles only
 const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
-  <div className="space-y-2">
-    <span className="text-base italic block" style={{ color: "#6B7280" }}>
+  <div style={{ marginBottom: "12px" }}>
+    <span
+      style={{
+        color: "#6B7280",
+        fontSize: "16px",
+        fontStyle: "italic",
+        display: "block",
+        marginBottom: "8px",
+      }}
+    >
       {label}
     </span>
-    <div className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: "#E5E7EB" }}>
+    <div
+      style={{
+        height: "12px",
+        borderRadius: "9999px",
+        overflow: "hidden",
+        backgroundColor: "#E5E7EB",
+      }}
+    >
       <div
-        className="h-full rounded-full transition-all"
-        style={{ width: `${(value / 10) * 100}%`, backgroundColor: "#1F2937" }}
+        style={{
+          height: "100%",
+          borderRadius: "9999px",
+          width: `${(value / 10) * 100}%`,
+          backgroundColor: "#1F2937",
+        }}
       />
     </div>
   </div>
 );
 
-// Unified Story Template Card
+// Story Template Card - flexbox layout, no absolute positioning
 const StoryTemplateCard = ({
   wineName,
   domainName,
@@ -92,64 +109,75 @@ const StoryTemplateCard = ({
   content?: string;
   backgroundColor: string;
 }) => {
-  // Migrer les données et obtenir les labels dynamiques
   const migratedNotice = wineNotice ? migrateTastingDetails(wineNotice) : null;
   const sliders = getSlidersForWineType(wineTypeId);
 
-  // Couleurs claires nécessitant texte foncé pour le footer
   const isLightBackground = backgroundColor === "#C9A227" || backgroundColor === "#F5F0E8";
   const footerTextColor = isLightBackground ? "#1A1A1A" : "#FFFFFF";
 
   return (
     <div
-      className="relative overflow-hidden"
       style={{
-        backgroundColor,
         width: "1080px",
         height: "1920px",
+        backgroundColor: backgroundColor,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "0",
+        boxSizing: "border-box",
+        overflow: "hidden",
       }}
     >
+      {/* Top spacer */}
+      <div style={{ height: "280px", width: "100%", flexShrink: 0 }} />
+
       {/* White card */}
       <div
-        data-story-card="true"
-        className="absolute rounded-[48px] flex flex-col"
         style={{
-          left: "80px",
-          right: "80px",
-          top: "280px",
-          bottom: "200px",
+          width: "920px",
+          flex: 1,
+          marginBottom: "140px",
+          backgroundColor: "#FFFFFF",
+          borderRadius: "48px",
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)",
           padding: "36px",
-          backgroundColor: "#FFFFFF",
+          display: "flex",
+          flexDirection: "column",
+          boxSizing: "border-box",
+          overflow: "hidden",
         }}
       >
         {/* Wine name and domain */}
-        <div className="text-center mb-3">
+        <div style={{ textAlign: "center", marginBottom: "12px", flexShrink: 0 }}>
           <h2
-            className="font-serif uppercase tracking-wide leading-tight"
             style={{
+              fontFamily: "Georgia, serif",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              lineHeight: 1.2,
               fontSize: "48px",
               fontWeight: 600,
+              color: "#111827",
+              margin: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              color: "#111827",
             }}
           >
             {wineName}
           </h2>
           {domainName && (
             <p
-              className="mt-2"
               style={{
                 fontSize: "26px",
-                maxWidth: "100%",
+                color: "#6B7280",
+                margin: "8px 0 0 0",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                color: "#6B7280",
               }}
             >
               {domainName}
@@ -159,92 +187,149 @@ const StoryTemplateCard = ({
 
         {/* Separator */}
         <div
-          data-story-element="true"
-          data-bg="#E5E7EB"
-          className="w-24 h-0.5 mx-auto mb-3"
-          style={{ backgroundColor: "#E5E7EB" }}
+          style={{
+            width: "96px",
+            height: "2px",
+            backgroundColor: "#E5E7EB",
+            margin: "0 auto 12px auto",
+            flexShrink: 0,
+          }}
         />
 
-        {/* Main image */}
-        <div className="flex-1 flex items-center justify-center mb-3">
+        {/* Main image container */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: "12px",
+            minHeight: 0,
+            overflow: "hidden",
+          }}
+        >
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={wineName}
-              className="max-w-full max-h-full object-contain rounded-2xl"
               crossOrigin="anonymous"
-              style={{ maxHeight: migratedNotice ? "500px" : "700px" }}
+              style={{
+                maxWidth: "100%",
+                maxHeight: migratedNotice ? "500px" : "700px",
+                objectFit: "contain",
+                borderRadius: "16px",
+              }}
             />
           ) : (
             <div
-              className="rounded-2xl flex items-center justify-center"
-              style={{ width: "400px", height: migratedNotice ? "400px" : "600px", backgroundColor: "#F3F4F6" }}
+              style={{
+                width: "400px",
+                height: migratedNotice ? "400px" : "600px",
+                backgroundColor: "#F3F4F6",
+                borderRadius: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <Wine className="w-32 h-32" style={{ color: "#D1D5DB" }} />
+              <Wine style={{ width: "128px", height: "128px", color: "#D1D5DB" }} />
             </div>
           )}
         </div>
 
-        {/* Content quote - toujours affiché si présent */}
+        {/* Content quote */}
         {content && (
           <p
-            className="text-center italic leading-relaxed mb-2"
             style={{
+              textAlign: "center",
+              fontStyle: "italic",
+              lineHeight: 1.6,
+              marginBottom: "8px",
               fontSize: "24px",
+              color: "#4B5563",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
               display: "-webkit-box",
               WebkitLineClamp: 3,
               WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-              color: "#4B5563",
+              flexShrink: 0,
             }}
           >
             "{content}"
           </p>
         )}
 
-        {/* Rating */}
+        {/* Rating and tasting bars */}
         {migratedNotice && (
-          <>
-            <div className="text-center mb-2">
-              <span className="font-bold" style={{ fontSize: "56px", lineHeight: 1, color: "#111827" }}>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ textAlign: "center", marginBottom: "8px" }}>
+              <span
+                style={{
+                  fontSize: "56px",
+                  lineHeight: 1,
+                  color: "#111827",
+                  fontWeight: "bold",
+                }}
+              >
                 {migratedNotice.rating}
               </span>
               <span style={{ fontSize: "36px", color: "#9CA3AF" }}>/10</span>
             </div>
 
-            {/* Tasting bars grid avec labels dynamiques */}
-            <div className="grid grid-cols-2 gap-x-10 gap-y-3 mt-2">
+            {/* Tasting bars grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "12px 40px",
+                marginTop: "8px",
+              }}
+            >
               <TastingBarCard label={sliders.slot1.label} value={migratedNotice.slot1} />
               <TastingBarCard label={sliders.slot2.label} value={migratedNotice.slot2} />
               <TastingBarCard label={sliders.slot3.label} value={migratedNotice.slot3} />
               <TastingBarCard label={sliders.slot4.label} value={migratedNotice.slot4} />
             </div>
-          </>
+          </div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="absolute left-0 right-0 flex items-center justify-center gap-4" style={{ bottom: "60px" }}>
-        <span className="text-3xl font-medium" style={{ color: footerTextColor }}>
+      <div
+        style={{
+          height: "60px",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "16px",
+          marginBottom: "60px",
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            fontSize: "30px",
+            fontWeight: 500,
+            color: footerTextColor,
+          }}
+        >
           @winenote
         </span>
-        <Wine className="w-8 h-8" style={{ color: footerTextColor }} />
+        <Wine style={{ width: "32px", height: "32px", color: footerTextColor }} />
       </div>
     </div>
   );
 };
 
-export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: ShareStoryDialogProps) => {
+export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryDialogProps) => {
   const { toast } = useToast();
   const storyRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [selectedColor, setSelectedColor] = useState(STORY_COLORS[0].value);
 
-  // Determine the image to display (priority: post photo > wine label > none)
   const displayImage = post.image_url || wine?.label_url;
-
-  // Get wine info
   const wineName = wine?.name || "Dégustation";
   const domainName = wine?.domain?.name;
   const wineNotice = post.is_wine_notice ? post.wine_notice : null;
@@ -253,12 +338,17 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
     if (!storyRef.current) return null;
 
     try {
-      // Rendre temporairement visible pour la capture
+      // Placer dans le viewport pour la capture
+      storyRef.current.style.position = "fixed";
+      storyRef.current.style.left = "0px";
+      storyRef.current.style.top = "0px";
       storyRef.current.style.visibility = "visible";
       storyRef.current.style.opacity = "1";
+      storyRef.current.style.zIndex = "99999";
+      storyRef.current.style.transform = "none";
 
-      // Attendre que le navigateur applique les styles
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Attendre le rendu complet
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       const canvas = await html2canvas(storyRef.current, {
         scale: 1,
@@ -266,52 +356,28 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
         height: 1920,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: null,
+        backgroundColor: selectedColor,
         logging: false,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: 1080,
-        windowHeight: 1920,
-        onclone: (_clonedDoc, element) => {
-          // S'assurer que l'élément cloné est visible et bien positionné
-          element.style.position = "relative";
-          element.style.left = "0";
-          element.style.top = "0";
-          element.style.visibility = "visible";
-          element.style.opacity = "1";
-
-          // Forcer le fond blanc sur la carte
-          const whiteCard = element.querySelector("[data-story-card]");
-          if (whiteCard instanceof HTMLElement) {
-            whiteCard.style.backgroundColor = "#FFFFFF";
-          }
-          // Forcer les fonds sur les autres éléments
-          element.querySelectorAll("[data-story-element]").forEach((el) => {
-            if (el instanceof HTMLElement) {
-              const bgColor = el.getAttribute("data-bg");
-              if (bgColor) {
-                el.style.backgroundColor = bgColor;
-              }
-            }
-          });
-        },
+        imageTimeout: 15000,
+        removeContainer: false,
       });
 
-      // Recacher l'élément
+      // Replacer hors écran
+      storyRef.current.style.position = "fixed";
+      storyRef.current.style.left = "-9999px";
+      storyRef.current.style.top = "-9999px";
       storyRef.current.style.visibility = "hidden";
       storyRef.current.style.opacity = "0";
+      storyRef.current.style.zIndex = "-1";
 
       return new Promise((resolve) => {
         canvas.toBlob((blob) => resolve(blob), "image/png", 1.0);
       });
     } catch (error) {
       console.error("Erreur génération image:", error);
-      // S'assurer de recacher même en cas d'erreur
       if (storyRef.current) {
         storyRef.current.style.visibility = "hidden";
-        storyRef.current.style.opacity = "0";
+        storyRef.current.style.left = "-9999px";
       }
       return null;
     }
@@ -382,19 +448,20 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
           ))}
         </div>
 
-        {/* Hidden container for capture - positioned off-screen but in DOM flow */}
+        {/* Hidden container for capture */}
         <div
           ref={storyRef}
           style={{
             position: "fixed",
-            left: "0px",
-            top: "0px",
+            left: "-9999px",
+            top: "-9999px",
             width: "1080px",
             height: "1920px",
             pointerEvents: "none",
-            zIndex: -9999,
+            zIndex: -1,
             visibility: "hidden",
             opacity: 0,
+            overflow: "hidden",
           }}
         >
           <StoryTemplateCard
@@ -408,7 +475,7 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
           />
         </div>
 
-        {/* Visible preview - scaled for display */}
+        {/* Visible preview */}
         <div className="relative overflow-hidden rounded-xl bg-muted/50">
           <div
             className="relative mx-auto overflow-hidden rounded-lg shadow-xl"
