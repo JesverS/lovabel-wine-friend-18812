@@ -91,8 +91,8 @@ const generateStoryHTML = ({
     </div>
   `;
 
-  // SVG avec position relative et top pour descendre l'icône
-  const wineIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="${footerTextColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: relative; top: 4px;"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"/></svg>`;
+  // SVG avec transform pour décaler légèrement vers le bas
+  const wineIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${footerTextColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: translateY(2px);"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"/></svg>`;
 
   return `
     <!DOCTYPE html>
@@ -158,7 +158,7 @@ const generateStoryHTML = ({
         </div>
 
         <!-- Footer -->
-        <div style="position: absolute; bottom: 60px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <div style="position: absolute; bottom: 60px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 10px;">
           <span style="font-size: 36px; font-weight: 500; color: ${footerTextColor};">@winenote</span>
           ${wineIconSvg}
         </div>
@@ -357,7 +357,7 @@ const StoryTemplateCard = ({
         </div>
       </div>
 
-      {/* Footer - icône décalée vers le bas */}
+      {/* Footer */}
       <div
         style={{
           position: "absolute",
@@ -367,11 +367,11 @@ const StoryTemplateCard = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "12px",
+          gap: "10px",
         }}
       >
         <span style={{ fontSize: "36px", fontWeight: 500, color: footerTextColor }}>@winenote</span>
-        <Wine style={{ width: "32px", height: "32px", color: footerTextColor, position: "relative", top: "4px" }} />
+        <Wine style={{ width: "30px", height: "30px", color: footerTextColor, transform: "translateY(2px)" }} />
       </div>
     </div>
   );
