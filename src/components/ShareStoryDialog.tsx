@@ -115,14 +115,14 @@ const StoryTemplateCard = ({
       style={{
         left: '80px',
         right: '80px',
-        top: '320px',
-        bottom: '280px',
+        top: '280px',
+        bottom: '200px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
         padding: '36px',
       }}
     >
       {/* Wine name and domain */}
-      <div className="text-center mb-5">
+      <div className="text-center mb-3">
         <h2 
           className="text-gray-900 font-serif uppercase tracking-wide leading-tight"
           style={{ 
@@ -154,21 +154,21 @@ const StoryTemplateCard = ({
       </div>
 
       {/* Separator */}
-      <div className="w-24 h-0.5 bg-gray-200 mx-auto mb-5" />
+      <div className="w-24 h-0.5 bg-gray-200 mx-auto mb-3" />
 
       {/* Main image */}
-      <div className="flex-1 flex items-center justify-center mb-4">
+      <div className="flex-1 flex items-center justify-center mb-3">
         {imageUrl ? (
           <img 
             src={imageUrl} 
             alt={wineName}
             className="max-w-full max-h-full object-contain rounded-2xl"
-            style={{ maxHeight: migratedNotice ? '600px' : '750px' }}
+            style={{ maxHeight: migratedNotice ? '500px' : '700px' }}
           />
         ) : (
           <div 
             className="bg-gray-100 rounded-2xl flex items-center justify-center"
-            style={{ width: '400px', height: migratedNotice ? '500px' : '650px' }}
+            style={{ width: '400px', height: migratedNotice ? '400px' : '600px' }}
           >
             <Wine className="w-32 h-32 text-gray-300" />
           </div>
@@ -178,7 +178,7 @@ const StoryTemplateCard = ({
       {/* Content quote - toujours affiché si présent */}
       {content && (
         <p 
-          className="text-gray-600 text-center italic leading-relaxed mb-4"
+          className="text-gray-600 text-center italic leading-relaxed mb-2"
           style={{ 
             fontSize: '24px',
             display: '-webkit-box',
@@ -194,10 +194,10 @@ const StoryTemplateCard = ({
       {/* Rating */}
       {migratedNotice && (
         <>
-          <div className="text-center mb-4">
+          <div className="text-center mb-2">
             <span 
               className="text-gray-900 font-bold"
-              style={{ fontSize: '64px', lineHeight: 1 }}
+              style={{ fontSize: '56px', lineHeight: 1 }}
             >
               {migratedNotice.rating}
             </span>
@@ -210,7 +210,7 @@ const StoryTemplateCard = ({
           </div>
 
           {/* Tasting bars grid avec labels dynamiques */}
-          <div className="grid grid-cols-2 gap-x-10 gap-y-4 mt-3">
+          <div className="grid grid-cols-2 gap-x-10 gap-y-3 mt-2">
             <TastingBarCard label={sliders.slot1.label} value={migratedNotice.slot1} />
             <TastingBarCard label={sliders.slot2.label} value={migratedNotice.slot2} />
             <TastingBarCard label={sliders.slot3.label} value={migratedNotice.slot3} />
