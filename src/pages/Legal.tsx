@@ -3,10 +3,19 @@ import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Scale, Building, Server, Copyright, AlertCircle } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 export default function Legal() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Mentions Légales | Wine Note</title>
+        <meta name="description" content="Mentions légales de Wine Note. Informations sur l'éditeur, l'hébergement et les conditions d'utilisation du site winenote.me." />
+        <link rel="canonical" href="https://winenote.me/legal" />
+        <meta property="og:title" content="Mentions Légales - Wine Note" />
+        <meta property="og:url" content="https://winenote.me/legal" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8 pt-32 flex-grow max-w-4xl">
         <div className="text-center mb-16 animate-fade-up">

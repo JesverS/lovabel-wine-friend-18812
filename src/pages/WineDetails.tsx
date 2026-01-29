@@ -299,15 +299,40 @@ export default function WineDetails() {
     );
   }
 
+  const wineSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": wine.name,
+    "description": wine.description || `Vin ${wine.name}`,
+    "image": wine.label_url,
+    "brand": {
+      "@type": "Brand",
+      "name": domaine?.name || "Domaine inconnu"
+    },
+    "category": "Wine",
+    ...(wine.price && {
+      "offers": {
+        "@type": "Offer",
+        "price": wine.price,
+        "priceCurrency": "EUR"
+      }
+    })
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Helmet>
         <title>{wine.name} {wine.year ? `(${wine.year})` : ''} | Vin - Wine Note</title>
         <meta name="description" content={wine.description?.slice(0, 155) || `Découvrez ${wine.name}${domaine ? ` du domaine ${domaine.name}` : ''}`} />
+        <link rel="canonical" href={`https://winenote.me/wine/${id}`} />
         <meta property="og:title" content={`${wine.name} - Wine Note`} />
         <meta property="og:description" content={wine.description?.slice(0, 155) || `Vin ${wine.name}`} />
         {wine.label_url && <meta property="og:image" content={wine.label_url} />}
+        <meta property="og:url" content={`https://winenote.me/wine/${id}`} />
         <meta property="og:type" content="product" />
+        <script type="application/ld+json">
+          {JSON.stringify(wineSchema)}
+        </script>
       </Helmet>
 
       <Header />

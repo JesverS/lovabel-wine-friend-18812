@@ -6,12 +6,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { LogIn, MessageSquare } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 export default function Feed() {
   const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Fil d'Actualité - Dégustations & Partages | Wine Note</title>
+        <meta name="description" content="Découvrez les dernières dégustations et partages de la communauté Wine Note. Rejoignez les amateurs de vin pour échanger vos expériences." />
+        <link rel="canonical" href="https://winenote.me/feed" />
+        <meta property="og:title" content="Fil d'Actualité - Wine Note" />
+        <meta property="og:description" content="Découvrez les dernières dégustations et partages de la communauté Wine Note." />
+        <meta property="og:url" content="https://winenote.me/feed" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <Header />
 
       <main className="container mx-auto px-4 py-8 pt-28 flex-grow">

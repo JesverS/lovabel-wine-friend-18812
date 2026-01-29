@@ -30,6 +30,7 @@ import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 import { PrivacySettings } from '@/components/PrivacySettings';
 import { OpenInAppBanner } from '@/components/OpenInAppBanner';
 import { getProfileDeepLink } from '@/lib/mobileAppUtils';
+import { Helmet } from 'react-helmet-async';
 
 export default function UserProfile() {
   const { slug } = useParams<{ slug: string }>();
@@ -226,6 +227,16 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>{profile.full_name || 'Utilisateur'} sur Wine Note | Profil Amateur de Vin</title>
+        <meta name="description" content={profile.description?.slice(0, 155) || `Découvrez le profil de ${profile.full_name || 'cet amateur de vin'} sur Wine Note.`} />
+        <link rel="canonical" href={`https://winenote.me/user/${profile.slug}`} />
+        <meta property="og:title" content={`${profile.full_name || 'Utilisateur'} - Wine Note`} />
+        <meta property="og:description" content={profile.description?.slice(0, 155) || 'Profil amateur de vin sur Wine Note'} />
+        {profile.logo_adress && <meta property="og:image" content={profile.logo_adress} />}
+        <meta property="og:url" content={`https://winenote.me/user/${profile.slug}`} />
+        <meta property="og:type" content="profile" />
+      </Helmet>
       <OpenInAppBanner deepLink={getProfileDeepLink(profile.slug)} />
       <Header />
       

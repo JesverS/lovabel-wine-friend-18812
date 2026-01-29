@@ -172,15 +172,32 @@ export default function DomainDetails() {
     );
   }
 
+  const domainSchema = {
+    "@context": "https://schema.org",
+    "@type": "Winery",
+    "name": domain.name,
+    "description": domain.description || `Domaine viticole ${domain.name}`,
+    "image": domain.logo_url,
+    "address": domain.address,
+    "telephone": domain.phone,
+    "email": domain.email,
+    "url": domain.website_url
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Helmet>
         <title>{domain.name} | Domaine viticole - Wine Note</title>
         <meta name="description" content={domain.description?.slice(0, 155) || `Découvrez le domaine ${domain.name} et ses vins`} />
+        <link rel="canonical" href={`https://winenote.me/domain/${id}`} />
         <meta property="og:title" content={`${domain.name} - Wine Note`} />
         <meta property="og:description" content={domain.description?.slice(0, 155) || `Domaine viticole ${domain.name}`} />
         {domain.logo_url && <meta property="og:image" content={domain.logo_url} />}
+        <meta property="og:url" content={`https://winenote.me/domain/${id}`} />
         <meta property="og:type" content="website" />
+        <script type="application/ld+json">
+          {JSON.stringify(domainSchema)}
+        </script>
       </Helmet>
 
       <Header />
