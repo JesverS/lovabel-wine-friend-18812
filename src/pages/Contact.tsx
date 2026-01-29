@@ -71,9 +71,11 @@ export default function Contact() {
       <Helmet>
         <title>Contact | Wine Note - Nous contacter</title>
         <meta name="description" content="Contactez l'équipe Wine Note pour toute question, suggestion ou demande de partenariat. Nous sommes à votre écoute." />
+        <link rel="canonical" href="https://winenote.me/contact" />
         <meta property="og:title" content="Contact - Wine Note" />
         <meta property="og:description" content="Contactez l'équipe Wine Note" />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://winenote.me/contact" />
       </Helmet>
 
       <Header />

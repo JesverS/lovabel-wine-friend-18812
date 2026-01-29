@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import aboutHeroImage from "@/assets/about-hero-vineyard.jpg";
@@ -118,6 +119,15 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>À propos de Wine Note - Notre Mission & Valeurs</title>
+        <meta name="description" content="Découvrez Wine Note, la plateforme qui démocratise l'univers du vin. Notre mission : rendre l'œnologie accessible, ludique et conviviale pour tous." />
+        <link rel="canonical" href="https://winenote.me/about" />
+        <meta property="og:title" content="À propos de Wine Note" />
+        <meta property="og:description" content="La plateforme qui réinvente votre passion du vin" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://winenote.me/about" />
+      </Helmet>
       <Header />
       
       <main className="flex-grow">

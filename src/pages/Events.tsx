@@ -255,9 +255,11 @@ const Events = () => {
       <Helmet>
         <title>Événements Viticoles | Salons & Dégustations - Wine Note</title>
         <meta name="description" content="Découvrez les salons du vin, dégustations et événements viticoles près de chez vous. Inscrivez-vous et participez à la communauté Wine Note." />
+        <link rel="canonical" href="https://winenote.me/events" />
         <meta property="og:title" content="Événements Viticoles - Wine Note" />
         <meta property="og:description" content="Salons, dégustations et événements viticoles" />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://winenote.me/events" />
       </Helmet>
 
       <Header />

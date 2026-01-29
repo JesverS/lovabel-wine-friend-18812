@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
@@ -185,6 +186,15 @@ export default function Cellars() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Cavistes près de chez vous - Wine Note</title>
+        <meta name="description" content="Découvrez les meilleurs cavistes de votre région. Explorez leurs sélections exceptionnelles et trouvez des vins d'exception près de chez vous." />
+        <link rel="canonical" href="https://winenote.me/cellars" />
+        <meta property="og:title" content="Cavistes - Wine Note" />
+        <meta property="og:description" content="Trouvez les meilleurs cavistes près de chez vous" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://winenote.me/cellars" />
+      </Helmet>
       <Header />
 
       <main className="container mx-auto px-4 py-24 flex-grow min-h-screen">

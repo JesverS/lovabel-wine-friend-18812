@@ -790,15 +790,43 @@ const EventDetails = () => {
     );
   }
 
+  // Schema.org Event structured data
+  const eventSchema = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": event.name,
+    "startDate": event.start_date,
+    "endDate": event.end_date || event.start_date,
+    "location": {
+      "@type": "Place",
+      "name": event.city || event.location || "À déterminer",
+      "address": event.address || event.city || ""
+    },
+    "description": event.description || `Événement viticole - ${event.name}`,
+    "image": event.banner_url || undefined,
+    "organizer": {
+      "@type": "Organization",
+      "name": "Wine Note",
+      "url": "https://winenote.me"
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode"
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Helmet>
         <title>{event.name} | Événement - Wine Note</title>
         <meta name="description" content={event.description?.slice(0, 155) || `Détails de l'événement ${event.name}`} />
+        <link rel="canonical" href={`https://winenote.me/event/${event.slug}`} />
         <meta property="og:title" content={event.name} />
         <meta property="og:description" content={event.description?.slice(0, 155) || `Événement viticole - ${event.name}`} />
+        <meta property="og:url" content={`https://winenote.me/event/${event.slug}`} />
         {event.banner_url && <meta property="og:image" content={event.banner_url} />}
         <meta property="og:type" content="event" />
+        <script type="application/ld+json">
+          {JSON.stringify(eventSchema)}
+        </script>
       </Helmet>
 
       <OpenInAppBanner deepLink={getEventDeepLink(event.slug, searchParams.get('token') || event.private_token)} />

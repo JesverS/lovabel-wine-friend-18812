@@ -106,11 +106,13 @@ export default function Learning() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Helmet>
-        <title>Cours d'Oenologie | Apprenez le Vin - Wine Note</title>
-        <meta name="description" content="Apprenez l'oenologie à votre rythme avec nos cours interactifs. Devenez expert en vin : cépages, terroirs, accords mets-vins et dégustation." />
-        <meta property="og:title" content="Cours d'Oenologie - Wine Note" />
+        <title>Cours d'Œnologie | Apprenez le Vin - Wine Note</title>
+        <meta name="description" content="Apprenez l'œnologie à votre rythme avec nos cours interactifs. Devenez expert en vin : cépages, terroirs, accords mets-vins et dégustation." />
+        <link rel="canonical" href="https://winenote.me/learning" />
+        <meta property="og:title" content="Cours d'Œnologie - Wine Note" />
         <meta property="og:description" content="Apprenez le vin avec des cours interactifs" />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://winenote.me/learning" />
       </Helmet>
 
       <Header />
