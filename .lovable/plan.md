@@ -1,146 +1,140 @@
 
-# Correction de ShareStoryDialog.tsx pour les Sliders Dynamiques
 
-## Probleme Identifie
+# Modifications du Template Story Instagram
 
-Le fichier `ShareStoryDialog.tsx` est le **dernier composant** qui n'utilise pas le systeme de sliders dynamiques. Il affiche les labels hardcodes ("Acidite", "Tanins", "Corps", "Douceur") au lieu de s'adapter au type de vin.
+## Objectif
 
-### Analyse du fichier actuel
+Améliorer le visuel des stories Instagram générées pour :
+1. Supprimer les traits décoratifs
+2. Afficher le texte du post en dessous de la photo
+3. Utiliser les couleurs de l'application pour la cohérence visuelle
 
-| Element | Probleme |
-|---------|----------|
-| Interface `WineNotice` (lignes 15-21) | Utilise `acidity, tannins, body, sweetness` |
-| Interface `Wine` (lignes 23-32) | Ne contient pas le champ `type` |
-| Composant `TastingBarCard` (ligne 179-182) | Labels hardcodes |
-| `StoryTemplateCard` | Accede a `wineNotice.acidity`, etc. |
+---
 
-## Solution Proposee
+## Modifications à Apporter
 
-### 1. Ajouter le type de vin dans l'interface Wine
+### 1. Suppression des Traits Décoratifs
 
-```typescript
-interface Wine {
-  id: string;
-  name: string;
-  label_url?: string;
-  color?: string;
-  type?: number | null; // AJOUTER
-  domain?: {
-    name: string;
-    region?: string;
-  };
-}
+**Fichier** : `src/components/ShareStoryDialog.tsx`
+
+- Supprimer le composant `DecorativeLines` (lignes 67-80)
+- Supprimer l'appel `<DecorativeLines />` dans `StoryTemplateCard` (ligne 123)
+
+### 2. Afficher le Texte en Dessous de la Photo
+
+**Modification du layout** dans `StoryTemplateCard` :
+
+Actuellement le texte (`content`) n'est affiché que si `!wineNotice`. Changer pour :
+- Afficher le texte `content` **toujours** après l'image (s'il existe)
+- Positionner avant la note et les sliders de dégustation
+
+**Nouveau flux visuel :**
+```
+┌─────────────────────────┐
+│      Nom du Vin         │
+│       Domaine           │
+├─────────────────────────┤
+│                         │
+│        [Photo]          │
+│                         │
+├─────────────────────────┤
+│   "Texte du post..."    │  ← NOUVEAU : toujours affiché si présent
+├─────────────────────────┤
+│         8.5/10          │
+│  [Sliders dégustation]  │
+└─────────────────────────┘
 ```
 
-### 2. Mettre a jour l'interface WineNotice pour supporter les deux formats
+### 3. Nouvelles Couleurs de Fond
 
+Remplacer les couleurs pastel par les couleurs de la charte :
+
+| Ancienne | Nouvelle | Description |
+|----------|----------|-------------|
+| Taupe #A89F91 | **#6A1B2B** | Bordeaux (Primary) |
+| Rose #D4A5A5 | **#8B2438** | Bordeaux Clair (Primary Light) |
+| Sauge #A5B5A5 | **#C9A227** | Or (Secondary) |
+| Lavande #B5A5C5 | **#1A1A1A** | Noir Élégant (Slate) |
+
+**Code mis à jour :**
 ```typescript
-interface WineNotice {
-  rating: number;
-  // Ancien format (retrocompatibilite)
-  acidity?: number;
-  tannins?: number;
-  body?: number;
-  sweetness?: number;
-  // Nouveau format
-  slot1?: number;
-  slot2?: number;
-  slot3?: number;
-  slot4?: number;
-}
+const STORY_COLORS = [
+  { name: 'Bordeaux', value: '#6A1B2B' },
+  { name: 'Bordeaux Clair', value: '#8B2438' },
+  { name: 'Or', value: '#C9A227' },
+  { name: 'Noir', value: '#1A1A1A' },
+];
+```
+Ajout une 5eme couleur un beige claire comme sur le site 
+---
+
+## Détails Techniques
+
+### Structure Modifiée de StoryTemplateCard
+
+```tsx
+const StoryTemplateCard = ({ ... }) => {
+  return (
+    <div style={{ backgroundColor }}>
+      {/* SUPPRIMÉ : DecorativeLines */}
+      
+      <div className="white-card">
+        {/* Nom et domaine */}
+        <h2>{wineName}</h2>
+        <p>{domainName}</p>
+        
+        {/* Séparateur */}
+        <div className="separator" />
+        
+        {/* Image */}
+        <div className="image-container">
+          <img src={imageUrl} />
+        </div>
+        
+        {/* NOUVEAU : Texte toujours affiché */}
+        {content && (
+          <p className="quote">"{content}"</p>
+        )}
+        
+        {/* Note et sliders (si wine_notice) */}
+        {migratedNotice && (
+          <>
+            <div className="rating">{rating}/10</div>
+            <div className="sliders-grid">...</div>
+          </>
+        )}
+      </div>
+      
+      {/* Footer @winenote */}
+    </div>
+  );
+};
 ```
 
-### 3. Importer les utilitaires de configuration
+### Ajustements de Couleur du Texte Footer
+
+Pour les couleurs sombres (Bordeaux, Noir), le texte blanc reste lisible.
+Pour la couleur Or (#C9A227), le texte devra être noir pour le contraste :
 
 ```typescript
-import { getSlidersForWineType, migrateTastingDetails } from '@/lib/tastingSliderConfig';
+const isLightBackground = backgroundColor === '#C9A227';
+const footerTextColor = isLightBackground ? '#1A1A1A' : '#FFFFFF';
 ```
 
-### 4. Modifier StoryTemplateCard pour accepter le wineTypeId
+---
 
-```typescript
-const StoryTemplateCard = ({
-  wineName,
-  domainName,
-  imageUrl,
-  wineNotice,
-  wineTypeId,  // AJOUTER
-  content,
-  backgroundColor,
-}: {
-  // ...
-  wineTypeId?: number | null;  // AJOUTER
-  // ...
-}) => {
-  // Migrer et obtenir les labels dynamiques
-  const migratedNotice = wineNotice ? migrateTastingDetails(wineNotice) : null;
-  const sliders = getSlidersForWineType(wineTypeId);
-  
-  // ...
-  
-  {/* Tasting bars grid avec labels dynamiques */}
-  <div className="grid grid-cols-2 gap-x-12 gap-y-6 mt-4">
-    <TastingBarCard label={sliders.slot1.label} value={migratedNotice.slot1} />
-    <TastingBarCard label={sliders.slot2.label} value={migratedNotice.slot2} />
-    <TastingBarCard label={sliders.slot3.label} value={migratedNotice.slot3} />
-    <TastingBarCard label={sliders.slot4.label} value={migratedNotice.slot4} />
-  </div>
-}
-```
+## Résumé des Changements
 
-### 5. Passer le wineTypeId au composant
-
-Dans le rendu principal :
-
-```typescript
-<StoryTemplateCard
-  wineName={wineName}
-  domainName={domainName}
-  imageUrl={displayImage}
-  wineNotice={wineNotice}
-  wineTypeId={wine?.type}  // AJOUTER
-  content={post.content}
-  backgroundColor={selectedColor}
-/>
-```
-
-## Resume des Modifications
-
-| Element | Avant | Apres |
+| Élément | Avant | Après |
 |---------|-------|-------|
-| Interface `Wine` | Pas de `type` | `type?: number \| null` |
-| Interface `WineNotice` | `acidity, tannins, body, sweetness` | Support des deux formats |
-| Labels | Hardcodes | Dynamiques via `getSlidersForWineType` |
-| Valeurs | `wineNotice.acidity` | `migratedNotice.slot1` via migration |
+| Traits décoratifs | 3 lignes SVG | Supprimés |
+| Position du texte | Seulement si pas de note | Toujours sous la photo |
+| Couleurs | Pastel (Taupe, Rose, Sauge, Lavande) | Charte app (Bordeaux, Or, Noir) |
+| Footer | Toujours blanc | Adaptatif selon fond |
 
-## Impact
+---
 
-Apres cette correction, les stories Instagram generees afficheront les bons labels selon le type de vin :
-- Vin rouge/autre : Fruite, Epice, Tannique, Boise
-- Vin blanc : Acidite, Sec, Sucrosite, Gras
-- Rose : Acidite, Fruite, Sec, Frais
-- Effervescent : Acidite, Sec, Sucrosite, Effervescence
-
-## Verification Finale
-
-Apres cette correction, **100% des composants** du site utiliseront le systeme de sliders dynamiques :
-
-| Composant | Status |
-|-----------|--------|
-| `TastingSliders.tsx` | OK - Composant central |
-| `tastingSliderConfig.ts` | OK - Configuration |
-| `WineDetailsDialog.tsx` | OK - Utilise TastingSliders |
-| `WineInteractionDialog.tsx` | OK - Utilise TastingSliders |
-| `CellarWineDetailsDialog.tsx` | OK - Utilise TastingSliders |
-| `SpontaneousTastingDialog.tsx` | OK - Utilise TastingSliders |
-| `WineDetails.tsx` | OK - Utilise TastingSlidersGrid |
-| `WineTastingNotes.tsx` | OK - Labels dynamiques |
-| `PostCard.tsx` | OK - Passe wineTypeId |
-| `PostDetails.tsx` | OK - Passe wineTypeId |
-| `SharedPost.tsx` | OK - Passe wineTypeId |
-| `useSocialFeed.ts` | OK - Recupere type |
-| **`ShareStoryDialog.tsx`** | **A CORRIGER** |
-
-## Fichier Unique a Modifier
+## Fichier à Modifier
 
 `src/components/ShareStoryDialog.tsx`
+
