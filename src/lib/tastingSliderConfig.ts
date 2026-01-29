@@ -27,21 +27,21 @@ const ROUGE_SLIDERS: WineTypeSliders = {
 const BLANC_SLIDERS: WineTypeSliders = {
   slot1: { key: "slot1", label: "Acidité", lowLabel: "Très faible", highLabel: "Très marquée" },
   slot2: { key: "slot3", label: "Sucrosité", lowLabel: "Très sec", highLabel: "Très sucré" },
-  slot3: { key: "slot2", label: "Arômes dominants", lowLabel: "Très Fruité", highLabel: "Minéral/Floral/Boisé" },
+  slot3: { key: "slot2", label: "Fruité", lowLabel: "Minéral/Floral", highLabel: "Très fruité" },
   slot4: { key: "slot4", label: "Gras", lowLabel: "Très léger", highLabel: "Très gras" },
 };
 
 const ROSE_SLIDERS: WineTypeSliders = {
   slot1: { key: "slot1", label: "Acidité", lowLabel: "Très faible", highLabel: "Très marquée" },
-  slot2: { key: "slot2", label: "Fruité", lowLabel: "Peu fruité", highLabel: "Très fruité" },
-  slot3: { key: "slot3", label: "Sucrosité", lowLabel: "Très sec", highLabel: "Très sucré" },
+  slot2: { key: "slot2", label: "Sucrosité", lowLabel: "Très sec", highLabel: "Très sucré" },
+  slot3: { key: "slot3", label: "Fruité", lowLabel: "Minéral/Floral", highLabel: "Très fruité" },
   slot4: { key: "slot4", label: "Frais", lowLabel: "Lourd", highLabel: "Très frais" },
 };
 
 const EFFERVESCENT_SLIDERS: WineTypeSliders = {
   slot1: { key: "slot1", label: "Acidité", lowLabel: "Très faible", highLabel: "Très marquée" },
   slot2: { key: "slot2", label: "Sucrosité", lowLabel: "Très sec", highLabel: "Très sucré" },
-  slot3: { key: "slot3", label: "Arômes dominants", lowLabel: "Très Fruité", highLabel: "Minéral/Floral/Boisé" },
+  slot3: { key: "slot3", label: "Fruité", lowLabel: "Minéral/Floral", highLabel: "Très fruité" },
   slot4: { key: "slot4", label: "Effervescence", lowLabel: "Peu pétillant", highLabel: "Très pétillant" },
 };
 
