@@ -111,6 +111,7 @@ const StoryTemplateCard = ({
   >
     {/* White card */}
     <div
+      data-story-card="true"
       className="absolute rounded-[48px] flex flex-col"
       style={{
         left: '80px',
@@ -157,7 +158,12 @@ const StoryTemplateCard = ({
       </div>
 
       {/* Separator */}
-      <div className="w-24 h-0.5 mx-auto mb-3" style={{ backgroundColor: '#E5E7EB' }} />
+      <div 
+        data-story-element="true" 
+        data-bg="#E5E7EB"
+        className="w-24 h-0.5 mx-auto mb-3" 
+        style={{ backgroundColor: '#E5E7EB' }} 
+      />
 
       {/* Main image */}
       <div className="flex-1 flex items-center justify-center mb-3">
@@ -254,13 +260,50 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
   const generateImage = async (): Promise<Blob | null> => {
     if (!storyRef.current) return null;
     try {
+      // Sauvegarder les styles originaux
+      const originalStyles = {
+        left: storyRef.current.style.left,
+        top: storyRef.current.style.top,
+        opacity: storyRef.current.style.opacity,
+      };
+      
+      // Temporairement placer dans le viewport mais invisible
+      storyRef.current.style.left = '0px';
+      storyRef.current.style.top = '0px';
+      storyRef.current.style.opacity = '0';
+      
+      // Forcer le recalcul des styles
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      
       const canvas = await html2canvas(storyRef.current, { 
         scale: 1, 
         useCORS: true, 
         allowTaint: true, 
         backgroundColor: null,
-        logging: false 
+        logging: false,
+        onclone: (_clonedDoc, element) => {
+          // Forcer le fond blanc sur la carte
+          const whiteCard = element.querySelector('[data-story-card]');
+          if (whiteCard instanceof HTMLElement) {
+            whiteCard.style.backgroundColor = '#FFFFFF';
+          }
+          // Forcer les fonds sur les autres éléments
+          element.querySelectorAll('[data-story-element]').forEach((el) => {
+            if (el instanceof HTMLElement) {
+              const bgColor = el.getAttribute('data-bg');
+              if (bgColor) {
+                el.style.backgroundColor = bgColor;
+              }
+            }
+          });
+        }
       });
+      
+      // Restaurer les styles originaux
+      storyRef.current.style.left = originalStyles.left;
+      storyRef.current.style.top = originalStyles.top;
+      storyRef.current.style.opacity = originalStyles.opacity || '1';
+      
       return new Promise((resolve) => { 
         canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0); 
       });
