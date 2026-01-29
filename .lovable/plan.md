@@ -1,100 +1,41 @@
 
 
-# Correction du Débordement des Barres de Dégustation
+# Correction du Fond Blanc Grisé
 
 ## Problème Identifié
 
-D'après la capture d'écran, les barres de dégustation (Acidité, Sec, Sucrosité, Gras) débordent en bas du carré blanc arrondi. Le contenu total ne tient pas dans l'espace alloué.
+Le fond blanc de la carte affiche une teinte grise au lieu d'un blanc pur. Cela vient de l'utilisation de la classe Tailwind `bg-white` qui peut hériter des variables CSS du thème ou être mal interprétée par `html2canvas`.
 
 ```text
-┌─────────────────────────────┐
-│  CHABLIS                    │
-│  Dominique Gruhier          │
-│  ───────                    │
-│                             │
-│  [    PHOTO DU VIN     ]    │
-│                             │
-│  "Teste sans photo"         │
-│         8.1/10              │
-├─────────────────────────────┤ ← Bord du carré blanc
-│  Acidité ████      Sec ████ │ ← DÉBORDE!
-│  Sucrosité ████    Gras ████│ ← DÉBORDE!
-└─────────────────────────────┘
+Actuel:                          Attendu:
+┌─────────────────┐              ┌─────────────────┐
+│   ░░░░░░░░░░    │              │   ▒▒▒▒▒▒▒▒▒▒    │
+│   ░░ GRIS ░░    │      →       │   ▓▓ BLANC ▓▓   │
+│   ░░░░░░░░░░    │              │   ▒▒▒▒▒▒▒▒▒▒    │
+└─────────────────┘              └─────────────────┘
 ```
 
 ## Cause
 
-Le carré blanc a une hauteur fixée par `top: 320px` et `bottom: 280px`, ce qui laisse **1320px** de hauteur. Avec tous les éléments (titre, domaine, séparateur, photo 600px, citation, note 64px, et 4 barres), le contenu dépasse cette limite.
+La classe `bg-white` et les classes `bg-gray-*` de Tailwind héritent des variables CSS du design system du projet. Lors du rendu en canvas, ces couleurs peuvent ne pas être correctement résolues.
 
 ## Solution
 
-1. **Réduire la taille de la photo** quand il y a une notice de dégustation
-2. **Réduire l'espacement vertical** entre les éléments
-3. **Agrandir légèrement le carré blanc** en réduisant `bottom` de 280px à 220px
+Remplacer toutes les classes Tailwind de couleur par des styles inline avec des valeurs hexadécimales fixes dans le composant `StoryTemplateCard` :
 
----
-
-## Modifications Techniques
-
-### 1. Agrandir le Carré Blanc
-
-```tsx
-// Avant
-style={{
-  top: '320px',
-  bottom: '280px',  // Hauteur = 1320px
-}}
-
-// Après
-style={{
-  top: '280px',
-  bottom: '200px',  // Hauteur = 1440px (+120px)
-}}
-```
-
-### 2. Réduire les Espacements
-
-| Élément | Avant | Après |
-|---------|-------|-------|
-| Header (mb) | `mb-5` | `mb-3` |
-| Separator (mb) | `mb-5` | `mb-3` |
-| Image container (mb) | `mb-4` | `mb-3` |
-| Content quote (mb) | `mb-4` | `mb-2` |
-| Rating (mb) | `mb-4` | `mb-2` |
-| Tasting grid (gap-y) | `gap-y-4` | `gap-y-3` |
-
-### 3. Réduire la Taille Max de l'Image avec Notice
-
-```tsx
-// Avant
-style={{ maxHeight: migratedNotice ? '600px' : '750px' }}
-
-// Après
-style={{ maxHeight: migratedNotice ? '500px' : '700px' }}
-```
-
-### 4. Réduire la Taille de la Note
-
-```tsx
-// Avant
-style={{ fontSize: '64px' }}
-
-// Après
-style={{ fontSize: '56px' }}
-```
-
----
-
-## Résumé
-
-| Modification | Impact |
-|--------------|--------|
-| Carré blanc agrandi | +120px de hauteur disponible |
-| Espacements réduits | ~-50px de hauteur utilisée |
-| Image plus petite | -100px quand notice présente |
-| Note plus compacte | ~-20px |
-
-Le contenu tiendra maintenant entièrement dans le carré blanc arrondi.
+| Élément | Avant (Tailwind) | Après (inline) |
+|---------|------------------|----------------|
+| Carte blanche | `bg-white` | `backgroundColor: '#FFFFFF'` |
+| Titre | `text-gray-900` | `color: '#111827'` |
+| Domaine | `text-gray-500` | `color: '#6B7280'` |
+| Séparateur | `bg-gray-200` | `backgroundColor: '#E5E7EB'` |
+| Placeholder | `bg-gray-100` | `backgroundColor: '#F3F4F6'` |
+| Icône placeholder | `text-gray-300` | `color: '#D1D5DB'` |
+| Citation | `text-gray-600` | `color: '#4B5563'` |
+| Note | `text-gray-400` | `color: '#9CA3AF'` |
+| Barre fond | `bg-gray-200` | `backgroundColor: '#E5E7EB'` |
+| Barre remplie | `bg-gray-800` | `backgroundColor: '#1F2937'` |
+| Label | `text-gray-500` | `color: '#6B7280'` |
 
 ---
 
