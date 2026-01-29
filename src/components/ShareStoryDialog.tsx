@@ -68,11 +68,11 @@ const STORY_COLORS = [
 // Tasting bar component for card style
 const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
   <div className="space-y-2">
-    <span className="text-base text-gray-500 italic block">{label}</span>
-    <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+    <span className="text-base italic block" style={{ color: '#6B7280' }}>{label}</span>
+    <div className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: '#E5E7EB' }}>
       <div 
-        className="h-full bg-gray-800 rounded-full transition-all"
-        style={{ width: `${(value / 10) * 100}%` }}
+        className="h-full rounded-full transition-all"
+        style={{ width: `${(value / 10) * 100}%`, backgroundColor: '#1F2937' }}
       />
     </div>
   </div>
@@ -111,7 +111,7 @@ const StoryTemplateCard = ({
   >
     {/* White card */}
     <div
-      className="absolute bg-white rounded-[48px] flex flex-col"
+      className="absolute rounded-[48px] flex flex-col"
       style={{
         left: '80px',
         right: '80px',
@@ -119,12 +119,13 @@ const StoryTemplateCard = ({
         bottom: '200px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
         padding: '36px',
+        backgroundColor: '#FFFFFF',
       }}
     >
       {/* Wine name and domain */}
       <div className="text-center mb-3">
         <h2 
-          className="text-gray-900 font-serif uppercase tracking-wide leading-tight"
+          className="font-serif uppercase tracking-wide leading-tight"
           style={{ 
             fontSize: '48px', 
             fontWeight: 600,
@@ -133,19 +134,21 @@ const StoryTemplateCard = ({
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
+            color: '#111827',
           }}
         >
           {wineName}
         </h2>
         {domainName && (
           <p 
-            className="text-gray-500 mt-2"
+            className="mt-2"
             style={{ 
               fontSize: '26px',
               maxWidth: '100%',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
+              color: '#6B7280',
             }}
           >
             {domainName}
@@ -154,7 +157,7 @@ const StoryTemplateCard = ({
       </div>
 
       {/* Separator */}
-      <div className="w-24 h-0.5 bg-gray-200 mx-auto mb-3" />
+      <div className="w-24 h-0.5 mx-auto mb-3" style={{ backgroundColor: '#E5E7EB' }} />
 
       {/* Main image */}
       <div className="flex-1 flex items-center justify-center mb-3">
@@ -167,10 +170,10 @@ const StoryTemplateCard = ({
           />
         ) : (
           <div 
-            className="bg-gray-100 rounded-2xl flex items-center justify-center"
-            style={{ width: '400px', height: migratedNotice ? '400px' : '600px' }}
+            className="rounded-2xl flex items-center justify-center"
+            style={{ width: '400px', height: migratedNotice ? '400px' : '600px', backgroundColor: '#F3F4F6' }}
           >
-            <Wine className="w-32 h-32 text-gray-300" />
+            <Wine className="w-32 h-32" style={{ color: '#D1D5DB' }} />
           </div>
         )}
       </div>
@@ -178,13 +181,14 @@ const StoryTemplateCard = ({
       {/* Content quote - toujours affiché si présent */}
       {content && (
         <p 
-          className="text-gray-600 text-center italic leading-relaxed mb-2"
+          className="text-center italic leading-relaxed mb-2"
           style={{ 
             fontSize: '24px',
             display: '-webkit-box',
             WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
+            color: '#4B5563',
           }}
         >
           "{content}"
@@ -196,14 +200,13 @@ const StoryTemplateCard = ({
         <>
           <div className="text-center mb-2">
             <span 
-              className="text-gray-900 font-bold"
-              style={{ fontSize: '56px', lineHeight: 1 }}
+              className="font-bold"
+              style={{ fontSize: '56px', lineHeight: 1, color: '#111827' }}
             >
               {migratedNotice.rating}
             </span>
             <span 
-              className="text-gray-400"
-              style={{ fontSize: '36px' }}
+              style={{ fontSize: '36px', color: '#9CA3AF' }}
             >
               /10
             </span>
