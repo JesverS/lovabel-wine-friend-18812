@@ -115,43 +115,60 @@ const StoryTemplateCard = ({
       style={{
         left: '80px',
         right: '80px',
-        top: '200px',
-        bottom: '160px',
+        top: '240px',
+        bottom: '200px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-        padding: '60px',
+        padding: '48px',
       }}
     >
       {/* Wine name and domain */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-5">
         <h2 
           className="text-gray-900 font-serif uppercase tracking-wide leading-tight"
-          style={{ fontSize: '52px', fontWeight: 600 }}
+          style={{ 
+            fontSize: '48px', 
+            fontWeight: 600,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
         >
           {wineName}
         </h2>
         {domainName && (
-          <p className="text-gray-500 mt-3" style={{ fontSize: '28px' }}>
+          <p 
+            className="text-gray-500 mt-2"
+            style={{ 
+              fontSize: '26px',
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {domainName}
           </p>
         )}
       </div>
 
       {/* Separator */}
-      <div className="w-24 h-0.5 bg-gray-200 mx-auto mb-8" />
+      <div className="w-24 h-0.5 bg-gray-200 mx-auto mb-5" />
 
       {/* Main image */}
-      <div className="flex-1 flex items-center justify-center mb-6">
+      <div className="flex-1 flex items-center justify-center mb-4">
         {imageUrl ? (
           <img 
             src={imageUrl} 
             alt={wineName}
             className="max-w-full max-h-full object-contain rounded-2xl"
-            style={{ maxHeight: migratedNotice ? '500px' : '600px' }}
+            style={{ maxHeight: migratedNotice ? '450px' : '550px' }}
           />
         ) : (
           <div 
             className="bg-gray-100 rounded-2xl flex items-center justify-center"
-            style={{ width: '400px', height: migratedNotice ? '400px' : '500px' }}
+            style={{ width: '400px', height: migratedNotice ? '350px' : '450px' }}
           >
             <Wine className="w-32 h-32 text-gray-300" />
           </div>
@@ -161,8 +178,14 @@ const StoryTemplateCard = ({
       {/* Content quote - toujours affiché si présent */}
       {content && (
         <p 
-          className="text-gray-600 text-center italic leading-relaxed mb-6"
-          style={{ fontSize: '26px' }}
+          className="text-gray-600 text-center italic leading-relaxed mb-4"
+          style={{ 
+            fontSize: '24px',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
         >
           "{content}"
         </p>
@@ -171,23 +194,23 @@ const StoryTemplateCard = ({
       {/* Rating */}
       {migratedNotice && (
         <>
-          <div className="text-center mb-6">
+          <div className="text-center mb-4">
             <span 
               className="text-gray-900 font-bold"
-              style={{ fontSize: '72px', lineHeight: 1 }}
+              style={{ fontSize: '64px', lineHeight: 1 }}
             >
               {migratedNotice.rating}
             </span>
             <span 
               className="text-gray-400"
-              style={{ fontSize: '40px' }}
+              style={{ fontSize: '36px' }}
             >
               /10
             </span>
           </div>
 
           {/* Tasting bars grid avec labels dynamiques */}
-          <div className="grid grid-cols-2 gap-x-12 gap-y-6 mt-4">
+          <div className="grid grid-cols-2 gap-x-10 gap-y-4 mt-3">
             <TastingBarCard label={sliders.slot1.label} value={migratedNotice.slot1} />
             <TastingBarCard label={sliders.slot2.label} value={migratedNotice.slot2} />
             <TastingBarCard label={sliders.slot3.label} value={migratedNotice.slot3} />
