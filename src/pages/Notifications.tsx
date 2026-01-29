@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,11 @@ const Notifications = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>Notifications - Wine Note</title>
+          <meta name="description" content="Consultez vos notifications Wine Note : nouveaux abonnés, événements, invitations et commentaires." />
+          <meta name="robots" content="noindex" />
+        </Helmet>
         <Header />
         <main className="container mx-auto px-4 pt-28 pb-16">
           <div className="max-w-2xl mx-auto text-center py-16">
@@ -63,6 +69,11 @@ const Notifications = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Notifications - Wine Note</title>
+        <meta name="description" content="Consultez vos notifications Wine Note : nouveaux abonnés, événements, invitations et commentaires." />
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 pt-28 pb-16">
         <div className="max-w-2xl mx-auto">

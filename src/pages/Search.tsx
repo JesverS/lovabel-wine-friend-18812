@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -133,6 +134,14 @@ const Search = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Recherche IA Sommelier | Trouvez le Vin Parfait - Wine Note</title>
+        <meta name="description" content="Notre IA sommelier vous aide à trouver le vin parfait selon vos goûts. Recherchez par hashtag ou demandez des recommandations personnalisées." />
+        <link rel="canonical" href="https://winenote.me/search" />
+        <meta property="og:title" content="Recherche IA Sommelier - Wine Note" />
+        <meta property="og:description" content="Trouvez le vin parfait avec notre assistant IA sommelier." />
+        <meta property="og:url" content="https://winenote.me/search" />
+      </Helmet>
       <Header />
       
       <main className="pt-24 pb-16 flex-grow min-h-screen">

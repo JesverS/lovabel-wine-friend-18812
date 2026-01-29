@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -281,6 +282,11 @@ export default function GamePlay() {
 
   if (gameStatus === "playing") {
     return (
+      <>
+      <Helmet>
+        <title>Partie en cours | Jeu d'Ambiance - Wine Note</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="min-h-screen bg-gradient-to-b from-wine-light to-wine-DEFAULT p-4">
         {/* Bouton Quitter */}
         <Button
@@ -434,6 +440,7 @@ export default function GamePlay() {
           )}
         </div>
       </div>
+      </>
     );
   }
 

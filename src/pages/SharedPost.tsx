@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -137,6 +138,13 @@ export default function SharedPost() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <Helmet>
+        <title>{post?.author?.full_name || 'Utilisateur'} partage une dégustation | Wine Note</title>
+        <meta name="description" content={post?.content?.slice(0, 155) || "Découvrez cette dégustation partagée sur Wine Note."} />
+        {post?.image_url && <meta property="og:image" content={post.image_url} />}
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={`${post?.author?.full_name || 'Utilisateur'} sur Wine Note`} />
+      </Helmet>
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 pt-28">
         <Card className="max-w-2xl mx-auto p-6 space-y-4">

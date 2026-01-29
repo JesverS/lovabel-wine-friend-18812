@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
@@ -133,6 +134,10 @@ export default function CellarInvitation() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
+        <Helmet>
+          <title>Invitation Cave - Wine Note</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <Header />
         <div className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
           <Loader2 className="w-8 h-8 animate-spin" />
@@ -145,6 +150,10 @@ export default function CellarInvitation() {
   if (invitationNotFound) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
+        <Helmet>
+          <title>Invitation Cave - Wine Note</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <Header />
         <main className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
           <Card className="max-w-md w-full">
@@ -176,6 +185,10 @@ export default function CellarInvitation() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Invitation à rejoindre une cave | Wine Note</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
         <Card className="max-w-md w-full">

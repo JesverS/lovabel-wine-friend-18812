@@ -1,6 +1,7 @@
 import { Wine, Home, Search, BookOpen, Calendar, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -15,6 +16,11 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Page introuvable - Wine Note</title>
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="description" content="Cette page n'existe pas ou a été déplacée." />
+      </Helmet>
       <Header />
 
       <main className="flex-grow flex items-center justify-center pt-20 pb-12">
