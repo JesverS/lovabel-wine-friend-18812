@@ -348,7 +348,6 @@ const StoryTemplateCard = ({
         }}
       >
         <span style={{ fontSize: "36px", fontWeight: 500, color: footerTextColor }}>@winenote</span>
-        <Wine style={{ width: "30px", height: "30px", color: footerTextColor, transform: "translateY(6px)" }} />
       </div>
     </div>
   );
