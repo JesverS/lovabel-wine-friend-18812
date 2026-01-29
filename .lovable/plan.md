@@ -1,109 +1,100 @@
 
 
-# Correction du Problème de Capture d'Image
+# Correction du Débordement des Barres de Dégustation
 
 ## Problème Identifié
 
-Le `ref` est actuellement attaché à un élément qui a une transformation CSS `scale(0.25)` appliquée pour l'aperçu. Quand `html2canvas` capture cet élément :
-- Il voit un élément de 1080x1920px transformé à 25%
-- Mais les options `width: 1080, height: 1920` forcent un canvas de cette taille
-- Résultat : une grande image blanche avec le contenu minuscule dans un coin
+D'après la capture d'écran, les barres de dégustation (Acidité, Sec, Sucrosité, Gras) débordent en bas du carré blanc arrondi. Le contenu total ne tient pas dans l'espace alloué.
 
+```text
+┌─────────────────────────────┐
+│  CHABLIS                    │
+│  Dominique Gruhier          │
+│  ───────                    │
+│                             │
+│  [    PHOTO DU VIN     ]    │
+│                             │
+│  "Teste sans photo"         │
+│         8.1/10              │
+├─────────────────────────────┤ ← Bord du carré blanc
+│  Acidité ████      Sec ████ │ ← DÉBORDE!
+│  Sucrosité ████    Gras ████│ ← DÉBORDE!
+└─────────────────────────────┘
 ```
-┌─────────────────────────────────┐
-│ ┌──────┐                        │
-│ │Story │  ← Contenu à 25%       │
-│ │ mini │                        │
-│ └──────┘                        │
-│                                 │
-│        Grande zone blanche      │
-│                                 │
-└─────────────────────────────────┘
-```
+
+## Cause
+
+Le carré blanc a une hauteur fixée par `top: 320px` et `bottom: 280px`, ce qui laisse **1320px** de hauteur. Avec tous les éléments (titre, domaine, séparateur, photo 600px, citation, note 64px, et 4 barres), le contenu dépasse cette limite.
 
 ## Solution
 
-Séparer le conteneur de capture du conteneur d'aperçu :
-
-1. Créer un conteneur caché (hors écran) contenant le template à taille réelle (1080x1920)
-2. Le `ref` pointe vers ce conteneur caché
-3. L'aperçu visible reste avec `scale(0.25)` mais sans le `ref`
+1. **Réduire la taille de la photo** quand il y a une notice de dégustation
+2. **Réduire l'espacement vertical** entre les éléments
+3. **Agrandir légèrement le carré blanc** en réduisant `bottom` de 280px à 220px
 
 ---
 
 ## Modifications Techniques
 
-### Structure Actuelle (Problématique)
+### 1. Agrandir le Carré Blanc
 
 ```tsx
-<div 
-  ref={storyRef}  // ← ref sur l'élément transformé
-  style={{ transform: 'scale(0.25)' }}  // ← problème!
->
-  <StoryTemplateCard ... />
-</div>
+// Avant
+style={{
+  top: '320px',
+  bottom: '280px',  // Hauteur = 1320px
+}}
+
+// Après
+style={{
+  top: '280px',
+  bottom: '200px',  // Hauteur = 1440px (+120px)
+}}
 ```
 
-### Nouvelle Structure (Corrigée)
+### 2. Réduire les Espacements
+
+| Élément | Avant | Après |
+|---------|-------|-------|
+| Header (mb) | `mb-5` | `mb-3` |
+| Separator (mb) | `mb-5` | `mb-3` |
+| Image container (mb) | `mb-4` | `mb-3` |
+| Content quote (mb) | `mb-4` | `mb-2` |
+| Rating (mb) | `mb-4` | `mb-2` |
+| Tasting grid (gap-y) | `gap-y-4` | `gap-y-3` |
+
+### 3. Réduire la Taille Max de l'Image avec Notice
 
 ```tsx
-{/* Conteneur caché pour capture - taille réelle, hors écran */}
-<div
-  ref={storyRef}
-  style={{
-    position: 'fixed',
-    left: '-9999px',
-    top: '-9999px',
-    width: '1080px',
-    height: '1920px',
-    pointerEvents: 'none',
-    zIndex: -1,
-  }}
->
-  <StoryTemplateCard ... />
-</div>
+// Avant
+style={{ maxHeight: migratedNotice ? '600px' : '750px' }}
 
-{/* Aperçu visible - transformé pour affichage */}
-<div style={{ transform: 'scale(0.25)' }}>
-  <StoryTemplateCard ... />  {/* Même composant, sans ref */}
-</div>
+// Après
+style={{ maxHeight: migratedNotice ? '500px' : '700px' }}
 ```
 
-### Mise à Jour de generateImage
-
-Supprimer les options `width` et `height` qui forcent une taille incorrecte :
+### 4. Réduire la Taille de la Note
 
 ```tsx
-const generateImage = async (): Promise<Blob | null> => {
-  if (!storyRef.current) return null;
-  try {
-    const canvas = await html2canvas(storyRef.current, { 
-      scale: 1, 
-      useCORS: true, 
-      allowTaint: true, 
-      backgroundColor: null,
-      // width et height supprimés - html2canvas prendra les dimensions naturelles
-      logging: false 
-    });
-    return new Promise((resolve) => { 
-      canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0); 
-    });
-  } catch (error) { 
-    console.error('Erreur génération image:', error); 
-    return null; 
-  }
-};
+// Avant
+style={{ fontSize: '64px' }}
+
+// Après
+style={{ fontSize: '56px' }}
 ```
 
 ---
 
-## Résultat Attendu
+## Résumé
 
-| Avant | Après |
-|-------|-------|
-| Image 1080x1920 avec contenu à 25% | Image 1080x1920 avec contenu plein format |
-| Grande zone blanche | Pas de zone blanche |
-| Qualité dégradée | Qualité optimale |
+| Modification | Impact |
+|--------------|--------|
+| Carré blanc agrandi | +120px de hauteur disponible |
+| Espacements réduits | ~-50px de hauteur utilisée |
+| Image plus petite | -100px quand notice présente |
+| Note plus compacte | ~-20px |
+
+Le contenu tiendra maintenant entièrement dans le carré blanc arrondi.
 
 ---
 
