@@ -23,8 +23,10 @@ export default function Favorites() {
           name="description" 
           content="Retrouvez tous les vins que vous avez aimés sur Wine Note. Gérez votre collection de vins favoris." 
         />
+        <link rel="canonical" href="https://winenote.me/favorites" />
         <meta property="og:title" content="Mes Favoris - Wine Note" />
         <meta property="og:description" content="Retrouvez tous les vins que vous avez aimés sur Wine Note." />
+        <meta property="og:url" content="https://winenote.me/favorites" />
       </Helmet>
       <Header />
 

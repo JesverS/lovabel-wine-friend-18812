@@ -309,8 +309,10 @@ const LessonDetails = () => {
       <Helmet>
         <title>{lesson.title} | Leçon - Wine Note</title>
         <meta name="description" content={`Leçon ${lesson.lesson_number} : ${lesson.title}. Durée estimée : ${lesson.estimated_time}.`} />
+        <link rel="canonical" href={`https://winenote.me/course/${courseId}/lesson/${lessonId}`} />
         <meta property="og:title" content={`${lesson.title} - Wine Note`} />
         <meta property="og:description" content={`Leçon d'oenologie : ${lesson.title}`} />
+        <meta property="og:url" content={`https://winenote.me/course/${courseId}/lesson/${lessonId}`} />
         <meta property="og:type" content="article" />
       </Helmet>
 

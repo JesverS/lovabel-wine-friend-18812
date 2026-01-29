@@ -217,8 +217,10 @@ export default function CellarDetails() {
       <Helmet>
         <title>{cellar.name} | Cave - Wine Note</title>
         <meta name="description" content={cellar.description?.slice(0, 155) || `Découvrez la cave ${cellar.name}`} />
+        <link rel="canonical" href={`https://winenote.me/cellar/${cellar.slug}`} />
         <meta property="og:title" content={`${cellar.name} - Wine Note`} />
         <meta property="og:description" content={cellar.description?.slice(0, 155) || `Cave à vin ${cellar.name}`} />
+        <meta property="og:url" content={`https://winenote.me/cellar/${cellar.slug}`} />
         {cellar.logo_url && <meta property="og:image" content={cellar.logo_url} />}
         <meta property="og:type" content="website" />
       </Helmet>
