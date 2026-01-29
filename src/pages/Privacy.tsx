@@ -21,10 +21,19 @@ import {
   RefreshCw, 
   Building 
 } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 export default function Privacy() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Politique de Confidentialité | Wine Note</title>
+        <meta name="description" content="Politique de confidentialité de Wine Note. Découvrez comment nous protégeons vos données personnelles et respectons votre vie privée." />
+        <link rel="canonical" href="https://winenote.me/privacy" />
+        <meta property="og:title" content="Politique de Confidentialité - Wine Note" />
+        <meta property="og:url" content="https://winenote.me/privacy" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8 pt-32 flex-grow max-w-4xl">
         <div className="text-center mb-16 animate-fade-up">

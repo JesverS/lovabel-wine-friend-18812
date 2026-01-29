@@ -173,14 +173,32 @@ const CourseDetails = () => {
     );
   }
 
+  const courseSchema = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "name": course.title,
+    "description": `Apprenez l'œnologie avec le cours ${course.title}. ${course.lesson_count} leçons interactives.`,
+    "provider": {
+      "@type": "Organization",
+      "name": "Wine Note",
+      "url": "https://winenote.me"
+    },
+    "numberOfLessons": course.lesson_count
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
       <Helmet>
         <title>{course.title} | Cours d'oenologie - Wine Note</title>
         <meta name="description" content={`Apprenez l'oenologie avec le cours ${course.title}. ${course.lesson_count} leçons interactives.`} />
+        <link rel="canonical" href={`https://winenote.me/course/${id}`} />
         <meta property="og:title" content={`${course.title} - Wine Note`} />
         <meta property="og:description" content={`Cours d'oenologie : ${course.title}`} />
+        <meta property="og:url" content={`https://winenote.me/course/${id}`} />
         <meta property="og:type" content="website" />
+        <script type="application/ld+json">
+          {JSON.stringify(courseSchema)}
+        </script>
       </Helmet>
 
       <Header />

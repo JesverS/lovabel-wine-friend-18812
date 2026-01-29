@@ -5,12 +5,22 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 export default function Badges() {
   const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Badges & Récompenses | Collection - Wine Note</title>
+        <meta name="description" content="Débloquez des badges en progressant dans l'application Wine Note. Chaque badge vous récompense avec de l'XP et célèbre vos accomplissements œnologiques." />
+        <link rel="canonical" href="https://winenote.me/badges" />
+        <meta property="og:title" content="Badges & Récompenses - Wine Note" />
+        <meta property="og:description" content="Collectionnez des badges et gagnez de l'XP en explorant le monde du vin." />
+        <meta property="og:url" content="https://winenote.me/badges" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <Header />
       
       <main className="container mx-auto px-4 py-12 max-w-5xl pt-32 flex-grow">

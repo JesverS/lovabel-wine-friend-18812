@@ -11,6 +11,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { WineSelectionForGame } from "@/components/game/WineSelectionForGame";
+import { Helmet } from "react-helmet-async";
 
 export default function GameMultiplayer() {
   const navigate = useNavigate();
@@ -87,6 +88,15 @@ export default function GameMultiplayer() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background flex flex-col">
+      <Helmet>
+        <title>Jeu d'Ambiance Vin - Soirée Dégustation | Wine Note</title>
+        <meta name="description" content="Animez vos soirées dégustation avec le jeu d'ambiance Wine Note. De 1 à 8 joueurs, testez vos connaissances sur le vin de manière conviviale." />
+        <link rel="canonical" href="https://winenote.me/game" />
+        <meta property="og:title" content="Jeu d'Ambiance Vin - Wine Note" />
+        <meta property="og:description" content="Animez vos soirées dégustation avec le jeu d'ambiance Wine Note." />
+        <meta property="og:url" content="https://winenote.me/game" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <Header />
 
       <main className="container mx-auto px-4 py-8 pt-32 flex-grow min-h-screen">

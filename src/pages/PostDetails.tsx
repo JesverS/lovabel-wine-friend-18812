@@ -13,6 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { WineTastingNotes } from '@/components/WineTastingNotes';
 import { ReportContentDialog } from '@/components/ReportContentDialog';
+import { Helmet } from 'react-helmet-async';
 
 interface PostData {
   id: string;
@@ -195,6 +196,14 @@ export default function PostDetails() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <Helmet>
+        <title>{post.author?.full_name || 'Utilisateur'} partage une dégustation | Wine Note</title>
+        <meta name="description" content={post.content?.slice(0, 155) || `Découvrez la dégustation partagée par ${post.author?.full_name || 'un amateur de vin'} sur Wine Note.`} />
+        <meta property="og:title" content={`${post.author?.full_name || 'Utilisateur'} sur Wine Note`} />
+        <meta property="og:description" content={post.content?.slice(0, 155) || 'Dégustation partagée sur Wine Note'} />
+        {post.image_url && <meta property="og:image" content={post.image_url} />}
+        <meta property="og:type" content="article" />
+      </Helmet>
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 pt-28">
         <Card className="max-w-2xl mx-auto p-6 space-y-4">
