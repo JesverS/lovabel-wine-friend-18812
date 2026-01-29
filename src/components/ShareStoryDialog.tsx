@@ -163,12 +163,12 @@ const StoryTemplateCard = ({
             src={imageUrl} 
             alt={wineName}
             className="max-w-full max-h-full object-contain rounded-2xl"
-            style={{ maxHeight: migratedNotice ? '520px' : '650px' }}
+            style={{ maxHeight: migratedNotice ? '600px' : '750px' }}
           />
         ) : (
           <div 
             className="bg-gray-100 rounded-2xl flex items-center justify-center"
-            style={{ width: '400px', height: migratedNotice ? '420px' : '550px' }}
+            style={{ width: '400px', height: migratedNotice ? '500px' : '650px' }}
           >
             <Wine className="w-32 h-32 text-gray-300" />
           </div>
