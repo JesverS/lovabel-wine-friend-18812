@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import html2canvas from "html2canvas";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, Copy, Loader2, Check, Instagram, Wine } from "lucide-react";
@@ -57,13 +56,13 @@ const STORY_COLORS = [
   { name: "Beige", value: "#F5F0E8" },
 ];
 
-// Tasting bar component - inline styles only
+// Tasting bar component
 const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
-  <div style={{ marginBottom: "12px" }}>
+  <div style={{ marginBottom: "8px" }}>
     <span
       style={{
         color: "#6B7280",
-        fontSize: "16px",
+        fontSize: "28px",
         fontStyle: "italic",
         display: "block",
         marginBottom: "8px",
@@ -73,16 +72,16 @@ const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
     </span>
     <div
       style={{
-        height: "12px",
-        borderRadius: "9999px",
-        overflow: "hidden",
+        height: "20px",
+        borderRadius: "10px",
         backgroundColor: "#E5E7EB",
+        overflow: "hidden",
       }}
     >
       <div
         style={{
           height: "100%",
-          borderRadius: "9999px",
+          borderRadius: "10px",
           width: `${(value / 10) * 100}%`,
           backgroundColor: "#1F2937",
         }}
@@ -91,7 +90,7 @@ const TastingBarCard = ({ label, value }: { label: string; value: number }) => (
   </div>
 );
 
-// Story Template Card - flexbox layout, no absolute positioning
+// Story Template - dimensions fixes, pas de flex dynamique
 const StoryTemplateCard = ({
   wineName,
   domainName,
@@ -115,56 +114,54 @@ const StoryTemplateCard = ({
   const isLightBackground = backgroundColor === "#C9A227" || backgroundColor === "#F5F0E8";
   const footerTextColor = isLightBackground ? "#1A1A1A" : "#FFFFFF";
 
+  // Dimensions fixes
+  const CARD_LEFT = 80;
+  const CARD_WIDTH = 920; // 1080 - 80*2
+  const CARD_TOP = 200;
+  const CARD_BOTTOM = 180;
+  const CARD_HEIGHT = 1920 - CARD_TOP - CARD_BOTTOM; // 1540px
+
   return (
     <div
       style={{
         width: "1080px",
         height: "1920px",
         backgroundColor: backgroundColor,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "0",
-        boxSizing: "border-box",
+        position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Top spacer */}
-      <div style={{ height: "280px", width: "100%", flexShrink: 0 }} />
-
-      {/* White card */}
+      {/* White card - position absolute mais bien contenue */}
       <div
         style={{
-          width: "920px",
-          flex: 1,
-          marginBottom: "140px",
+          position: "absolute",
+          left: `${CARD_LEFT}px`,
+          top: `${CARD_TOP}px`,
+          width: `${CARD_WIDTH}px`,
+          height: `${CARD_HEIGHT}px`,
           backgroundColor: "#FFFFFF",
           borderRadius: "48px",
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)",
-          padding: "36px",
+          padding: "48px",
+          boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
-          boxSizing: "border-box",
           overflow: "hidden",
         }}
       >
-        {/* Wine name and domain */}
-        <div style={{ textAlign: "center", marginBottom: "12px", flexShrink: 0 }}>
+        {/* Wine name */}
+        <div style={{ textAlign: "center", marginBottom: "16px" }}>
           <h2
             style={{
-              fontFamily: "Georgia, serif",
+              fontFamily: "Georgia, Times, serif",
               textTransform: "uppercase",
               letterSpacing: "0.05em",
-              lineHeight: 1.2,
-              fontSize: "48px",
-              fontWeight: 600,
+              lineHeight: 1.1,
+              fontSize: "52px",
+              fontWeight: 700,
               color: "#111827",
               margin: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
+              wordBreak: "break-word",
             }}
           >
             {wineName}
@@ -172,12 +169,9 @@ const StoryTemplateCard = ({
           {domainName && (
             <p
               style={{
-                fontSize: "26px",
+                fontSize: "28px",
                 color: "#6B7280",
-                margin: "8px 0 0 0",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                margin: "12px 0 0 0",
               }}
             >
               {domainName}
@@ -188,24 +182,23 @@ const StoryTemplateCard = ({
         {/* Separator */}
         <div
           style={{
-            width: "96px",
-            height: "2px",
-            backgroundColor: "#E5E7EB",
-            margin: "0 auto 12px auto",
-            flexShrink: 0,
+            width: "100px",
+            height: "3px",
+            backgroundColor: "#D1D5DB",
+            margin: "0 auto 24px auto",
           }}
         />
 
-        {/* Main image container */}
+        {/* Main image */}
         <div
           style={{
             flex: 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: "12px",
-            minHeight: 0,
-            overflow: "hidden",
+            minHeight: "300px",
+            maxHeight: migratedNotice ? "550px" : "750px",
+            marginBottom: "20px",
           }}
         >
           {imageUrl ? (
@@ -215,7 +208,7 @@ const StoryTemplateCard = ({
               crossOrigin="anonymous"
               style={{
                 maxWidth: "100%",
-                maxHeight: migratedNotice ? "500px" : "700px",
+                maxHeight: "100%",
                 objectFit: "contain",
                 borderRadius: "16px",
               }}
@@ -223,8 +216,8 @@ const StoryTemplateCard = ({
           ) : (
             <div
               style={{
-                width: "400px",
-                height: migratedNotice ? "400px" : "600px",
+                width: "350px",
+                height: "350px",
                 backgroundColor: "#F3F4F6",
                 borderRadius: "16px",
                 display: "flex",
@@ -232,7 +225,7 @@ const StoryTemplateCard = ({
                 justifyContent: "center",
               }}
             >
-              <Wine style={{ width: "128px", height: "128px", color: "#D1D5DB" }} />
+              <Wine style={{ width: "120px", height: "120px", color: "#D1D5DB" }} />
             </div>
           )}
         </div>
@@ -243,16 +236,10 @@ const StoryTemplateCard = ({
             style={{
               textAlign: "center",
               fontStyle: "italic",
-              lineHeight: 1.6,
-              marginBottom: "8px",
-              fontSize: "24px",
+              lineHeight: 1.5,
+              marginBottom: "16px",
+              fontSize: "32px",
               color: "#4B5563",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              display: "-webkit-box",
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: "vertical",
-              flexShrink: 0,
             }}
           >
             "{content}"
@@ -261,11 +248,11 @@ const StoryTemplateCard = ({
 
         {/* Rating and tasting bars */}
         {migratedNotice && (
-          <div style={{ flexShrink: 0 }}>
-            <div style={{ textAlign: "center", marginBottom: "8px" }}>
+          <div>
+            <div style={{ textAlign: "center", marginBottom: "16px" }}>
               <span
                 style={{
-                  fontSize: "56px",
+                  fontSize: "72px",
                   lineHeight: 1,
                   color: "#111827",
                   fontWeight: "bold",
@@ -273,16 +260,15 @@ const StoryTemplateCard = ({
               >
                 {migratedNotice.rating}
               </span>
-              <span style={{ fontSize: "36px", color: "#9CA3AF" }}>/10</span>
+              <span style={{ fontSize: "48px", color: "#9CA3AF" }}>/10</span>
             </div>
 
-            {/* Tasting bars grid */}
+            {/* Tasting bars - 2 colonnes */}
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                gap: "12px 40px",
-                marginTop: "8px",
+                gap: "16px 32px",
               }}
             >
               <TastingBarCard label={sliders.slot1.label} value={migratedNotice.slot1} />
@@ -297,26 +283,26 @@ const StoryTemplateCard = ({
       {/* Footer */}
       <div
         style={{
-          height: "60px",
-          width: "100%",
+          position: "absolute",
+          bottom: "60px",
+          left: 0,
+          right: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           gap: "16px",
-          marginBottom: "60px",
-          flexShrink: 0,
         }}
       >
         <span
           style={{
-            fontSize: "30px",
+            fontSize: "36px",
             fontWeight: 500,
             color: footerTextColor,
           }}
         >
           @winenote
         </span>
-        <Wine style={{ width: "32px", height: "32px", color: footerTextColor }} />
+        <Wine style={{ width: "36px", height: "36px", color: footerTextColor }} />
       </div>
     </div>
   );
@@ -338,19 +324,42 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryD
     if (!storyRef.current) return null;
 
     try {
-      // Placer dans le viewport pour la capture
-      storyRef.current.style.position = "fixed";
-      storyRef.current.style.left = "0px";
-      storyRef.current.style.top = "0px";
-      storyRef.current.style.visibility = "visible";
-      storyRef.current.style.opacity = "1";
-      storyRef.current.style.zIndex = "99999";
-      storyRef.current.style.transform = "none";
+      // Import dynamique de html2canvas
+      const html2canvas = (await import("html2canvas")).default;
 
-      // Attendre le rendu complet
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Créer un conteneur temporaire DANS le body, visible
+      const tempContainer = document.createElement("div");
+      tempContainer.style.cssText = `
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        z-index: 999999;
+        background: ${selectedColor};
+        overflow: hidden;
+      `;
 
-      const canvas = await html2canvas(storyRef.current, {
+      // Cloner le contenu
+      const clone = storyRef.current.cloneNode(true) as HTMLElement;
+      clone.style.cssText = `
+        position: relative;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        visibility: visible;
+        opacity: 1;
+      `;
+
+      tempContainer.appendChild(clone);
+      document.body.appendChild(tempContainer);
+
+      // Attendre le rendu
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Capturer
+      const canvas = await html2canvas(tempContainer, {
         scale: 1,
         width: 1080,
         height: 1920,
@@ -359,26 +368,16 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryD
         backgroundColor: selectedColor,
         logging: false,
         imageTimeout: 15000,
-        removeContainer: false,
       });
 
-      // Replacer hors écran
-      storyRef.current.style.position = "fixed";
-      storyRef.current.style.left = "-9999px";
-      storyRef.current.style.top = "-9999px";
-      storyRef.current.style.visibility = "hidden";
-      storyRef.current.style.opacity = "0";
-      storyRef.current.style.zIndex = "-1";
+      // Nettoyer
+      document.body.removeChild(tempContainer);
 
       return new Promise((resolve) => {
         canvas.toBlob((blob) => resolve(blob), "image/png", 1.0);
       });
     } catch (error) {
       console.error("Erreur génération image:", error);
-      if (storyRef.current) {
-        storyRef.current.style.visibility = "hidden";
-        storyRef.current.style.left = "-9999px";
-      }
       return null;
     }
   };
@@ -448,20 +447,16 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryD
           ))}
         </div>
 
-        {/* Hidden container for capture */}
+        {/* Hidden source for cloning */}
         <div
           ref={storyRef}
           style={{
-            position: "fixed",
-            left: "-9999px",
-            top: "-9999px",
+            position: "absolute",
+            left: "-99999px",
+            top: "-99999px",
             width: "1080px",
             height: "1920px",
             pointerEvents: "none",
-            zIndex: -1,
-            visibility: "hidden",
-            opacity: 0,
-            overflow: "hidden",
           }}
         >
           <StoryTemplateCard
