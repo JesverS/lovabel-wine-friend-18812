@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, Copy, Loader2, Check, Instagram, Wine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getSlidersForWineType, migrateTastingDetails } from "@/lib/tastingSliderConfig";
+import { createRoot } from "react-dom/client";
 
 interface WineNotice {
   rating: number;
@@ -56,7 +57,7 @@ const STORY_COLORS = [
   { name: "Beige", value: "#F5F0E8" },
 ];
 
-// Génère le HTML statique de la story
+// Génère le HTML statique de la story (pas de React, juste du HTML pur)
 const generateStoryHTML = ({
   wineName,
   domainName,
@@ -81,8 +82,8 @@ const generateStoryHTML = ({
   const footerTextColor = isLightBackground ? "#1A1A1A" : "#FFFFFF";
 
   const tastingBar = (label: string, value: number) => `
-    <div style="background-color: #FFFFFF;">
-      <span style="color: #6B7280; font-size: 28px; font-style: italic; display: block; margin-bottom: 16px; background-color: #FFFFFF;">
+    <div style="margin-bottom: 8px; background-color: #FFFFFF;">
+      <span style="color: #6B7280; font-size: 28px; font-style: italic; display: block; margin-bottom: 8px; background-color: #FFFFFF;">
         ${label}
       </span>
       <div style="height: 20px; border-radius: 10px; background-color: #E5E7EB; overflow: hidden;">
@@ -91,8 +92,7 @@ const generateStoryHTML = ({
     </div>
   `;
 
-  // SVG avec transform pour décaler vers le bas
-  const wineIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${footerTextColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: translateY(6px);"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"/></svg>`;
+  const wineIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="${footerTextColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"/></svg>`;
 
   return `
     <!DOCTYPE html>
@@ -107,11 +107,10 @@ const generateStoryHTML = ({
       <div style="width: 1080px; height: 1920px; background-color: ${backgroundColor}; position: relative; overflow: hidden;">
         <!-- White card -->
         <div style="position: absolute; left: 80px; top: 200px; width: 920px; height: 1540px; background-color: #FFFFFF; border-radius: 48px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); overflow: hidden;">
-          <!-- Inner content avec flexbox pour pousser les sliders en bas -->
-          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 48px; background-color: #FFFFFF; display: flex; flex-direction: column;">
-            
+          <!-- Inner content -->
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 48px; background-color: #FFFFFF;">
             <!-- Wine name -->
-            <div style="text-align: center; margin-bottom: 20px; background-color: #FFFFFF; flex-shrink: 0;">
+            <div style="text-align: center; margin-bottom: 16px; background-color: #FFFFFF;">
               <h2 style="font-family: Georgia, Times, serif; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.1; font-size: 52px; font-weight: 700; color: #111827; margin: 0; word-break: break-word; background-color: #FFFFFF;">
                 ${wineName}
               </h2>
@@ -119,10 +118,10 @@ const generateStoryHTML = ({
             </div>
 
             <!-- Separator -->
-            <div style="width: 100px; height: 3px; background-color: #D1D5DB; margin: 0 auto 24px auto; flex-shrink: 0;"></div>
+            <div style="width: 100px; height: 3px; background-color: #D1D5DB; margin: 0 auto 24px auto;"></div>
 
-            <!-- Main image - prend l'espace disponible -->
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; background-color: #FFFFFF; min-height: 0;">
+            <!-- Main image -->
+            <div style="height: ${migratedNotice ? "550px" : "850px"}; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; background-color: #FFFFFF;">
               ${
                 imageUrl
                   ? `<img src="${imageUrl}" alt="${wineName}" crossorigin="anonymous" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 16px;" />`
@@ -133,18 +132,18 @@ const generateStoryHTML = ({
             </div>
 
             <!-- Content quote -->
-            ${content ? `<p style="text-align: center; font-style: italic; line-height: 1.5; margin: 24px 0; font-size: 32px; color: #4B5563; background-color: #FFFFFF; flex-shrink: 0;">"${content}"</p>` : ""}
+            ${content ? `<p style="text-align: center; font-style: italic; line-height: 1.5; margin-bottom: 16px; font-size: 32px; color: #4B5563; background-color: #FFFFFF;">"${content}"</p>` : ""}
 
-            <!-- Rating and tasting bars - en bas -->
+            <!-- Rating and tasting bars -->
             ${
               migratedNotice
                 ? `
-              <div style="background-color: #FFFFFF; flex-shrink: 0; margin-top: auto; padding-top: 24px;">
-                <div style="text-align: center; margin-bottom: 32px; background-color: #FFFFFF;">
+              <div style="background-color: #FFFFFF;">
+                <div style="text-align: center; margin-bottom: 16px; background-color: #FFFFFF;">
                   <span style="font-size: 72px; line-height: 1; color: #111827; font-weight: bold;">${migratedNotice.rating}</span>
                   <span style="font-size: 48px; color: #9CA3AF;">/10</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px 40px; background-color: #FFFFFF;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; background-color: #FFFFFF;">
                   ${tastingBar(sliders.slot1.label, migratedNotice.slot1)}
                   ${tastingBar(sliders.slot2.label, migratedNotice.slot2)}
                   ${tastingBar(sliders.slot3.label, migratedNotice.slot3)}
@@ -158,7 +157,7 @@ const generateStoryHTML = ({
         </div>
 
         <!-- Footer -->
-        <div style="position: absolute; bottom: 60px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <div style="position: absolute; bottom: 60px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 16px;">
           <span style="font-size: 36px; font-weight: 500; color: ${footerTextColor};">@winenote</span>
           ${wineIconSvg}
         </div>
@@ -193,14 +192,14 @@ const StoryTemplateCard = ({
   const footerTextColor = isLightBackground ? "#1A1A1A" : "#FFFFFF";
 
   const TastingBar = ({ label, value }: { label: string; value: number }) => (
-    <div style={{ backgroundColor: "#FFFFFF" }}>
+    <div style={{ marginBottom: "8px", backgroundColor: "#FFFFFF" }}>
       <span
         style={{
           color: "#6B7280",
           fontSize: "28px",
           fontStyle: "italic",
           display: "block",
-          marginBottom: "16px",
+          marginBottom: "8px",
           backgroundColor: "#FFFFFF",
         }}
       >
@@ -238,12 +237,9 @@ const StoryTemplateCard = ({
             bottom: 0,
             padding: "48px",
             backgroundColor: "#FFFFFF",
-            display: "flex",
-            flexDirection: "column",
           }}
         >
-          {/* Wine name */}
-          <div style={{ textAlign: "center", marginBottom: "20px", backgroundColor: "#FFFFFF", flexShrink: 0 }}>
+          <div style={{ textAlign: "center", marginBottom: "16px", backgroundColor: "#FFFFFF" }}>
             <h2
               style={{
                 fontFamily: "Georgia, Times, serif",
@@ -266,27 +262,15 @@ const StoryTemplateCard = ({
               </p>
             )}
           </div>
-
-          {/* Separator */}
+          <div style={{ width: "100px", height: "3px", backgroundColor: "#D1D5DB", margin: "0 auto 24px auto" }} />
           <div
             style={{
-              width: "100px",
-              height: "3px",
-              backgroundColor: "#D1D5DB",
-              margin: "0 auto 24px auto",
-              flexShrink: 0,
-            }}
-          />
-
-          {/* Main image */}
-          <div
-            style={{
-              flex: 1,
+              height: migratedNotice ? "550px" : "850px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              marginBottom: "20px",
               backgroundColor: "#FFFFFF",
-              minHeight: 0,
             }}
           >
             {imageUrl ? (
@@ -311,29 +295,24 @@ const StoryTemplateCard = ({
               </div>
             )}
           </div>
-
-          {/* Content quote */}
           {content && (
             <p
               style={{
                 textAlign: "center",
                 fontStyle: "italic",
                 lineHeight: 1.5,
-                margin: "24px 0",
+                marginBottom: "16px",
                 fontSize: "32px",
                 color: "#4B5563",
                 backgroundColor: "#FFFFFF",
-                flexShrink: 0,
               }}
             >
               "{content}"
             </p>
           )}
-
-          {/* Rating and tasting bars */}
           {migratedNotice && (
-            <div style={{ backgroundColor: "#FFFFFF", flexShrink: 0, marginTop: "auto", paddingTop: "24px" }}>
-              <div style={{ textAlign: "center", marginBottom: "32px", backgroundColor: "#FFFFFF" }}>
+            <div style={{ backgroundColor: "#FFFFFF" }}>
+              <div style={{ textAlign: "center", marginBottom: "16px", backgroundColor: "#FFFFFF" }}>
                 <span style={{ fontSize: "72px", lineHeight: 1, color: "#111827", fontWeight: "bold" }}>
                   {migratedNotice.rating}
                 </span>
@@ -343,7 +322,7 @@ const StoryTemplateCard = ({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
-                  gap: "28px 40px",
+                  gap: "16px 32px",
                   backgroundColor: "#FFFFFF",
                 }}
               >
@@ -356,8 +335,6 @@ const StoryTemplateCard = ({
           )}
         </div>
       </div>
-
-      {/* Footer */}
       <div
         style={{
           position: "absolute",
@@ -367,7 +344,7 @@ const StoryTemplateCard = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "10px",
+          gap: "16px",
         }}
       >
         <span style={{ fontSize: "36px", fontWeight: 500, color: footerTextColor }}>@winenote</span>
@@ -406,6 +383,7 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryD
       `;
       document.body.appendChild(iframe);
 
+      // Attendre que l'iframe soit prêt
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -414,6 +392,7 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryD
         throw new Error("Cannot access iframe document");
       }
 
+      // Écrire le HTML dans l'iframe
       const html = generateStoryHTML({
         wineName,
         domainName,
@@ -428,8 +407,10 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryD
       iframeDoc.write(html);
       iframeDoc.close();
 
+      // Attendre le chargement complet (surtout l'image)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
+      // Capturer le contenu de l'iframe
       const target = iframeDoc.body.firstElementChild as HTMLElement;
       if (!target) {
         document.body.removeChild(iframe);
@@ -447,6 +428,7 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine }: ShareStoryD
         imageTimeout: 15000,
       });
 
+      // Nettoyer
       document.body.removeChild(iframe);
 
       return new Promise((resolve) => {
