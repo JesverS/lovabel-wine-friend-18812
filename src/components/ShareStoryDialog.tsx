@@ -91,8 +91,8 @@ const generateStoryHTML = ({
     </div>
   `;
 
-  // SVG avec transform pour décaler légèrement vers le bas
-  const wineIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${footerTextColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: translateY(2px);"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"/></svg>`;
+  // SVG avec transform pour décaler vers le bas
+  const wineIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${footerTextColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: translateY(6px);"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"/></svg>`;
 
   return `
     <!DOCTYPE html>
@@ -371,7 +371,7 @@ const StoryTemplateCard = ({
         }}
       >
         <span style={{ fontSize: "36px", fontWeight: 500, color: footerTextColor }}>@winenote</span>
-        <Wine style={{ width: "30px", height: "30px", color: footerTextColor, transform: "translateY(2px)" }} />
+        <Wine style={{ width: "30px", height: "30px", color: footerTextColor, transform: "translateY(6px)" }} />
       </div>
     </div>
   );
