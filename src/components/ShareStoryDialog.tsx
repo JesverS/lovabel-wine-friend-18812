@@ -115,10 +115,10 @@ const StoryTemplateCard = ({
       style={{
         left: '80px',
         right: '80px',
-        top: '280px',
-        bottom: '240px',
+        top: '320px',
+        bottom: '280px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-        padding: '40px',
+        padding: '36px',
       }}
     >
       {/* Wine name and domain */}
