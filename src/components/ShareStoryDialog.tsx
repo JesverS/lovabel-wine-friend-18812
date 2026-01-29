@@ -255,9 +255,7 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
         scale: 1, 
         useCORS: true, 
         allowTaint: true, 
-        backgroundColor: null, 
-        width: 1080, 
-        height: 1920, 
+        backgroundColor: null,
         logging: false 
       });
       return new Promise((resolve) => { 
@@ -336,14 +334,37 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
           ))}
         </div>
 
-        {/* Preview */}
+        {/* Hidden container for capture - full size, off-screen */}
+        <div
+          ref={storyRef}
+          style={{
+            position: 'fixed',
+            left: '-9999px',
+            top: '-9999px',
+            width: '1080px',
+            height: '1920px',
+            pointerEvents: 'none',
+            zIndex: -1,
+          }}
+        >
+          <StoryTemplateCard
+            wineName={wineName}
+            domainName={domainName}
+            imageUrl={displayImage}
+            wineNotice={wineNotice}
+            wineTypeId={wine?.type}
+            content={post.content}
+            backgroundColor={selectedColor}
+          />
+        </div>
+
+        {/* Visible preview - scaled for display */}
         <div className="relative overflow-hidden rounded-xl bg-muted/50">
           <div 
             className="relative mx-auto overflow-hidden rounded-lg shadow-xl" 
             style={{ width: '270px', height: '480px' }}
           >
             <div 
-              ref={storyRef} 
               style={{ 
                 transform: 'scale(0.25)', 
                 transformOrigin: 'top left', 
