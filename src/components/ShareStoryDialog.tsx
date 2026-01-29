@@ -82,7 +82,7 @@ const generateStoryHTML = ({
 
   const tastingBar = (label: string, value: number) => `
     <div style="background-color: #FFFFFF;">
-      <span style="color: #6B7280; font-size: 28px; font-style: italic; display: block; margin-bottom: 12px; background-color: #FFFFFF;">
+      <span style="color: #6B7280; font-size: 28px; font-style: italic; display: block; margin-bottom: 16px; background-color: #FFFFFF;">
         ${label}
       </span>
       <div style="height: 20px; border-radius: 10px; background-color: #E5E7EB; overflow: hidden;">
@@ -139,11 +139,11 @@ const generateStoryHTML = ({
               migratedNotice
                 ? `
               <div style="background-color: #FFFFFF; flex-shrink: 0; margin-top: auto; padding-top: 24px;">
-                <div style="text-align: center; margin-bottom: 24px; background-color: #FFFFFF;">
+                <div style="text-align: center; margin-bottom: 32px; background-color: #FFFFFF;">
                   <span style="font-size: 72px; line-height: 1; color: #111827; font-weight: bold;">${migratedNotice.rating}</span>
                   <span style="font-size: 48px; color: #9CA3AF;">/10</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px 40px; background-color: #FFFFFF;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px 40px; background-color: #FFFFFF;">
                   ${tastingBar(sliders.slot1.label, migratedNotice.slot1)}
                   ${tastingBar(sliders.slot2.label, migratedNotice.slot2)}
                   ${tastingBar(sliders.slot3.label, migratedNotice.slot3)}
@@ -199,7 +199,7 @@ const StoryTemplateCard = ({
           fontSize: "28px",
           fontStyle: "italic",
           display: "block",
-          marginBottom: "12px",
+          marginBottom: "16px",
           backgroundColor: "#FFFFFF",
         }}
       >
@@ -332,7 +332,7 @@ const StoryTemplateCard = ({
           {/* Rating and tasting bars */}
           {migratedNotice && (
             <div style={{ backgroundColor: "#FFFFFF", flexShrink: 0, marginTop: "auto", paddingTop: "24px" }}>
-              <div style={{ textAlign: "center", marginBottom: "24px", backgroundColor: "#FFFFFF" }}>
+              <div style={{ textAlign: "center", marginBottom: "32px", backgroundColor: "#FFFFFF" }}>
                 <span style={{ fontSize: "72px", lineHeight: 1, color: "#111827", fontWeight: "bold" }}>
                   {migratedNotice.rating}
                 </span>
@@ -342,7 +342,7 @@ const StoryTemplateCard = ({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
-                  gap: "24px 40px",
+                  gap: "28px 40px",
                   backgroundColor: "#FFFFFF",
                 }}
               >
