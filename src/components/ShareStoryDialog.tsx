@@ -279,9 +279,12 @@ export const ShareStoryDialog = ({ open, onOpenChange, post, wine, author }: Sha
         scale: 1, 
         useCORS: true, 
         allowTaint: true, 
-        backgroundColor: null,
+        backgroundColor: selectedColor,
         logging: false,
         onclone: (_clonedDoc, element) => {
+          // CRITIQUE: Forcer l'opacité à 1 sur le clone pour que html2canvas puisse le capturer
+          element.style.opacity = '1';
+          
           // Forcer le fond blanc sur la carte
           const whiteCard = element.querySelector('[data-story-card]');
           if (whiteCard instanceof HTMLElement) {
