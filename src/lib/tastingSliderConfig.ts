@@ -4,7 +4,7 @@
  */
 
 export interface SliderConfig {
-  key: 'slot1' | 'slot2' | 'slot3' | 'slot4';
+  key: "slot1" | "slot2" | "slot3" | "slot4";
   label: string;
   lowLabel: string;
   highLabel: string;
@@ -18,31 +18,31 @@ export interface WineTypeSliders {
 }
 
 const ROUGE_SLIDERS: WineTypeSliders = {
-  slot1: { key: 'slot1', label: 'Fruité', lowLabel: 'Peu fruité', highLabel: 'Très fruité' },
-  slot2: { key: 'slot2', label: 'Épicé', lowLabel: 'Peu épicé', highLabel: 'Très épicé' },
-  slot3: { key: 'slot3', label: 'Tannique', lowLabel: 'Très doux', highLabel: 'Très tannique' },
-  slot4: { key: 'slot4', label: 'Boisé', lowLabel: 'Peu boisé', highLabel: 'Très boisé' },
+  slot1: { key: "slot1", label: "Fruité", lowLabel: "Peu fruité", highLabel: "Très fruité" },
+  slot2: { key: "slot2", label: "Épicé", lowLabel: "Peu épicé", highLabel: "Très épicé" },
+  slot3: { key: "slot3", label: "Tannique", lowLabel: "Très doux", highLabel: "Très tannique" },
+  slot4: { key: "slot4", label: "Boisé", lowLabel: "Peu boisé", highLabel: "Très boisé" },
 };
 
 const BLANC_SLIDERS: WineTypeSliders = {
-  slot1: { key: 'slot1', label: 'Acidité', lowLabel: 'Très faible', highLabel: 'Très marquée' },
-  slot2: { key: 'slot2', label: 'Sec', lowLabel: 'Sucré', highLabel: 'Très sec' },
-  slot3: { key: 'slot3', label: 'Sucrosité', lowLabel: 'Très sec', highLabel: 'Très sucré' },
-  slot4: { key: 'slot4', label: 'Gras', lowLabel: 'Très léger', highLabel: 'Très gras' },
+  slot1: { key: "slot1", label: "Acidité", lowLabel: "Très faible", highLabel: "Très marquée" },
+  slot2: { key: "slot3", label: "Sucrosité", lowLabel: "Très sec", highLabel: "Très sucré" },
+  slot3: { key: "slot2", label: "Arômes dominants", lowLabel: "Très Fruité", highLabel: "Minéral/Floral/Boisé" },
+  slot4: { key: "slot4", label: "Gras", lowLabel: "Très léger", highLabel: "Très gras" },
 };
 
 const ROSE_SLIDERS: WineTypeSliders = {
-  slot1: { key: 'slot1', label: 'Acidité', lowLabel: 'Très faible', highLabel: 'Très marquée' },
-  slot2: { key: 'slot2', label: 'Fruité', lowLabel: 'Peu fruité', highLabel: 'Très fruité' },
-  slot3: { key: 'slot3', label: 'Sec', lowLabel: 'Sucré', highLabel: 'Très sec' },
-  slot4: { key: 'slot4', label: 'Frais', lowLabel: 'Lourd', highLabel: 'Très frais' },
+  slot1: { key: "slot1", label: "Acidité", lowLabel: "Très faible", highLabel: "Très marquée" },
+  slot2: { key: "slot2", label: "Fruité", lowLabel: "Peu fruité", highLabel: "Très fruité" },
+  slot3: { key: "slot3", label: "Sucrosité", lowLabel: "Très sec", highLabel: "Très sucré" },
+  slot4: { key: "slot4", label: "Frais", lowLabel: "Lourd", highLabel: "Très frais" },
 };
 
 const EFFERVESCENT_SLIDERS: WineTypeSliders = {
-  slot1: { key: 'slot1', label: 'Acidité', lowLabel: 'Très faible', highLabel: 'Très marquée' },
-  slot2: { key: 'slot2', label: 'Sec', lowLabel: 'Doux', highLabel: 'Brut' },
-  slot3: { key: 'slot3', label: 'Sucrosité', lowLabel: 'Très sec', highLabel: 'Très sucré' },
-  slot4: { key: 'slot4', label: 'Effervescence', lowLabel: 'Peu pétillant', highLabel: 'Très pétillant' },
+  slot1: { key: "slot1", label: "Acidité", lowLabel: "Très faible", highLabel: "Très marquée" },
+  slot2: { key: "slot2", label: "Sucrosité", lowLabel: "Très sec", highLabel: "Très sucré" },
+  slot3: { key: "slot3", label: "Arômes dominants", lowLabel: "Très Fruité", highLabel: "Minéral/Floral/Boisé" },
+  slot4: { key: "slot4", label: "Effervescence", lowLabel: "Peu pétillant", highLabel: "Très pétillant" },
 };
 
 /**
@@ -50,12 +50,16 @@ const EFFERVESCENT_SLIDERS: WineTypeSliders = {
  */
 export function getSlidersForWineType(wineTypeId: number | null | undefined): WineTypeSliders {
   switch (wineTypeId) {
-    case 2: return BLANC_SLIDERS;
-    case 5: return ROSE_SLIDERS;
-    case 8: return EFFERVESCENT_SLIDERS;
+    case 2:
+      return BLANC_SLIDERS;
+    case 5:
+      return ROSE_SLIDERS;
+    case 8:
+      return EFFERVESCENT_SLIDERS;
     case 1: // rouge
     case 7: // autre
-    default: return ROUGE_SLIDERS;
+    default:
+      return ROUGE_SLIDERS;
   }
 }
 
@@ -76,26 +80,26 @@ export interface TastingDetails {
  * Compatible lecture seule - ne modifie pas les données en base
  */
 export function migrateTastingDetails(details: any): TastingDetails {
-  if (!details || typeof details !== 'object') {
+  if (!details || typeof details !== "object") {
     return {
       rating: 5.0,
       slot1: 5.0,
       slot2: 5.0,
       slot3: 5.0,
       slot4: 5.0,
-      remarks: '',
+      remarks: "",
     };
   }
 
   // Si nouvelles clés déjà présentes, les utiliser
-  if ('slot1' in details) {
+  if ("slot1" in details) {
     return {
       rating: details.rating ?? 5.0,
       slot1: details.slot1 ?? 5.0,
       slot2: details.slot2 ?? 5.0,
       slot3: details.slot3 ?? 5.0,
       slot4: details.slot4 ?? 5.0,
-      remarks: details.remarks || '',
+      remarks: details.remarks || "",
     };
   }
 
@@ -106,7 +110,7 @@ export function migrateTastingDetails(details: any): TastingDetails {
     slot2: details.tannins ?? 5.0,
     slot3: details.body ?? 5.0,
     slot4: details.sweetness ?? 5.0,
-    remarks: details.remarks || '',
+    remarks: details.remarks || "",
   };
 }
 
@@ -121,6 +125,6 @@ export function tastingDetailsToDbFormat(details: TastingDetails): Record<string
     slot2: Math.round(details.slot2 * 10) / 10,
     slot3: Math.round(details.slot3 * 10) / 10,
     slot4: Math.round(details.slot4 * 10) / 10,
-    remarks: details.remarks || '',
+    remarks: details.remarks || "",
   };
 }
