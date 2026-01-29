@@ -94,8 +94,10 @@ export default function Guides() {
           name="description" 
           content="Découvrez nos guides pratiques sur le vin : accords mets-vins, conservation, dégustation, cépages et conseils d'achat." 
         />
+        <link rel="canonical" href="https://winenote.me/guides" />
         <meta property="og:title" content="Guides & Conseils Vin - Wine Note" />
         <meta property="og:description" content="Tout ce qu'il faut savoir pour apprécier le vin comme un expert." />
+        <meta property="og:url" content="https://winenote.me/guides" />
       </Helmet>
       <Header />
 
