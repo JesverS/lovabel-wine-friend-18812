@@ -21,6 +21,7 @@ const staticPages = [
   { path: '/feed', priority: '0.7', changefreq: 'daily' },
   { path: '/search', priority: '0.7', changefreq: 'weekly' },
   { path: '/badges', priority: '0.5', changefreq: 'monthly' },
+  { path: '/blog', priority: '0.8', changefreq: 'daily' },
   { path: '/legal', priority: '0.3', changefreq: 'yearly' },
   { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
 ];
@@ -88,6 +89,14 @@ Deno.serve(async (req) => {
       .select('slug, updated_at')
       .not('slug', 'is', null)
       .order('updated_at', { ascending: false })
+      .limit(500);
+
+    // Récupérer les articles de blog publiés
+    const { data: blogArticles } = await supabase
+      .from('blog_article')
+      .select('slug, updated_at, published_at')
+      .eq('is_published', true)
+      .order('published_at', { ascending: false })
       .limit(500);
 
     // Générer le XML
@@ -175,9 +184,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Articles de blog
+    if (blogArticles) {
+      for (const article of blogArticles) {
+        xml += `  <url>
+    <loc>${SITE_URL}/blog/${escapeXml(article.slug)}</loc>
+    <lastmod>${formatDate(article.updated_at || article.published_at)}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`;
+      }
+    }
+
     xml += `</urlset>`;
 
-    console.log(`Sitemap generated: ${staticPages.length} static + ${events?.length || 0} events + ${users?.length || 0} users + ${wines?.length || 0} wines + ${courses?.length || 0} courses + ${domains?.length || 0} domains`);
+    console.log(`Sitemap generated: ${staticPages.length} static + ${events?.length || 0} events + ${users?.length || 0} users + ${wines?.length || 0} wines + ${courses?.length || 0} courses + ${domains?.length || 0} domains + ${blogArticles?.length || 0} blog articles`);
 
     return new Response(xml, {
       headers: corsHeaders,
