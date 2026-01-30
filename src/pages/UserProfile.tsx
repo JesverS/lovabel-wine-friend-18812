@@ -225,6 +225,20 @@ export default function UserProfile() {
 
   
 
+  // JSON-LD Person Schema pour SEO
+  const personSchema = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": profile.full_name || 'Utilisateur Wine Note',
+    "description": profile.description || undefined,
+    "image": profile.logo_adress || undefined,
+    "url": `https://winenote.me/user/${profile.slug}`,
+    "address": profile.city ? {
+      "@type": "PostalAddress",
+      "addressLocality": profile.city
+    } : undefined
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Helmet>
@@ -236,6 +250,9 @@ export default function UserProfile() {
         {profile.logo_adress && <meta property="og:image" content={profile.logo_adress} />}
         <meta property="og:url" content={`https://winenote.me/user/${profile.slug}`} />
         <meta property="og:type" content="profile" />
+        <script type="application/ld+json">
+          {JSON.stringify(personSchema)}
+        </script>
       </Helmet>
       <OpenInAppBanner deepLink={getProfileDeepLink(profile.slug)} />
       <Header />
