@@ -1,118 +1,147 @@
 
 
-# Plan : Creation de upload-lesson-quiz et Correction Niveau 0
+# Plan : Corriger le Calcul de Niveau dans check_and_award_badges
 
-## Resume des modifications
+## Problème Identifié
+
+La fonction SQL `check_and_award_badges` ajoute de l'XP lors de l'attribution d'un badge, mais **ne recalcule pas le niveau**.
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│ SITUATION ACTUELLE                                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│ Utilisateur: XP = 55, Level = 1                                      │
+│ Badge obtenu: +10 XP                                                 │
+│                                                                      │
+│ Après badge:  XP = 65, Level = 1  ❌ (devrait être Level 2)         │
+│               Car 65 >= 60 (seuil niveau 1 → 2)                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## Comparaison des deux systèmes
+
+| Source XP | Ajoute XP | Recalcule Niveau | Résultat |
+|-----------|-----------|------------------|----------|
+| Quiz (Edge Function) | ✅ | ✅ | ✅ Fonctionne |
+| Badge (SQL Function) | ✅ | ❌ | ❌ Bug |
+
+---
+
+## Solution : Créer une fonction de recalcul de niveau
+
+### Nouvelle fonction SQL : `recalculate_user_level`
+
+Cette fonction appliquera la même logique que la Edge Function :
+- Formule : `60 * level^1.4`
+- Boucle while pour gérer les passages de plusieurs niveaux
+
+```sql
+CREATE OR REPLACE FUNCTION public.recalculate_user_level(p_user_id uuid)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_xp integer;
+  v_level integer;
+  v_xp_needed integer;
+  v_new_level integer;
+  v_remaining_xp integer;
+BEGIN
+  -- Récupérer XP et niveau actuels
+  SELECT COALESCE(xp, 0), COALESCE(level, 1) 
+  INTO v_xp, v_level 
+  FROM user_profiles 
+  WHERE id = p_user_id;
+
+  v_new_level := v_level;
+  v_remaining_xp := v_xp;
+  v_xp_needed := ROUND(60 * POWER(v_new_level, 1.4));
+
+  -- Boucle de passage de niveau
+  WHILE v_remaining_xp >= v_xp_needed LOOP
+    v_remaining_xp := v_remaining_xp - v_xp_needed;
+    v_new_level := v_new_level + 1;
+    v_xp_needed := ROUND(60 * POWER(v_new_level, 1.4));
+  END LOOP;
+
+  -- Mettre à jour si le niveau a changé
+  IF v_new_level > v_level THEN
+    UPDATE user_profiles 
+    SET xp = v_remaining_xp, 
+        level = v_new_level,
+        updated_at = now()
+    WHERE id = p_user_id;
+    
+    -- Notification de passage de niveau
+    PERFORM create_notification(
+      p_user_id,
+      'level_up',
+      'Niveau supérieur !',
+      'Félicitations ! Vous êtes passé au niveau ' || v_new_level,
+      jsonb_build_object('old_level', v_level, 'new_level', v_new_level)
+    );
+  END IF;
+
+  RETURN v_new_level;
+END;
+$$;
+```
+
+---
+
+## Modification de check_and_award_badges
+
+Après l'ajout d'XP, appeler la fonction de recalcul :
+
+```sql
+-- AVANT (lignes 79-82)
+IF FOUND AND v_badge.xp_reward > 0 THEN
+  UPDATE user_profiles SET xp = xp + v_badge.xp_reward WHERE id = p_user_id;
+END IF;
+
+-- APRÈS
+IF FOUND AND v_badge.xp_reward > 0 THEN
+  UPDATE user_profiles SET xp = xp + v_badge.xp_reward WHERE id = p_user_id;
+  -- Recalculer le niveau après ajout d'XP
+  PERFORM recalculate_user_level(p_user_id);
+END IF;
+```
+
+---
+
+## Résumé des fichiers à créer
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/upload-lesson-quiz/index.ts` | CREER avec le code fourni (logs renommes) |
-| `supabase/config.toml` | AJOUTER `upload-lesson-quiz`, RETIRER `submit-lesson-quiz` |
-| `src/pages/Learning.tsx` | CORRIGER niveau 0 → 1 + formule XP (base 60) |
+| Migration SQL | CRÉER avec `recalculate_user_level` + mise à jour de `check_and_award_badges` |
 
 ---
 
-## Phase 1 : Creer la Edge Function
+## Section Technique
 
-### Fichier : `supabase/functions/upload-lesson-quiz/index.ts`
+### Formule XP (base 60)
 
-Le code fourni par l'utilisateur sera utilise avec les modifications suivantes :
-- Renommer tous les logs `[submit-lesson-quiz]` → `[upload-lesson-quiz]`
-- Le reste du code reste identique (formule base 60)
+| Niveau | XP requis | XP cumulé total |
+|--------|-----------|-----------------|
+| 1 → 2 | 60 | 60 |
+| 2 → 3 | 159 | 219 |
+| 3 → 4 | 295 | 514 |
+| 4 → 5 | 464 | 978 |
 
----
+### XP des badges (exemples)
 
-## Phase 2 : Mettre a jour config.toml
+| Badge | XP Reward |
+|-------|-----------|
+| Première leçon | 10 |
+| 10 leçons | 50 |
+| Premier post | 10 |
+| Premier événement | 15 |
 
-### Ajouter :
-```toml
-[functions.upload-lesson-quiz]
-verify_jwt = true
-```
+### Test après implémentation
 
-### Supprimer :
-```toml
-[functions.submit-lesson-quiz]
-verify_jwt = true
-```
-
----
-
-## Phase 3 : Corriger Learning.tsx
-
-### Ligne 97 - Fallback niveau 1
-```tsx
-// AVANT
-const userLevel = userProfile?.level ?? 0;
-
-// APRES
-const userLevel = userProfile?.level ?? 1;
-```
-
-### Ligne 99 - Protection division par zero
-```tsx
-// AVANT
-const xpNeeded = Math.round(60 * Math.pow(userLevel, 1.4));
-
-// APRES (protection si niveau 0 persiste en DB)
-const xpNeeded = Math.round(60 * Math.pow(Math.max(userLevel, 1), 1.4));
-```
-
-### Ligne 100 - Supprimer condition niveau 0
-```tsx
-// AVANT
-const progressToNextLevel = userLevel === 0 ? 0 : (userXp / xpNeeded) * 100;
-
-// APRES
-const progressToNextLevel = (userXp / xpNeeded) * 100;
-```
-
-### Lignes 175-179 - Supprimer texte niveau 0
-```tsx
-// AVANT
-{userLevel === 0 ? "Debloquez votre premier niveau" : `Progression vers le niveau ${userLevel + 1}`}
-...
-{userLevel === 0 ? "0 XP" : `${userXp} / ${xpNeeded} XP`}
-
-// APRES
-`Progression vers le niveau ${userLevel + 1}`
-...
-`${userXp} / ${xpNeeded} XP`
-```
-
-### Lignes 184-188 - Supprimer bloc conditionnel niveau 0
-```tsx
-// SUPPRIMER COMPLETEMENT
-{userLevel === 0 && (
-  <p className="text-xs text-muted-foreground mt-2 text-center">
-    🎯 Reponds a ton premier quiz pour passer niveau 1 !
-  </p>
-)}
-```
-
----
-
-## Phase 4 : Supprimer l'ancienne fonction
-
-Supprimer le dossier `supabase/functions/submit-lesson-quiz/`
-
----
-
-## Section technique
-
-### Formule XP (base 60 - conservee)
-
-| Niveau | XP requis pour passer au suivant |
-|--------|----------------------------------|
-| 1 → 2 | 60 XP |
-| 2 → 3 | 159 XP |
-| 3 → 4 | 295 XP |
-| 4 → 5 | 464 XP |
-| 5 → 6 | 662 XP |
-
-### XP gagne par quiz
-- Base : 100 XP
-- Minimum : 20% (echec total = 20 XP)
-- Maximum : 100 + (100 * difficulte_multiplier)
-- Exemple difficulte 3 : 100 * (0.2 + 1.0 * 1.2) = 140 XP
+1. Créer un utilisateur avec XP = 55, Level = 1
+2. Créer un post (badge "first_post" = +10 XP)
+3. Vérifier : XP devrait être 5, Level devrait être 2
 
