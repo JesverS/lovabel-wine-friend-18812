@@ -63,7 +63,7 @@ verify_jwt = true
 [functions.create-stripe-login-link]
 verify_jwt = true
 
-[functions.upload-lesson-quiz]
+[functions.submit-lesson-quiz]
 verify_jwt = true
 
 [functions.approve-domain-application]
