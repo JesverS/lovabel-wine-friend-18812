@@ -1,188 +1,118 @@
 
-# Plan SEO Phase 3 : Indexation Complète
 
-## Objectif
-Ajouter les balises SEO manquantes sur **toutes les pages** du site pour une couverture 100%.
+# Plan : Creation de upload-lesson-quiz et Correction Niveau 0
 
-## Pages a modifier
+## Resume des modifications
 
-### Pages publiques sans Helmet (priorite haute)
-
-| Page | Action |
-|------|--------|
-| `Search.tsx` | Ajouter Helmet avec titre/description |
-| `NotFound.tsx` | Ajouter Helmet + `<meta name="robots" content="noindex">` |
-| `Notifications.tsx` | Ajouter Helmet (page privee mais SEO-ready) |
-
-### Pages dynamiques sans canonical (priorite moyenne)
-
-| Page | Action |
-|------|--------|
-| `CellarDetails.tsx` | Ajouter `<link rel="canonical">` dynamique |
-| `LessonDetails.tsx` | Ajouter `<link rel="canonical">` dynamique |
-| `Favorites.tsx` | Ajouter `<link rel="canonical">` |
-
-### Pages privees/temporaires (priorite basse)
-
-| Page | Action |
-|------|--------|
-| `Auth.tsx` | Ajouter Helmet basique + noindex (page de connexion) |
-| `GamePlay.tsx` | Ajouter Helmet basique + noindex (jeu en cours) |
-| `SharedPost.tsx` | Ajouter Helmet dynamique pour partage social |
-| `CellarInvitation.tsx` | Ajouter Helmet + noindex |
-| `EventInvitation.tsx` | Ajouter Helmet + noindex |
-
-### Mise a jour du sitemap
-
-Ajouter les pages manquantes dans `public/sitemap.xml` :
-- `/search` (page de recherche publique)
-- `/favorites` (si publique)
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/upload-lesson-quiz/index.ts` | CREER avec le code fourni (logs renommes) |
+| `supabase/config.toml` | AJOUTER `upload-lesson-quiz`, RETIRER `submit-lesson-quiz` |
+| `src/pages/Learning.tsx` | CORRIGER niveau 0 → 1 + formule XP (base 60) |
 
 ---
 
-## Details des modifications
+## Phase 1 : Creer la Edge Function
 
-### 1. Search.tsx - Page de recherche IA
+### Fichier : `supabase/functions/upload-lesson-quiz/index.ts`
 
-```tsx
-import { Helmet } from "react-helmet-async";
+Le code fourni par l'utilisateur sera utilise avec les modifications suivantes :
+- Renommer tous les logs `[submit-lesson-quiz]` → `[upload-lesson-quiz]`
+- Le reste du code reste identique (formule base 60)
 
-<Helmet>
-  <title>Recherche IA Sommelier | Trouvez le Vin Parfait - Wine Note</title>
-  <meta name="description" content="Notre IA sommelier vous aide a trouver le vin parfait selon vos gouts. Recherchez par hashtag ou demandez des recommandations personnalisees." />
-  <link rel="canonical" href="https://winenote.me/search" />
-  <meta property="og:title" content="Recherche IA Sommelier - Wine Note" />
-  <meta property="og:description" content="Trouvez le vin parfait avec notre assistant IA sommelier." />
-  <meta property="og:url" content="https://winenote.me/search" />
-</Helmet>
+---
+
+## Phase 2 : Mettre a jour config.toml
+
+### Ajouter :
+```toml
+[functions.upload-lesson-quiz]
+verify_jwt = true
 ```
 
-### 2. NotFound.tsx - Page 404
-
-```tsx
-import { Helmet } from "react-helmet-async";
-
-<Helmet>
-  <title>Page introuvable - Wine Note</title>
-  <meta name="robots" content="noindex, nofollow" />
-  <meta name="description" content="Cette page n'existe pas ou a ete deplacee." />
-</Helmet>
-```
-
-### 3. Notifications.tsx - Centre de notifications
-
-```tsx
-import { Helmet } from "react-helmet-async";
-
-<Helmet>
-  <title>Notifications - Wine Note</title>
-  <meta name="description" content="Consultez vos notifications Wine Note : nouveaux abonnes, evenements, invitations et commentaires." />
-  <meta name="robots" content="noindex" />
-</Helmet>
-```
-
-### 4. Auth.tsx - Page de connexion
-
-```tsx
-import { Helmet } from "react-helmet-async";
-
-<Helmet>
-  <title>Connexion | Wine Note</title>
-  <meta name="description" content="Connectez-vous ou creez votre compte Wine Note pour acceder a vos caves, evenements et cours d'oenologie." />
-  <meta name="robots" content="noindex, nofollow" />
-</Helmet>
-```
-
-### 5. GamePlay.tsx - Jeu en cours
-
-```tsx
-import { Helmet } from "react-helmet-async";
-
-<Helmet>
-  <title>Partie en cours | Jeu d'Ambiance - Wine Note</title>
-  <meta name="robots" content="noindex, nofollow" />
-</Helmet>
-```
-
-### 6. SharedPost.tsx - Post partage (dynamique)
-
-```tsx
-import { Helmet } from "react-helmet-async";
-
-// Dans le return, apres avoir recupere les donnees:
-<Helmet>
-  <title>{post?.author?.full_name || 'Utilisateur'} partage une degustation | Wine Note</title>
-  <meta name="description" content={post?.content?.slice(0, 155) || "Decouvrez cette degustation partagee sur Wine Note."} />
-  {post?.image_url && <meta property="og:image" content={post.image_url} />}
-  <meta property="og:type" content="article" />
-</Helmet>
-```
-
-### 7. CellarInvitation.tsx et EventInvitation.tsx
-
-```tsx
-<Helmet>
-  <title>Invitation a rejoindre une cave | Wine Note</title>
-  <meta name="robots" content="noindex, nofollow" />
-</Helmet>
-```
-
-### 8. Canonicals manquants
-
-**CellarDetails.tsx :**
-```tsx
-<link rel="canonical" href={`https://winenote.me/cellar/${cellar.slug}`} />
-<meta property="og:url" content={`https://winenote.me/cellar/${cellar.slug}`} />
-```
-
-**LessonDetails.tsx :**
-```tsx
-<link rel="canonical" href={`https://winenote.me/course/${courseId}/lesson/${lessonId}`} />
-```
-
-**Favorites.tsx :**
-```tsx
-<link rel="canonical" href="https://winenote.me/favorites" />
-```
-
-### 9. Mise a jour sitemap.xml
-
-```xml
-<url>
-  <loc>https://winenote.me/search</loc>
-  <changefreq>weekly</changefreq>
-  <priority>0.7</priority>
-</url>
+### Supprimer :
+```toml
+[functions.submit-lesson-quiz]
+verify_jwt = true
 ```
 
 ---
 
-## Resume des fichiers a modifier
+## Phase 3 : Corriger Learning.tsx
 
-| Fichier | Modifications |
-|---------|---------------|
-| `src/pages/Search.tsx` | + Helmet complet |
-| `src/pages/NotFound.tsx` | + Helmet avec noindex |
-| `src/pages/Notifications.tsx` | + Helmet (noindex) |
-| `src/pages/Auth.tsx` | + Helmet (noindex) |
-| `src/pages/GamePlay.tsx` | + Helmet (noindex) |
-| `src/pages/SharedPost.tsx` | + Helmet dynamique |
-| `src/pages/CellarInvitation.tsx` | + Helmet (noindex) |
-| `src/pages/EventInvitation.tsx` | + Helmet (noindex) |
-| `src/pages/CellarDetails.tsx` | + canonical dynamique |
-| `src/pages/LessonDetails.tsx` | + canonical dynamique |
-| `src/pages/Favorites.tsx` | + canonical |
-| `public/sitemap.xml` | + /search |
+### Ligne 97 - Fallback niveau 1
+```tsx
+// AVANT
+const userLevel = userProfile?.level ?? 0;
+
+// APRES
+const userLevel = userProfile?.level ?? 1;
+```
+
+### Ligne 99 - Protection division par zero
+```tsx
+// AVANT
+const xpNeeded = Math.round(60 * Math.pow(userLevel, 1.4));
+
+// APRES (protection si niveau 0 persiste en DB)
+const xpNeeded = Math.round(60 * Math.pow(Math.max(userLevel, 1), 1.4));
+```
+
+### Ligne 100 - Supprimer condition niveau 0
+```tsx
+// AVANT
+const progressToNextLevel = userLevel === 0 ? 0 : (userXp / xpNeeded) * 100;
+
+// APRES
+const progressToNextLevel = (userXp / xpNeeded) * 100;
+```
+
+### Lignes 175-179 - Supprimer texte niveau 0
+```tsx
+// AVANT
+{userLevel === 0 ? "Debloquez votre premier niveau" : `Progression vers le niveau ${userLevel + 1}`}
+...
+{userLevel === 0 ? "0 XP" : `${userXp} / ${xpNeeded} XP`}
+
+// APRES
+`Progression vers le niveau ${userLevel + 1}`
+...
+`${userXp} / ${xpNeeded} XP`
+```
+
+### Lignes 184-188 - Supprimer bloc conditionnel niveau 0
+```tsx
+// SUPPRIMER COMPLETEMENT
+{userLevel === 0 && (
+  <p className="text-xs text-muted-foreground mt-2 text-center">
+    🎯 Reponds a ton premier quiz pour passer niveau 1 !
+  </p>
+)}
+```
 
 ---
 
-## Impact attendu
+## Phase 4 : Supprimer l'ancienne fonction
 
-| Metrique | Avant | Apres |
-|----------|-------|-------|
-| Pages avec Helmet | ~18 | 29 (100%) |
-| Pages avec canonical | ~15 | 22 |
-| Pages noindex (privees) | 0 | 8 |
-| Pages dans sitemap | 12 | 13 |
+Supprimer le dossier `supabase/functions/submit-lesson-quiz/`
 
-Cette phase complete l'indexation SEO technique de toutes les pages du site.
+---
+
+## Section technique
+
+### Formule XP (base 60 - conservee)
+
+| Niveau | XP requis pour passer au suivant |
+|--------|----------------------------------|
+| 1 → 2 | 60 XP |
+| 2 → 3 | 159 XP |
+| 3 → 4 | 295 XP |
+| 4 → 5 | 464 XP |
+| 5 → 6 | 662 XP |
+
+### XP gagne par quiz
+- Base : 100 XP
+- Minimum : 20% (echec total = 20 XP)
+- Maximum : 100 + (100 * difficulte_multiplier)
+- Exemple difficulte 3 : 100 * (0.2 + 1.0 * 1.2) = 140 XP
+
