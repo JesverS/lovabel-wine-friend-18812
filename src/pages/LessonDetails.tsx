@@ -102,11 +102,11 @@ const LessonDetails = () => {
   const { data: lesson, isLoading } = useQuery({
     queryKey: ["lesson", lessonId],
     queryFn: async () => {
-    const { data, error } = await supabase
-      .from("lessons")
-      .select("*, baner_url")
-      .eq("id", parseInt(lessonId || "0"))
-      .single();
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("*, baner_url")
+        .eq("id", parseInt(lessonId || "0"))
+        .single();
 
       if (error) throw error;
       return data as unknown as Lesson;
@@ -162,7 +162,7 @@ const LessonDetails = () => {
     }) => {
       if (!user || !lessonId) throw new Error("User or lesson not found");
 
-      const { data, error } = await supabase.functions.invoke("submit-lesson-quiz", {
+      const { data, error } = await supabase.functions.invoke("upload-lesson-quiz", {
         body: {
           lesson_id: parseInt(lessonId),
           answers: answers,
@@ -308,7 +308,10 @@ const LessonDetails = () => {
     <div className="min-h-screen bg-[#FAF7F1]">
       <Helmet>
         <title>{lesson.title} | Leçon - Wine Note</title>
-        <meta name="description" content={`Leçon ${lesson.lesson_number} : ${lesson.title}. Durée estimée : ${lesson.estimated_time}.`} />
+        <meta
+          name="description"
+          content={`Leçon ${lesson.lesson_number} : ${lesson.title}. Durée estimée : ${lesson.estimated_time}.`}
+        />
         <link rel="canonical" href={`https://winenote.me/course/${courseId}/lesson/${lessonId}`} />
         <meta property="og:title" content={`${lesson.title} - Wine Note`} />
         <meta property="og:description" content={`Leçon d'oenologie : ${lesson.title}`} />
@@ -412,9 +415,7 @@ const LessonDetails = () => {
             <Card className="p-6 sm:p-8 text-center bg-gradient-to-br from-rose-50 to-pink-50 border-2 border-rose-200 rounded-3xl shadow-lg">
               <div className="text-4xl sm:text-5xl mb-3">🧩</div>
               <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900">Mini Quiz</h2>
-              <p className="text-sm sm:text-base text-gray-600">
-                Teste tes connaissances sur cette leçon
-              </p>
+              <p className="text-sm sm:text-base text-gray-600">Teste tes connaissances sur cette leçon</p>
 
               {lessonAccess?.is_completed && (
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
