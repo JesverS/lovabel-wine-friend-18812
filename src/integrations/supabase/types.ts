@@ -3422,6 +3422,7 @@ export type Database = {
           success: boolean
         }[]
       }
+      recalculate_user_level: { Args: { p_user_id: string }; Returns: number }
       reserve_event_spot: {
         Args: {
           p_amount: number
