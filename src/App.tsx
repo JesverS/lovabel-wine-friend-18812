@@ -38,6 +38,8 @@ import PostDetails from "./pages/PostDetails";
 import Feed from "./pages/Feed";
 import Guides from "./pages/Guides";
 import Favorites from "./pages/Favorites";
+import Blog from "./pages/Blog";
+import BlogArticle from "./pages/BlogArticle";
 import NotFound from "./pages/NotFound";
 import PaymentGateway from "./pages/PaymentGateway";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -87,6 +89,9 @@ const App = () => (
               <Route path="/feed" element={<Feed />} />
               <Route path="/guides" element={<Guides />} />
               <Route path="/favorites" element={<Favorites />} />
+              {/* Blog routes */}
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogArticle />} />
               {/* Payment gateway routes */}
               <Route path="/pay/:slug" element={<PaymentGateway />} />
               <Route path="/pay/:slug/success" element={<PaymentSuccess />} />
