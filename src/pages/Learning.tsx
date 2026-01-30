@@ -94,10 +94,10 @@ export default function Learning() {
     return map;
   }, [userLessons]);
 
-  const userLevel = userProfile?.level ?? 0;
+  const userLevel = userProfile?.level ?? 1;
   const userXp = userProfile?.xp ?? 0;
-  const xpNeeded = Math.round(60 * Math.pow(userLevel, 1.4));
-  const progressToNextLevel = userLevel === 0 ? 0 : (userXp / xpNeeded) * 100;
+  const xpNeeded = Math.round(60 * Math.pow(Math.max(userLevel, 1), 1.4));
+  const progressToNextLevel = (userXp / xpNeeded) * 100;
   const userBadge = userLevel < 10 ? "Débutant" : "Intermédiaire";
 
   const totalLessons = courses?.reduce((sum, course) => sum + course.lesson_count, 0) || 0;
@@ -173,19 +173,13 @@ export default function Learning() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">
-                  {userLevel === 0 ? "Débloquez votre premier niveau" : `Progression vers le niveau ${userLevel + 1}`}
+                  Progression vers le niveau {userLevel + 1}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {userLevel === 0 ? "0 XP" : `${userXp} / ${xpNeeded} XP`}
+                  {userXp} / {xpNeeded} XP
                 </span>
               </div>
               <Progress value={progressToNextLevel} className="h-3" />
-
-              {userLevel === 0 && (
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  🎯 Réponds à ton premier quiz pour passer niveau 1 !
-                </p>
-              )}
             </CardContent>
           </Card>
         </div>

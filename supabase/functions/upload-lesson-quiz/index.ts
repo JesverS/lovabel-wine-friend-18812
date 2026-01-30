@@ -43,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[submit-lesson-quiz] User ${user.id} submitting quiz for lesson ${lesson_id}`);
+    console.log(`[upload-lesson-quiz] User ${user.id} submitting quiz for lesson ${lesson_id}`);
 
     // 🧾 1️⃣ Récupération de la difficulté
     const { data: lesson, error: lessonError } = await supabase
@@ -53,7 +53,7 @@ serve(async (req) => {
       .single();
 
     if (lessonError || !lesson) {
-      console.error("[submit-lesson-quiz] Lesson not found:", lessonError);
+      console.error("[upload-lesson-quiz] Lesson not found:", lessonError);
       throw new Error("Invalid lesson ID");
     }
 
@@ -79,8 +79,6 @@ serve(async (req) => {
       XP_BASE * (MIN_FACTOR + (performance * difficultyMultiplier))
     );
 
-    console.log(`[submit-lesson-quiz] XP calculation: difficulty=${lesson.difficulty}, performance=${performance.toFixed(2)}, xpEarned=${xpEarned}`);
-
     // 🧾 4️⃣ Enregistrement du résultat du quiz
     const { error: quizError } = await supabase.from("lesson_quiz_result").insert({
       user_id: user.id,
@@ -92,7 +90,7 @@ serve(async (req) => {
     });
 
     if (quizError) {
-      console.error("[submit-lesson-quiz] Error inserting quiz result:", quizError);
+      console.error("[upload-lesson-quiz] Error inserting quiz result:", quizError);
       throw new Error("Failed to save quiz result");
     }
 
@@ -110,7 +108,7 @@ serve(async (req) => {
       });
 
     if (completionError) {
-      console.error("[submit-lesson-quiz] Error marking lesson as completed:", completionError);
+      console.error("[upload-lesson-quiz] Error marking lesson as completed:", completionError);
     }
 
     // 🧮 6️⃣ Mise à jour XP + niveau
@@ -121,23 +119,23 @@ serve(async (req) => {
       .single();
 
     if (profileError || !profile) {
-      console.error("[submit-lesson-quiz] Error fetching user profile:", profileError);
+      console.error("[upload-lesson-quiz] Error fetching user profile:", profileError);
       throw new Error("User profile not found");
     }
 
     let newXP = (profile.xp || 0) + xpEarned;
     let newLevel = profile.level || 1;
 
-    // ⚡️ Système exponentiel doux
-    let xpNeeded = Math.round(300 * Math.pow(newLevel, 1.4));
+    // ⚡️ Système exponentiel doux (base 60)
+    let xpNeeded = Math.round(60 * Math.pow(newLevel, 1.4));
 
     while (newXP >= xpNeeded) {
       newXP -= xpNeeded;
       newLevel += 1;
-      xpNeeded = Math.round(300 * Math.pow(newLevel, 1.4));
+      xpNeeded = Math.round(60 * Math.pow(newLevel, 1.4));
     }
 
-    console.log(`[submit-lesson-quiz] Level progression: ${profile.level} -> ${newLevel}, XP: ${profile.xp} -> ${newXP}`);
+    console.log(`[upload-lesson-quiz] XP: ${profile.xp} + ${xpEarned} = ${newXP}, Level: ${profile.level} → ${newLevel}`);
 
     const { error: updateError } = await supabase
       .from("user_profiles")
@@ -149,7 +147,7 @@ serve(async (req) => {
       .eq("id", user.id);
 
     if (updateError) {
-      console.error("[submit-lesson-quiz] Error updating user profile:", updateError);
+      console.error("[upload-lesson-quiz] Error updating user profile:", updateError);
       throw new Error("Failed to update user profile");
     }
 
@@ -162,11 +160,11 @@ serve(async (req) => {
     });
 
     if (historyError) {
-      console.error("[submit-lesson-quiz] Error inserting XP history:", historyError);
+      console.error("[upload-lesson-quiz] Error inserting XP history:", historyError);
       // Non bloquant
     }
 
-    console.log(`[submit-lesson-quiz] Success! User ${user.id} completed lesson ${lesson_id}`);
+    console.log(`[upload-lesson-quiz] Success! User ${user.id} completed lesson ${lesson_id}`);
 
     return new Response(
       JSON.stringify({
@@ -182,7 +180,7 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error("[submit-lesson-quiz] Error:", error);
+    console.error("[upload-lesson-quiz] Error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), 
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
