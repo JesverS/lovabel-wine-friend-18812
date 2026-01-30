@@ -194,6 +194,32 @@ export default function PostDetails() {
     );
   }
 
+  // JSON-LD Article Schema pour SEO
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.content?.slice(0, 110) || `Dégustation partagée par ${post.author?.full_name || 'un amateur de vin'}`,
+    "author": {
+      "@type": "Person",
+      "name": post.author?.full_name || 'Utilisateur Wine Note',
+      "url": post.author?.slug ? `https://winenote.me/user/${post.author.slug}` : undefined
+    },
+    "datePublished": post.created_at,
+    "image": post.image_url || post.wine?.label_url || undefined,
+    "publisher": {
+      "@type": "Organization",
+      "name": "Wine Note",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://winenote.me/wine-note-favicon.png"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://winenote.me/post/${post.id}`
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Helmet>
@@ -203,6 +229,10 @@ export default function PostDetails() {
         <meta property="og:description" content={post.content?.slice(0, 155) || 'Dégustation partagée sur Wine Note'} />
         {post.image_url && <meta property="og:image" content={post.image_url} />}
         <meta property="og:type" content="article" />
+        <link rel="canonical" href={`https://winenote.me/post/${post.id}`} />
+        <script type="application/ld+json">
+          {JSON.stringify(articleSchema)}
+        </script>
       </Helmet>
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 pt-28">

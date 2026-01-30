@@ -13,5 +13,5 @@ Allow: /
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://winenote.me/sitemap.xml
+# Sitemap dynamique via Edge Function
+Sitemap: https://amzutunyjouejovlrlah.supabase.co/functions/v1/sitemap
