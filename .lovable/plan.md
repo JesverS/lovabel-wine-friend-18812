@@ -1,147 +1,182 @@
 
 
-# Plan : Corriger le Calcul de Niveau dans check_and_award_badges
+# Plan : Optimisation SEO Avancée - Checklist 40 Points Hostinger
 
-## Problème Identifié
+## Analyse de l'Etat Actuel vs Checklist Hostinger
 
-La fonction SQL `check_and_award_badges` ajoute de l'XP lors de l'attribution d'un badge, mais **ne recalcule pas le niveau**.
+### Ce qui est DEJA en place (25/40 points)
+
+| # | Point Checklist | Statut |
+|---|-----------------|--------|
+| 1 | Hosting fiable | N/A (Lovable Cloud) |
+| 2 | Site crawlable + sitemap | `robots.txt` + `sitemap.xml` statique |
+| 3 | SSL/HTTPS | Actif par defaut |
+| 4 | Structure permaliens | URLs SEO-friendly (`/event/slug`, `/user/slug`) |
+| 7 | Breadcrumbs | Implementes sur 10+ pages |
+| 10 | Theme SEO-friendly | React optimise + Tailwind |
+| 15 | Contenu de qualite | Pages dynamiques riches |
+| 16 | Structure headings | Hierarchie H1/H2/H3 coherente |
+| 17 | Mot-cle dans URL + H1 | Pattern respecte |
+| 18 | Meta title + description | `react-helmet-async` sur 32 pages |
+| 19 | Donnees structurees | JSON-LD: Event, Product, Winery, Course |
+| 20 | Compression images | `loading="lazy"` sur images |
+| 21 | Alt text images | Partiellement implemente |
+| 23 | Liens internes | Navigation coherente entre pages |
+| 34 | Core Web Vitals | Vite + React = performances optimisees |
+| 35 | noindex pages inutiles | NotFound.tsx avec noindex |
+| 40 | Site responsive | Mobile-first avec Tailwind |
+
+### Ce qui MANQUE ou a AMELIORER (15 points)
+
+| # | Point Checklist | Priorite | Action Requise |
+|---|-----------------|----------|----------------|
+| 2b | Sitemap dynamique | HAUTE | Creer Edge Function pour generer sitemap dynamique |
+| 5 | Soumission Google Search Console | HAUTE | Documenter pour l'utilisateur |
+| 19b | Schema Article pour posts | HAUTE | Ajouter JSON-LD Article sur PostDetails |
+| 19c | Schema Person pour profils | MOYENNE | Ajouter JSON-LD Person sur UserProfile |
+| 21b | Alt text systematique | MOYENNE | Audit et completion des alt texts |
+| 22 | Videos sur plateforme externe | BASSE | Deja YouTube embeds |
+| 24 | Categories/tags contenu | MOYENNE | Ajouter filtres sur Events/Feed |
+| 25 | Plan editorial | N/A | Strategie business |
+| 26-30 | Backlinks/PR | N/A | Strategie marketing externe |
+| 31 | Verification liens casses | BASSE | Outil externe (Google Search Console) |
+| 32 | Verification indexation | HAUTE | Pre-rendering pour SPA |
+| 33 | Cannibalisation keywords | BASSE | Audit SEO externe |
+| 36 | Minification CSS/JS | AUTO | Vite build optimise |
+| 38 | Monitoring keywords | N/A | SEMrush/Ahrefs |
+| 39 | Contenu video | BASSE | Integration future |
+
+---
+
+## Plan d'Implementation (5 Etapes)
+
+### Etape 1 : Sitemap Dynamique (Priorite HAUTE)
+
+Creer une Edge Function qui genere un sitemap XML incluant :
+- Pages statiques (accueil, learning, events, guides, about, contact, etc.)
+- Evenements publics (`/event/{slug}`)
+- Profils publics (`/user/{slug}`)
+- Cours disponibles (`/course/{id}`)
+- Vins (`/wine/{id}`)
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│ SITUATION ACTUELLE                                                   │
-├─────────────────────────────────────────────────────────────────────┤
-│ Utilisateur: XP = 55, Level = 1                                      │
-│ Badge obtenu: +10 XP                                                 │
-│                                                                      │
-│ Après badge:  XP = 65, Level = 1  ❌ (devrait être Level 2)         │
-│               Car 65 >= 60 (seuil niveau 1 → 2)                     │
-└─────────────────────────────────────────────────────────────────────┘
+Structure du sitemap dynamique :
++------------------------+
+|   /api/sitemap.xml     |
++------------------------+
+         |
+    +----+----+
+    |         |
+Pages      Dynamiques
+statiques  (DB queries)
+    |         |
+- /          - /event/xxx
+- /learning  - /user/xxx
+- /events    - /wine/xxx
+- /guides    - /course/xxx
+- /about
+- /contact
 ```
 
-## Comparaison des deux systèmes
+### Etape 2 : Donnees Structurees Manquantes
 
-| Source XP | Ajoute XP | Recalcule Niveau | Résultat |
-|-----------|-----------|------------------|----------|
-| Quiz (Edge Function) | ✅ | ✅ | ✅ Fonctionne |
-| Badge (SQL Function) | ✅ | ❌ | ❌ Bug |
+**A. Schema Article pour PostDetails.tsx**
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Post title",
+  "author": { "@type": "Person", "name": "Author name" },
+  "datePublished": "2025-01-30",
+  "image": "post_image_url"
+}
+```
+
+**B. Schema Person pour UserProfile.tsx**
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "User Name",
+  "description": "User bio",
+  "image": "avatar_url"
+}
+```
+
+### Etape 3 : Pre-rendering pour Crawlers (Recommandation)
+
+Pour les SPA React, les crawlers ont besoin de HTML statique. Options :
+1. **Prerender.io** (service externe) - Recommande
+2. **Cloudflare Workers** avec detection User-Agent
+3. **SSG partiel** pour pages critiques
+
+Cette etape necessite une configuration externe a Lovable.
+
+### Etape 4 : Optimisations Techniques Supplementaires
+
+1. **fetchpriority="high"** sur l'image Hero (LCP)
+2. **Preload fonts** deja en place
+3. **Alt text audit** - Verifier toutes les images
+
+### Etape 5 : Documentation Google Search Console
+
+Creer un guide pour soumettre :
+- Le sitemap dynamique
+- Verifier l'indexation
+- Monitorer les erreurs
 
 ---
 
-## Solution : Créer une fonction de recalcul de niveau
-
-### Nouvelle fonction SQL : `recalculate_user_level`
-
-Cette fonction appliquera la même logique que la Edge Function :
-- Formule : `60 * level^1.4`
-- Boucle while pour gérer les passages de plusieurs niveaux
-
-```sql
-CREATE OR REPLACE FUNCTION public.recalculate_user_level(p_user_id uuid)
-RETURNS integer
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  v_xp integer;
-  v_level integer;
-  v_xp_needed integer;
-  v_new_level integer;
-  v_remaining_xp integer;
-BEGIN
-  -- Récupérer XP et niveau actuels
-  SELECT COALESCE(xp, 0), COALESCE(level, 1) 
-  INTO v_xp, v_level 
-  FROM user_profiles 
-  WHERE id = p_user_id;
-
-  v_new_level := v_level;
-  v_remaining_xp := v_xp;
-  v_xp_needed := ROUND(60 * POWER(v_new_level, 1.4));
-
-  -- Boucle de passage de niveau
-  WHILE v_remaining_xp >= v_xp_needed LOOP
-    v_remaining_xp := v_remaining_xp - v_xp_needed;
-    v_new_level := v_new_level + 1;
-    v_xp_needed := ROUND(60 * POWER(v_new_level, 1.4));
-  END LOOP;
-
-  -- Mettre à jour si le niveau a changé
-  IF v_new_level > v_level THEN
-    UPDATE user_profiles 
-    SET xp = v_remaining_xp, 
-        level = v_new_level,
-        updated_at = now()
-    WHERE id = p_user_id;
-    
-    -- Notification de passage de niveau
-    PERFORM create_notification(
-      p_user_id,
-      'level_up',
-      'Niveau supérieur !',
-      'Félicitations ! Vous êtes passé au niveau ' || v_new_level,
-      jsonb_build_object('old_level', v_level, 'new_level', v_new_level)
-    );
-  END IF;
-
-  RETURN v_new_level;
-END;
-$$;
-```
-
----
-
-## Modification de check_and_award_badges
-
-Après l'ajout d'XP, appeler la fonction de recalcul :
-
-```sql
--- AVANT (lignes 79-82)
-IF FOUND AND v_badge.xp_reward > 0 THEN
-  UPDATE user_profiles SET xp = xp + v_badge.xp_reward WHERE id = p_user_id;
-END IF;
-
--- APRÈS
-IF FOUND AND v_badge.xp_reward > 0 THEN
-  UPDATE user_profiles SET xp = xp + v_badge.xp_reward WHERE id = p_user_id;
-  -- Recalculer le niveau après ajout d'XP
-  PERFORM recalculate_user_level(p_user_id);
-END IF;
-```
-
----
-
-## Résumé des fichiers à créer
+## Resume des Fichiers a Creer/Modifier
 
 | Fichier | Action |
 |---------|--------|
-| Migration SQL | CRÉER avec `recalculate_user_level` + mise à jour de `check_and_award_badges` |
+| `supabase/functions/sitemap/index.ts` | CREER - Edge Function sitemap dynamique |
+| `src/pages/PostDetails.tsx` | MODIFIER - Ajouter JSON-LD Article |
+| `src/pages/UserProfile.tsx` | MODIFIER - Ajouter JSON-LD Person |
+| `index.html` | MODIFIER - fetchpriority sur fonts |
+| `public/robots.txt` | MODIFIER - Pointer vers sitemap dynamique |
 
 ---
 
 ## Section Technique
 
-### Formule XP (base 60)
+### Edge Function Sitemap Dynamique
 
-| Niveau | XP requis | XP cumulé total |
-|--------|-----------|-----------------|
-| 1 → 2 | 60 | 60 |
-| 2 → 3 | 159 | 219 |
-| 3 → 4 | 295 | 514 |
-| 4 → 5 | 464 | 978 |
+L'Edge Function interrogera Supabase pour :
+- `event` WHERE `is_public = true`
+- `user_profiles_public` WHERE `is_public = true`
+- `wine` (tous publics)
+- `courses` WHERE `is_available = true`
 
-### XP des badges (exemples)
+Format de sortie :
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://winenote.me/event/degustation-bordeaux</loc>
+    <lastmod>2025-01-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  ...
+</urlset>
+```
 
-| Badge | XP Reward |
-|-------|-----------|
-| Première leçon | 10 |
-| 10 leçons | 50 |
-| Premier post | 10 |
-| Premier événement | 15 |
+### Pre-rendering (Externe)
 
-### Test après implémentation
+Configuration Prerender.io :
+1. Creer compte sur prerender.io
+2. Ajouter middleware dans Cloudflare/Vercel
+3. Detecter User-Agent: Googlebot, Bingbot, etc.
+4. Servir HTML pre-rendu aux crawlers
 
-1. Créer un utilisateur avec XP = 55, Level = 1
-2. Créer un post (badge "first_post" = +10 XP)
-3. Vérifier : XP devrait être 5, Level devrait être 2
+---
+
+## Prochaines Etapes Apres Approbation
+
+1. Implementer l'Edge Function sitemap dynamique
+2. Ajouter les schemas JSON-LD manquants
+3. Mettre a jour robots.txt
+4. Documenter la configuration pre-rendering
 
