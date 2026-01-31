@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +15,8 @@ import { Plus, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
 import { AppellationSelect } from '@/components/wine/AppellationSelect';
+import { WineLabelScanner } from '@/components/WineLabelScanner';
+import { WineLabelData } from '@/hooks/useWineLabelScan';
 
 interface AddWineToDomainDialogProps {
   domainId: string;
@@ -138,6 +140,21 @@ export function AddWineToDomainDialog({
         <DialogHeader>
           <DialogTitle>Ajouter un vin au domaine</DialogTitle>
         </DialogHeader>
+
+        {/* Scanner d'étiquette */}
+        <WineLabelScanner
+          onScanComplete={(data: WineLabelData) => {
+            if (data.wine_name) setName(data.wine_name);
+            if (data.year) setYear(data.year.toString());
+            if (data.volume_ml) setVolume(data.volume_ml.toString());
+            if (data.alcohol_percentage) setAlcoholPercentage(data.alcohol_percentage.toString());
+            if (data.wine_type) {
+              const typeMap: Record<string, number> = { rouge: 1, blanc: 2, rosé: 5, effervescent: 8, autre: 7 };
+              setWineType(typeMap[data.wine_type] || 1);
+            }
+          }}
+          disabled={loading}
+        />
 
         <form onSubmit={handleCreateWine} className="space-y-4">
           <div>
