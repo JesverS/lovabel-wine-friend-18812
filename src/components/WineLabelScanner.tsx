@@ -69,10 +69,15 @@ export function WineLabelScanner({ onScanComplete, disabled, className }: WineLa
   // Compact mode when no image
   if (!imagePreview) {
     return (
-      <div className={cn("space-y-3", className)}>
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Scan className="w-4 h-4" />
-          Scanner une étiquette
+      <div className={cn("space-y-3 p-3 border rounded-lg bg-muted/30", className)}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Scan className="w-4 h-4 text-primary" />
+            Scanner une étiquette
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Prenez une photo de l'étiquette pour remplir automatiquement les champs
+          </p>
         </div>
         <div className="flex gap-2">
           <Button

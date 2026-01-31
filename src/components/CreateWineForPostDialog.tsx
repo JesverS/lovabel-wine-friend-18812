@@ -10,8 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Upload, Plus } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CreateDomainDialog } from './CreateDomainDialog';
 import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
@@ -207,13 +206,13 @@ export function CreateWineForPostDialog({
         onOpenChange(isOpen);
         if (!isOpen) resetForm();
       }}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle>Ajouter une nouvelle bouteille</DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-1">
-            <form onSubmit={handleCreateWine} className="space-y-4 pr-4">
+          <div className="flex-1 overflow-y-auto px-6 pb-6">
+            <form onSubmit={handleCreateWine} className="space-y-4">
               {/* Scanner d'étiquette */}
               <WineLabelScanner
                 onScanComplete={(data: WineLabelData) => {
@@ -296,10 +295,12 @@ export function CreateWineForPostDialog({
                         ))}
                       </div>
                     )}
-                    <CreateDomainDialog 
-                      onDomainCreated={handleDomainCreated}
-                      initialName={domainSearch}
-                    />
+                    {domainSearch.length >= 2 && domains.length === 0 && (
+                      <CreateDomainDialog 
+                        onDomainCreated={handleDomainCreated}
+                        initialName={domainSearch}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -398,7 +399,7 @@ export function CreateWineForPostDialog({
               <Button
                 type="submit"
                 disabled={loading || !name.trim() || !selectedDomain}
-                className="w-full"
+                className="w-full mt-4"
               >
                 {loading ? (
                   <>
@@ -410,7 +411,7 @@ export function CreateWineForPostDialog({
                 )}
               </Button>
             </form>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     </>
