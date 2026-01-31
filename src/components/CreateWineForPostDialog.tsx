@@ -16,6 +16,8 @@ import { toast } from '@/hooks/use-toast';
 import { CreateDomainDialog } from './CreateDomainDialog';
 import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
 import { AppellationSelect } from '@/components/wine/AppellationSelect';
+import { WineLabelScanner } from '@/components/WineLabelScanner';
+import { WineLabelData } from '@/hooks/useWineLabelScan';
 
 interface CreateWineForPostDialogProps {
   open: boolean;
@@ -212,6 +214,24 @@ export function CreateWineForPostDialog({
 
           <ScrollArea className="flex-1 px-1">
             <form onSubmit={handleCreateWine} className="space-y-4 pr-4">
+              {/* Scanner d'étiquette */}
+              <WineLabelScanner
+                onScanComplete={(data: WineLabelData) => {
+                  if (data.wine_name) setName(data.wine_name);
+                  if (data.year) setYear(data.year.toString());
+                  if (data.volume_ml) setVolume(data.volume_ml.toString());
+                  if (data.wine_type) {
+                    const typeMap: Record<string, number> = { rouge: 1, blanc: 2, rosé: 5, effervescent: 8, autre: 7 };
+                    setWineType(typeMap[data.wine_type] || 1);
+                  }
+                  // Auto-search for domain
+                  if (data.domain_name) {
+                    setDomainSearch(data.domain_name);
+                  }
+                }}
+                disabled={loading}
+              />
+
               {/* Domain selection */}
               <div className="space-y-2">
                 <Label>Domaine *</Label>

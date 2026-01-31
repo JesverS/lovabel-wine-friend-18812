@@ -15,6 +15,8 @@ import { Plus, Loader2, Upload } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
 import { AppellationSelect } from '@/components/wine/AppellationSelect';
+import { WineLabelScanner } from '@/components/WineLabelScanner';
+import { WineLabelData } from '@/hooks/useWineLabelScan';
 
 interface CreateWineInDomainDialogProps {
   eventId: string;
@@ -170,6 +172,19 @@ export function CreateWineInDomainDialog({
         </DialogHeader>
 
         <form onSubmit={handleCreateWine} className="space-y-4">
+          {/* Scanner d'étiquette */}
+          <WineLabelScanner
+            onScanComplete={(data: WineLabelData) => {
+              if (data.wine_name) setName(data.wine_name);
+              if (data.year) setYear(data.year.toString());
+              if (data.volume_ml) setVolume(data.volume_ml.toString());
+              if (data.wine_type) {
+                const typeMap: Record<string, number> = { rouge: 1, blanc: 2, rosé: 5, effervescent: 8, autre: 7 };
+                setWineType(typeMap[data.wine_type] || 1);
+              }
+            }}
+            disabled={loading}
+          />
           <div>
             <Label htmlFor="wine-name">Nom du vin *</Label>
             <Input
