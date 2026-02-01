@@ -3528,6 +3528,22 @@ export type Database = {
           website_url: string
         }[]
       }
+      search_similar_appellation: {
+        Args: { search_name: string; threshold?: number }
+        Returns: {
+          id: number
+          nom: string
+          sim: number
+        }[]
+      }
+      search_similar_domain: {
+        Args: { search_name: string; threshold?: number }
+        Returns: {
+          id: string
+          name: string
+          sim: number
+        }[]
+      }
       search_wines: {
         Args: { query: string }
         Returns: {

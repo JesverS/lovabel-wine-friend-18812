@@ -17,6 +17,7 @@ import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
 import { AppellationSelect } from '@/components/wine/AppellationSelect';
 import { WineLabelScanner } from '@/components/WineLabelScanner';
 import { WineLabelData } from '@/hooks/useWineLabelScan';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface CreateWineInDomainDialogProps {
   eventId: string;
@@ -33,6 +34,7 @@ export function CreateWineInDomainDialog({
   initialWineName = '',
   onWineCreated,
 }: CreateWineInDomainDialogProps) {
+  const { canUseAI, loading: roleLoading } = useUserRole();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(initialWineName);
@@ -172,19 +174,36 @@ export function CreateWineInDomainDialog({
         </DialogHeader>
 
         <form onSubmit={handleCreateWine} className="space-y-4">
-          {/* Scanner d'étiquette */}
-          <WineLabelScanner
-            onScanComplete={(data: WineLabelData) => {
-              if (data.wine_name) setName(data.wine_name);
-              if (data.year) setYear(data.year.toString());
-              if (data.volume_ml) setVolume(data.volume_ml.toString());
-              if (data.wine_type) {
-                const typeMap: Record<string, number> = { rouge: 1, blanc: 2, rosé: 5, effervescent: 8, autre: 7 };
-                setWineType(typeMap[data.wine_type] || 1);
-              }
-            }}
-            disabled={loading}
-          />
+          {/* Scanner d'étiquette - only for users with a role */}
+          {canUseAI && !roleLoading && (
+            <WineLabelScanner
+              onScanComplete={async (data: WineLabelData, imageBase64: string | null) => {
+                if (data.wine_name) setName(data.wine_name);
+                if (data.year) setYear(data.year.toString());
+                if (data.volume_ml) setVolume(data.volume_ml.toString());
+                if (data.wine_type) {
+                  const typeMap: Record<string, number> = { rouge: 1, blanc: 2, rosé: 5, effervescent: 8, autre: 7 };
+                  setWineType(typeMap[data.wine_type] || 1);
+                }
+                if (data.appellation_id) {
+                  setAppellationId(data.appellation_id);
+                }
+                // Pre-fill label image
+                if (imageBase64) {
+                  setLabelPreview(imageBase64);
+                  try {
+                    const response = await fetch(imageBase64);
+                    const blob = await response.blob();
+                    const file = new File([blob], 'etiquette.jpg', { type: 'image/jpeg' });
+                    setLabelFile(file);
+                  } catch (err) {
+                    console.error('Failed to convert image to file:', err);
+                  }
+                }
+              }}
+              disabled={loading}
+            />
+          )}
           <div>
             <Label htmlFor="wine-name">Nom du vin *</Label>
             <Input

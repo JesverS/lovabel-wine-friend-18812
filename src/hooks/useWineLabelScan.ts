@@ -11,12 +11,19 @@ export interface WineLabelData {
   alcohol_percentage: number | null;
   volume_ml: number | null;
   region: string | null;
+  custom_region: string | null;
   confidence: number;
+  // Resolved IDs after matching
+  domain_id: string | null;
+  appellation_id: number | null;
+  domain_created: boolean;
+  appellation_created: boolean;
 }
 
 interface UseWineLabelScanResult {
   scanning: boolean;
   scanResult: WineLabelData | null;
+  scannedImageBase64: string | null;
   error: string | null;
   scanImage: (imageBase64: string) => Promise<WineLabelData | null>;
   reset: () => void;
@@ -25,12 +32,14 @@ interface UseWineLabelScanResult {
 export function useWineLabelScan(): UseWineLabelScanResult {
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<WineLabelData | null>(null);
+  const [scannedImageBase64, setScannedImageBase64] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const scanImage = async (imageBase64: string): Promise<WineLabelData | null> => {
     setScanning(true);
     setError(null);
     setScanResult(null);
+    setScannedImageBase64(imageBase64);
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke('scan-wine-label', {
@@ -58,6 +67,14 @@ export function useWineLabelScan(): UseWineLabelScanResult {
           toast.warning('Reconnaissance difficile, complétez manuellement si nécessaire');
         }
         
+        // Show creation info
+        if (data.data.domain_created) {
+          toast.info(`Nouveau domaine créé : ${data.data.domain_name}`);
+        }
+        if (data.data.appellation_created) {
+          toast.info(`Nouvelle appellation créée : ${data.data.appellation}`);
+        }
+        
         return data.data;
       }
 
@@ -74,12 +91,14 @@ export function useWineLabelScan(): UseWineLabelScanResult {
 
   const reset = () => {
     setScanResult(null);
+    setScannedImageBase64(null);
     setError(null);
   };
 
   return {
     scanning,
     scanResult,
+    scannedImageBase64,
     error,
     scanImage,
     reset,

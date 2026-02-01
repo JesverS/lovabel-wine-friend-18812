@@ -17,6 +17,7 @@ import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
 import { AppellationSelect } from '@/components/wine/AppellationSelect';
 import { WineLabelScanner } from '@/components/WineLabelScanner';
 import { WineLabelData } from '@/hooks/useWineLabelScan';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface CreateWineForPostDialogProps {
   open: boolean;
@@ -31,7 +32,9 @@ export function CreateWineForPostDialog({
   initialWineName = '',
   onWineCreated,
 }: CreateWineForPostDialogProps) {
+  const { canUseAI, loading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(false);
+  const [isAIMode, setIsAIMode] = useState(false); // True when a scan was done
   const [name, setName] = useState(initialWineName);
   const [year, setYear] = useState('');
   const [volume, setVolume] = useState('750');
@@ -95,6 +98,51 @@ export function CreateWineForPostDialog({
 
     setLabelFile(file);
     setLabelPreview(URL.createObjectURL(file));
+  };
+
+  const handleScanComplete = async (data: WineLabelData, imageBase64: string | null) => {
+    setIsAIMode(true);
+    
+    // Wine name (fallback to domain name if null)
+    setName(data.wine_name || data.domain_name || '');
+    
+    // Domain already resolved by edge function
+    if (data.domain_id && data.domain_name) {
+      setSelectedDomain({ 
+        id: data.domain_id, 
+        name: data.domain_name,
+        region: data.region || data.custom_region 
+      });
+      setDomainSearch('');
+      setDomains([]);
+    }
+    
+    // Appellation already resolved by edge function
+    if (data.appellation_id) {
+      setAppellationId(data.appellation_id);
+    }
+    
+    // Other fields
+    if (data.year) setYear(data.year.toString());
+    if (data.volume_ml) setVolume(data.volume_ml.toString());
+    if (data.wine_type) {
+      const typeMap: Record<string, number> = { rouge: 1, blanc: 2, rosé: 5, effervescent: 8, autre: 7 };
+      setWineType(typeMap[data.wine_type] || 1);
+    }
+    
+    // Pre-fill label image with the scanned photo
+    if (imageBase64) {
+      setLabelPreview(imageBase64);
+      // Convert base64 to File for upload
+      try {
+        const response = await fetch(imageBase64);
+        const blob = await response.blob();
+        const file = new File([blob], 'etiquette.jpg', { type: 'image/jpeg' });
+        setLabelFile(file);
+      } catch (err) {
+        console.error('Failed to convert image to file:', err);
+      }
+    }
   };
 
   const handleCreateWine = async (e: React.FormEvent) => {
@@ -182,6 +230,7 @@ export function CreateWineForPostDialog({
     setDomainSearch('');
     setDomains([]);
     setSelectedDomain(null);
+    setIsAIMode(false);
   };
 
   const handleDomainCreated = async () => {
@@ -200,6 +249,9 @@ export function CreateWineForPostDialog({
     }
   };
 
+  // Show "Ajouter mon domaine" only in manual mode (not AI mode)
+  const showCreateDomainButton = !isAIMode && domainSearch.length >= 2 && domains.length === 0;
+
   return (
     <>
       <Dialog open={open} onOpenChange={(isOpen) => {
@@ -213,23 +265,13 @@ export function CreateWineForPostDialog({
 
           <div className="flex-1 overflow-y-auto px-6 pb-6">
             <form onSubmit={handleCreateWine} className="space-y-4">
-              {/* Scanner d'étiquette */}
-              <WineLabelScanner
-                onScanComplete={(data: WineLabelData) => {
-                  if (data.wine_name) setName(data.wine_name);
-                  if (data.year) setYear(data.year.toString());
-                  if (data.volume_ml) setVolume(data.volume_ml.toString());
-                  if (data.wine_type) {
-                    const typeMap: Record<string, number> = { rouge: 1, blanc: 2, rosé: 5, effervescent: 8, autre: 7 };
-                    setWineType(typeMap[data.wine_type] || 1);
-                  }
-                  // Auto-search for domain
-                  if (data.domain_name) {
-                    setDomainSearch(data.domain_name);
-                  }
-                }}
-                disabled={loading}
-              />
+              {/* Scanner d'étiquette - only for users with a role */}
+              {canUseAI && !roleLoading && (
+                <WineLabelScanner
+                  onScanComplete={handleScanComplete}
+                  disabled={loading}
+                />
+              )}
 
               {/* Domain selection */}
               <div className="space-y-2">
@@ -253,7 +295,10 @@ export function CreateWineForPostDialog({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => setSelectedDomain(null)}
+                      onClick={() => {
+                        setSelectedDomain(null);
+                        setIsAIMode(false); // Allow manual mode again
+                      }}
                     >
                       Changer
                     </Button>
@@ -295,7 +340,8 @@ export function CreateWineForPostDialog({
                         ))}
                       </div>
                     )}
-                    {domainSearch.length >= 2 && domains.length === 0 && (
+                    {/* Only show create domain button in manual mode */}
+                    {showCreateDomainButton && (
                       <CreateDomainDialog 
                         onDomainCreated={handleDomainCreated}
                         initialName={domainSearch}
@@ -366,7 +412,7 @@ export function CreateWineForPostDialog({
               </div>
 
               <div>
-                <Label htmlFor="wine-label">Étiquette du vin (optionnel)</Label>
+                <Label htmlFor="wine-label">Étiquette du vin {isAIMode ? '' : '(optionnel)'}</Label>
                 <div className="flex items-center gap-4">
                   <label htmlFor="wine-label" className="cursor-pointer">
                     <div className="border-2 border-dashed rounded-lg p-4 hover:border-primary transition-colors text-center">
