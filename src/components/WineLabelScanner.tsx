@@ -5,7 +5,7 @@ import { useWineLabelScan, WineLabelData } from '@/hooks/useWineLabelScan';
 import { cn } from '@/lib/utils';
 
 interface WineLabelScannerProps {
-  onScanComplete: (data: WineLabelData) => void;
+  onScanComplete: (data: WineLabelData, imageBase64: string | null) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -35,7 +35,7 @@ export function WineLabelScanner({ onScanComplete, disabled, className }: WineLa
       // Auto-scan
       const result = await scanImage(base64);
       if (result) {
-        onScanComplete(result);
+        onScanComplete(result, base64);
       }
     };
     reader.readAsDataURL(file);
@@ -61,7 +61,7 @@ export function WineLabelScanner({ onScanComplete, disabled, className }: WineLa
     if (imagePreview) {
       const result = await scanImage(imagePreview);
       if (result) {
-        onScanComplete(result);
+        onScanComplete(result, imagePreview);
       }
     }
   };
@@ -183,7 +183,10 @@ export function WineLabelScanner({ onScanComplete, disabled, className }: WineLa
       {scanResult && (
         <div className="text-xs space-y-1 p-2 bg-muted/50 rounded-md">
           {scanResult.domain_name && (
-            <p><span className="text-muted-foreground">Domaine:</span> {scanResult.domain_name}</p>
+            <p>
+              <span className="text-muted-foreground">Domaine:</span> {scanResult.domain_name}
+              {scanResult.domain_created && <span className="ml-1 text-primary">(nouveau)</span>}
+            </p>
           )}
           {scanResult.wine_name && (
             <p><span className="text-muted-foreground">Vin:</span> {scanResult.wine_name}</p>
@@ -192,7 +195,10 @@ export function WineLabelScanner({ onScanComplete, disabled, className }: WineLa
             <p><span className="text-muted-foreground">Année:</span> {scanResult.year}</p>
           )}
           {scanResult.appellation && (
-            <p><span className="text-muted-foreground">Appellation:</span> {scanResult.appellation}</p>
+            <p>
+              <span className="text-muted-foreground">Appellation:</span> {scanResult.appellation}
+              {scanResult.appellation_created && <span className="ml-1 text-primary">(nouvelle)</span>}
+            </p>
           )}
         </div>
       )}
