@@ -1,370 +1,352 @@
 
 
-# Audit Complet : Solutions de Scan de Bouteilles de Vin
+# Plan d'Implementation : Scanner IA Premium avec Matching Intelligent
 
-## Contexte et Objectif
+## Resume des Modifications
 
-**Probleme actuel :** L'utilisateur doit saisir manuellement 8+ champs pour ajouter un vin :
-- Nom du vin (obligatoire)
-- Domaine (obligatoire avec recherche)
-- Annee
-- Volume
-- Type (rouge/blanc/rose/effervescent)
-- Appellation
-- Description
-- Photo etiquette
-
-**Objectif :** Scanner une etiquette de bouteille et pre-remplir automatiquement ces champs.
-
-**Contrainte budgetaire :** Solution gratuite ou avec free tier genereux (moins de 5000 photos/mois minimum).
+Transformer le scanner d'etiquettes en fonctionnalite premium reservee aux utilisateurs avec un role dans `user_roles`, avec matching intelligent des domaines et appellations, et fallback vers le formulaire manuel pour les utilisateurs sans role.
 
 ---
 
-## Donnees a Extraire d'une Etiquette de Vin
+## Architecture
 
-| Donnee | Difficulte | Exemple |
-|--------|------------|---------|
-| Nom du vin | Moyenne | "Chateau Margaux", "Cuvee Prestige" |
-| Domaine/Producteur | Moyenne | "Domaine de la Romanee-Conti" |
-| Millesime (annee) | Facile | "2018", "2020" |
-| Appellation | Difficile | "Pauillac AOC", "Saint-Emilion Grand Cru" |
-| Type de vin | Moyenne | Souvent deduit de l'appellation ou couleur etiquette |
-| Degre d'alcool | Facile | "13.5% vol" |
-| Volume | Facile | "75cl", "750ml" |
-| Region | Moyenne | "Bordeaux", "Bourgogne" |
-
----
-
-## Comparaison des Solutions
-
-### Tableau Recapitulatif
-
-| Solution | Free Tier | Precision Vin | Implementation | Score |
-|----------|-----------|---------------|----------------|-------|
-| **Lovable AI (Gemini)** | Inclus avec Lovable | Excellente | Simple (deja disponible) | **★★★★★** |
-| OCR.space | 25K/mois | OCR brut uniquement | Moyenne | ★★★☆☆ |
-| Google Cloud Vision | 1K/mois | OCR brut uniquement | Complexe | ★★☆☆☆ |
-| Tesseract.js (local) | Illimite | Faible sur photos | Complexe | ★★☆☆☆ |
-| API4AI Wine Recognition | Demo only | Excellente (labels) | Simple | ★★★☆☆ |
-| Zyla Wine Label API | Freemium limite | Bonne | Simple | ★★★☆☆ |
-
----
-
-## Analyse Detaillee des Solutions
-
-### 1. Lovable AI avec Gemini Vision (RECOMMANDEE)
-
-**Disponibilite :** Deja integre a votre projet via LOVABLE_API_KEY
-
-**Modele suggere :** `google/gemini-2.5-flash` ou `google/gemini-3-flash-preview`
-
-**Free Tier :** Inclus avec votre abonnement Lovable (credits mensuels)
-
-**Fonctionnement :**
 ```text
-Photo etiquette --> Edge Function --> Lovable AI (Gemini Vision)
-                                           |
-                                           v
-                                    Extraction structuree JSON
-                                           |
-                                           v
-                                    Pre-remplissage formulaire
+                    Utilisateur scanne une etiquette
+                               |
+                               v
+                    Verification role user_roles
+                              / \
+                             /   \
+                    A un role    Pas de role
+                         |            |
+                         v            v
+                 Scanner IA      Formulaire manuel
+                 (Premium)       (Standard)
+                         |
+                         v
+              Edge Function scan-wine-label
+                         |
+                         v
+              Matching intelligent
+              - Domaine (similarity >= 0.8)
+              - Appellation (similarity >= 0.8)
+              - Region (enum ou creation custom)
+                         |
+                         v
+              Pre-remplissage formulaire
+              + Image scannee = etiquette
 ```
 
-**Avantages :**
-- Deja configure dans votre projet (pas de nouvelle API a integrer)
-- Comprehension semantique de l'image (pas juste OCR)
-- Peut identifier le type de vin par la couleur de l'etiquette
-- Peut deduire l'appellation meme si partiellement visible
-- Peut faire du matching avec votre base de domaines existante
-- Supporte le francais nativement
+---
 
-**Inconvenients :**
-- Consomme des credits Lovable AI
-- Necessite connexion internet
+## Fichiers a Modifier/Creer
 
-**Cout estime :**
-- ~0.001-0.005$ par image selon le modele
-- Avec 5000 images/mois = 5-25$/mois maximum
-- Free tier Lovable couvre probablement les premiers milliers
-
-**Implementation technique :**
-Edge function qui recoit l'image en base64, l'envoie a Gemini Vision avec un prompt structure, et retourne un JSON avec les champs extraits.
+| Fichier | Action | Description |
+|---------|--------|-------------|
+| `src/hooks/useUserRole.ts` | CREER | Hook pour verifier si l'utilisateur a un role |
+| `supabase/functions/scan-wine-label/index.ts` | MODIFIER | Ajouter matching domaine/appellation + creation |
+| `src/hooks/useWineLabelScan.ts` | MODIFIER | Retourner aussi l'image et les IDs matches |
+| `src/components/WineLabelScanner.tsx` | MODIFIER | Exposer l'image scannee via callback |
+| `src/components/CreateWineForPostDialog.tsx` | MODIFIER | Logique conditionnelle selon role + pre-remplir image |
+| `src/components/AddWineToDomainDialog.tsx` | MODIFIER | Meme logique |
+| `src/components/CreateWineInDomainDialog.tsx` | MODIFIER | Meme logique |
 
 ---
 
-### 2. OCR.space API
+## Implementation Detaillee
 
-**Free Tier :** 25,000 requetes/mois (tres genereux)
+### 1. Hook useUserRole.ts
 
-**Fonctionnement :** OCR pur - extrait tout le texte visible sur l'image
+Creer un hook qui verifie si l'utilisateur connecte a un role dans `user_roles` :
 
-**Prix :**
-| Plan | Requetes/mois | Prix |
-|------|---------------|------|
-| Free | 25,000 | 0$ |
-| PRO | 300,000 | 30$/mois |
+```typescript
+// src/hooks/useUserRole.ts
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-**Avantages :**
-- Tres genereux en free tier
-- API simple a utiliser
-- Bonne qualite OCR
+export function useUserRole() {
+  const { user } = useAuth();
+  const [hasRole, setHasRole] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-**Inconvenients :**
-- OCR brut uniquement : extrait TOUT le texte en vrac
-- Necessite un post-traitement intelligent pour identifier les champs
-- Ne comprend pas le contexte "vin"
-- Difficulte a distinguer nom du vin vs domaine vs appellation
-
-**Exemple de sortie brute :**
-```text
-"CHATEAU MARGAUX\nPremier Grand Cru Classe\nMargaux\n2018\n13% vol\n75cl\nMis en bouteille au chateau"
-```
---> Necessite parsing regex + IA pour structurer
-
-**Verdict :** Utilisable comme etape 1 (extraction texte) combinee avec Lovable AI (etape 2 : comprehension)
-
----
-
-### 3. Google Cloud Vision API
-
-**Free Tier :** 1,000 images/mois seulement
-
-**Prix apres free tier :**
-- Text Detection : 1.50$/1000 images (1001 a 5M)
-- Label Detection : 1.50$/1000 images
-
-**Avantages :**
-- Tres haute qualite OCR
-- Detection de logos (pourrait identifier les domaines)
-- Web Detection pour retrouver le vin en ligne
-
-**Inconvenients :**
-- Free tier insuffisant (seulement 1000/mois)
-- Necessite compte Google Cloud et facturation active
-- Configuration complexe (credentials JSON, SDK)
-- OCR brut, meme probleme qu'OCR.space
-
-**Verdict :** Trop limite en free tier et complexe a configurer
-
----
-
-### 4. Tesseract.js (OCR local dans le navigateur)
-
-**Free Tier :** Illimite (tourne cote client)
-
-**Fonctionnement :** Bibliotheque JavaScript qui fait l'OCR directement dans le navigateur de l'utilisateur
-
-**Avantages :**
-- 100% gratuit
-- Pas de requetes serveur
-- Confidentialite des donnees (rien n'est envoye)
-
-**Inconvenients :**
-- Qualite OCR mediocre sur photos d'etiquettes
-- Necessite images bien cadrees, haute resolution
-- Lent sur mobile (5-15 secondes par image)
-- Charge 15-20MB de modeles dans le navigateur
-- Tres sensible a la lumiere, angle, reflets sur la bouteille
-- Aucune comprehension semantique
-
-**Precision estimee :** 40-60% sur etiquettes de vin reelles (reflets, textes courbes, typographies artistiques)
-
-**Verdict :** Deconseille pour le cas d'usage vin (photos prises par utilisateurs = qualite variable)
-
----
-
-### 5. API4AI Wine Recognition
-
-**Specialise vin :** Oui, entraine sur des centaines de milliers d'etiquettes
-
-**Free Tier :** Demo gratuite avec rate limiting (quelques requetes/jour)
-
-**Prix production :** Pay-as-you-go sur RapidAPI (~0.003$/requete)
-
-**Fonctionnement :**
-```bash
-curl -X POST "https://demo.api4ai.cloud/wine-rec/v1/results" \
-     -F "url=https://image-de-ma-bouteille.jpg"
-```
-
-**Sortie :**
-```json
-{
-  "results": [
-    {
-      "entities": [
-        {"label": "Chateau Margaux 2018", "confidence": 0.92},
-        {"label": "Chateau Margaux 2019", "confidence": 0.85}
-      ]
+  useEffect(() => {
+    if (!user) {
+      setHasRole(false);
+      setRole(null);
+      setLoading(false);
+      return;
     }
-  ]
+
+    const checkRole = async () => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        setHasRole(true);
+        setRole(data.role);
+      } else {
+        setHasRole(false);
+        setRole(null);
+      }
+      setLoading(false);
+    };
+
+    checkRole();
+  }, [user]);
+
+  return { hasRole, role, loading, canUseAI: hasRole };
 }
 ```
 
-**Avantages :**
-- Specifiquement entraine pour les vins
-- Tres bonne precision sur etiquettes connues
-- Retourne le nom complet du vin directement
-
-**Inconvenients :**
-- Ne fonctionne que sur des etiquettes DEJA dans leur base
-- Vins peu connus ou recents = non reconnus
-- Free tier tres limite (demo seulement)
-- Pas d'extraction des details (millesime, appellation separes)
-
-**Verdict :** Interessant en complement mais ne couvre pas les vins nouveaux/inconnus
-
 ---
 
-### 6. Zyla Wine Label Recognition API
+### 2. Modification Edge Function scan-wine-label
 
-**Free Tier :** 50 requetes/mois (trop limite)
+L'edge function doit maintenant :
+1. Extraire les donnees de l'etiquette (actuel)
+2. Matcher le domaine avec `similarity()` (seuil 0.6)
+3. Creer le domaine si pas de match + gerer la region
+4. Matcher l'appellation avec `similarity()` (seuil 0.6)
+5. Creer l'appellation si pas de match
+6. Fallback : si wine_name est null, utiliser domain_name
 
-**Prix :** A partir de 5$/mois pour 100 requetes
+**Nouveau prompt IA :**
+- Demander explicitement les regions valides de l'enum
+- Si region non trouvee, retourner "other" + custom_region
 
-**Verdict :** Free tier insuffisant pour votre besoin
-
----
-
-## Solution Recommandee : Architecture Hybride
-
-### Approche en 2 Etapes
-
-```text
-ETAPE 1: Capture Photo
-         |
-         v
-ETAPE 2: Edge Function "scan-wine-label"
-         |
-         +---> Envoi image a Lovable AI (Gemini Vision)
-         |
-         +---> Prompt structure pour extraction
-         |
-         v
-ETAPE 3: Reponse JSON structuree
-         {
-           "wine_name": "Chateau Margaux",
-           "domain_name": "Chateau Margaux",
-           "year": 2018,
-           "appellation": "Margaux AOC",
-           "wine_type": "rouge",
-           "alcohol": 13.5,
-           "volume_ml": 750,
-           "confidence": 0.85
-         }
-         |
-         v
-ETAPE 4: Matching avec base de donnees
-         - Recherche domaine existant
-         - Recherche appellation existante
-         |
-         v
-ETAPE 5: Pre-remplissage formulaire
-         - Utilisateur valide/corrige
-         - Creation vin
-```
-
-### Prompt Optimise pour Gemini Vision
-
-```text
-Tu es un expert en vins français. Analyse cette photo d'étiquette de bouteille de vin et extrais les informations suivantes en JSON :
-
-{
-  "wine_name": "nom de la cuvée/vin (sans le domaine)",
-  "domain_name": "nom du domaine/château/producteur",
-  "year": nombre ou null,
-  "appellation": "appellation complète (AOC, AOP, IGP, etc.)",
-  "wine_type": "rouge|blanc|rosé|effervescent|autre",
-  "alcohol_percentage": nombre ou null,
-  "volume_ml": nombre ou null,
-  "region": "région viticole française",
-  "confidence": nombre entre 0 et 1
+**Nouvelles donnees retournees :**
+```typescript
+interface ScanResult {
+  // Donnees brutes de l'IA
+  wine_name: string | null;
+  domain_name: string | null;
+  year: number | null;
+  appellation_name: string | null;
+  wine_type: 'rouge' | 'blanc' | 'rose' | 'effervescent' | 'autre' | null;
+  alcohol_percentage: number | null;
+  volume_ml: number | null;
+  region: string | null;  // Nom de la region trouvee
+  custom_region: string | null;  // Si hors enum
+  confidence: number;
+  
+  // IDs resolus apres matching
+  domain_id: string | null;  // UUID du domaine trouve/cree
+  appellation_id: number | null;  // ID de l'appellation trouvee/creee
+  domain_created: boolean;  // True si nouveau domaine cree
+  appellation_created: boolean;  // True si nouvelle appellation creee
 }
+```
 
-Si une information n'est pas visible sur l'étiquette, retourne null.
-Pour wine_type, déduis-le de l'appellation ou de la couleur dominante de l'étiquette si possible.
+**Logique de matching domaine :**
+```sql
+-- Recherche par similarite (pg_trgm)
+SELECT id, name, similarity(extensions.unaccent(lower(name)), extensions.unaccent(lower($domain_name))) as sim
+FROM domain
+WHERE similarity(extensions.unaccent(lower(name)), extensions.unaccent(lower($domain_name))) > 0.8
+ORDER BY sim DESC
+LIMIT 1;
+```
+
+Si aucun match :
+- Creer le domaine avec les infos extraites
+- Mapper la region vers l'enum `domain_region` ou utiliser "other" + custom_region
+
+**Logique de matching appellation :**
+```sql
+SELECT id, nom, similarity(normalized_nom, $normalized_appellation) as sim
+FROM appellation
+WHERE similarity(normalized_nom, $normalized_appellation) > 0.8
+ORDER BY sim DESC
+LIMIT 1;
+```
+
+Si aucun match :
+- Creer l'appellation avec le nom extrait
+
+**Fallback wine_name :**
+- Si `wine_name` est null et `domain_name` existe, utiliser `domain_name` comme `wine_name`
+
+---
+
+### 3. Modification WineLabelScanner.tsx
+
+Ajouter une prop pour exposer l'image scannee :
+
+```typescript
+interface WineLabelScannerProps {
+  onScanComplete: (data: WineLabelData, imageBase64: string | null) => void;
+  disabled?: boolean;
+  className?: string;
+}
+```
+
+Quand le scan est termine, appeler `onScanComplete(result, imagePreview)`.
+
+---
+
+### 4. Modification CreateWineForPostDialog.tsx
+
+**Changements majeurs :**
+
+1. Importer `useUserRole()`
+2. Afficher le scanner UNIQUEMENT si `canUseAI`
+3. Masquer le bouton "Ajouter mon domaine" en mode scan
+4. Pre-remplir l'image de l'etiquette avec la photo scannee
+5. Utiliser les IDs resolus (domain_id, appellation_id) directement
+
+**Logique conditionnelle :**
+```typescript
+const { canUseAI, loading: roleLoading } = useUserRole();
+const [isAIMode, setIsAIMode] = useState(false);  // True quand un scan a ete fait
+
+// Si pas de role : formulaire manuel complet (comme avant)
+// Si role : afficher scanner, et apres scan, pre-remplir tout
+```
+
+**Pre-remplissage apres scan :**
+```typescript
+const handleScanComplete = (data: ScanResult, imageBase64: string | null) => {
+  setIsAIMode(true);
+  
+  // Nom du vin (fallback sur domaine si null)
+  setName(data.wine_name || data.domain_name || '');
+  
+  // Domaine deja resolu
+  if (data.domain_id) {
+    setSelectedDomain({ id: data.domain_id, name: data.domain_name });
+  }
+  
+  // Appellation deja resolue
+  if (data.appellation_id) {
+    setAppellationId(data.appellation_id);
+  }
+  
+  // Autres champs
+  if (data.year) setYear(data.year.toString());
+  if (data.volume_ml) setVolume(data.volume_ml.toString());
+  if (data.wine_type) {
+    const typeMap = { rouge: 1, blanc: 2, rose: 5, effervescent: 8, autre: 7 };
+    setWineType(typeMap[data.wine_type] || 1);
+  }
+  
+  // Pre-remplir l'image de l'etiquette
+  if (imageBase64) {
+    setLabelPreview(imageBase64);
+    // Convertir base64 en File pour l'upload
+    fetch(imageBase64)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], 'etiquette.jpg', { type: 'image/jpeg' });
+        setLabelFile(file);
+      });
+  }
+};
 ```
 
 ---
 
-## Estimation des Couts
+### 5. Gestion des Regions dans l'Edge Function
 
-### Scenario : 5000 scans/mois
+**Regions valides (enum domain_region) :**
+- Champagne, Loire, Rhone, Alsace, Bourgogne, Bordeaux, Jura, Beaujolais, Languedoc-Roussillon, Sud-Ouest, Corse, Provence, unknown, other
 
-| Solution | Cout Mensuel | Notes |
-|----------|--------------|-------|
-| Lovable AI (Gemini Flash) | ~5-25$ | Inclus partiellement dans credits Lovable |
-| OCR.space | 0$ | Gratuit jusqu'a 25K/mois |
-| Google Vision | ~7.50$ | 1K gratuit + 4000 x 1.50$/1000 |
-| Tesseract.js | 0$ | Gratuit mais qualite mediocre |
+**Prompt IA mis a jour :**
+```text
+Pour la region, choisis parmi les valeurs suivantes si possible :
+Alsace, Beaujolais, Bordeaux, Bourgogne, Champagne, Corse, Jura, Languedoc-Roussillon, Loire, Provence, Rhone, Sud-Ouest
 
-**Recommandation :** Utiliser Lovable AI qui offre le meilleur rapport qualite/cout et est deja integre.
+Si la region n'est pas dans cette liste, retourne :
+- "region": "other"
+- "custom_region": "nom de la region trouvee"
+```
 
----
+**Mapping dans l'Edge Function :**
+```typescript
+// Normaliser la region vers l'enum
+const VALID_REGIONS = [
+  'Alsace', 'Beaujolais', 'Bordeaux', 'Bourgogne', 'Champagne', 
+  'Corse', 'Jura', 'Languedoc-Roussillon', 'Loire', 'Provence', 
+  'Rhône', 'Sud-Ouest'
+];
 
-## Plan d'Implementation Propose
+const normalizedRegion = VALID_REGIONS.find(
+  r => r.toLowerCase() === extractedRegion?.toLowerCase()
+);
 
-### Phase 1 : Prototype Rapide
-
-1. **Edge Function** `scan-wine-label`
-   - Recoit image en base64
-   - Appelle Lovable AI avec Gemini Vision
-   - Retourne JSON structure
-
-2. **Composant React** `WineLabelScanner`
-   - Capture photo (camera ou fichier)
-   - Affiche loading pendant analyse
-   - Pre-remplit le formulaire
-
-3. **Integration** dans les dialogues existants
-   - AddWineToDomainDialog
-   - CreateWineForPostDialog
-   - SpontaneousTastingDialog
-
-### Phase 2 : Enrichissement
-
-4. **Matching intelligent**
-   - Recherche domaine similaire dans `domain`
-   - Recherche appellation dans `appellation`
-   - Suggestion automatique si correspondance
-
-5. **Historique**
-   - Cache des scans precedents
-   - Detection bouteille deja scannee
-
-### Phase 3 : Optimisation
-
-6. **Feedback loop**
-   - Utilisateur corrige les erreurs
-   - Donnees utilisees pour ameliorer les prompts
+if (normalizedRegion) {
+  domainData.region = normalizedRegion;
+  domainData.custom_region = null;
+} else if (extractedRegion) {
+  domainData.region = 'other';
+  domainData.custom_region = extractedRegion;
+} else {
+  domainData.region = 'unknown';
+  domainData.custom_region = null;
+}
+```
 
 ---
 
-## Fichiers a Creer
+### 6. Interface Utilisateur Finale
 
-| Fichier | Description |
-|---------|-------------|
-| `supabase/functions/scan-wine-label/index.ts` | Edge function analyse image |
-| `src/components/WineLabelScanner.tsx` | Composant capture + preview |
-| `src/hooks/useWineLabelScan.ts` | Hook React pour appeler l'edge function |
-| Modification `AddWineToDomainDialog.tsx` | Integration scanner |
-| Modification `CreateWineForPostDialog.tsx` | Integration scanner |
+**Utilisateur AVEC role (Premium) :**
+1. Voit le scanner en haut du formulaire
+2. Prend une photo
+3. Tous les champs sont pre-remplis (domaine, vin, appellation, type, annee, volume)
+4. L'image scannee est utilisee comme etiquette
+5. Peut modifier les valeurs si besoin
+6. Pas de bouton "Ajouter mon domaine" visible
+7. Valide le formulaire
+
+**Utilisateur SANS role (Standard) :**
+1. Ne voit PAS le scanner
+2. Formulaire manuel classique
+3. Recherche domaine + bouton "Ajouter mon domaine" si non trouve
+4. Selection appellation avec bouton "Creer une appellation" si non trouvee
+5. Upload manuel de l'image
 
 ---
 
-## Conclusion
+## Base de Donnees
 
-**Solution recommandee :** Lovable AI avec Gemini Vision
+Aucune migration necessaire. Les tables existantes suffisent :
+- `user_roles` : verification du role
+- `domain` : creation avec `region` et `custom_region`
+- `appellation` : creation avec `normalized_nom`
+- `wine` : creation avec les IDs resolus
 
-**Raisons :**
-1. Deja disponible dans votre projet (pas de nouvelle API)
-2. Comprehension semantique superieure a l'OCR classique
-3. Supporte le francais et le vocabulaire viticole
-4. Free tier genereux via Lovable
-5. Implementation simple via Edge Function
+L'extension `pg_trgm` est deja installee pour la fonction `similarity()`.
 
-**Cout estime :** 0-25$/mois pour 5000 scans (largement dans votre budget)
+---
 
-**Temps d'implementation estime :** 4-6 heures pour la version fonctionnelle
+## Securite
+
+- L'edge function verifie le JWT
+- Les creations de domaines/appellations passent par RLS
+- Seuls les utilisateurs authentifies peuvent creer
+
+---
+
+## Resume des Etapes
+
+1. Creer `useUserRole.ts` pour detecter les utilisateurs premium
+2. Modifier l'Edge Function pour :
+   - Fallback wine_name sur domain_name
+   - Matcher domaines avec similarity >= 0.8
+   - Creer domaine si pas de match (avec region)
+   - Matcher appellations avec similarity >= 0.8
+   - Creer appellation si pas de match
+   - Retourner les IDs resolus
+3. Modifier `WineLabelScanner` pour exposer l'image base64
+4. Modifier les dialogues de creation pour :
+   - Verifier le role avec `useUserRole()`
+   - Afficher scanner uniquement si premium
+   - Pre-remplir l'image avec la photo scannee
+   - Masquer "Ajouter mon domaine" en mode IA
+   - Utiliser les IDs resolus directement
 
