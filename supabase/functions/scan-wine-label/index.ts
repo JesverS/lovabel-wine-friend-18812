@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,8 +15,48 @@ interface WineLabelData {
   alcohol_percentage: number | null;
   volume_ml: number | null;
   region: string | null;
+  custom_region: string | null;
   confidence: number;
+  // Resolved IDs after matching
+  domain_id: string | null;
+  appellation_id: number | null;
+  domain_created: boolean;
+  appellation_created: boolean;
 }
+
+// Valid region enum values for domain_region
+const VALID_REGIONS = [
+  'Alsace', 'Beaujolais', 'Bordeaux', 'Bourgogne', 'Champagne',
+  'Corse', 'Jura', 'Languedoc-Roussillon', 'Loire', 'Provence',
+  'Rhône', 'Sud-Ouest'
+];
+
+// Mapping from AI response variations to enum values
+const REGION_MAPPING: Record<string, string> = {
+  'alsace': 'Alsace',
+  'beaujolais': 'Beaujolais',
+  'bordeaux': 'Bordeaux',
+  'bourgogne': 'Bourgogne',
+  'burgundy': 'Bourgogne',
+  'champagne': 'Champagne',
+  'corse': 'Corse',
+  'corsica': 'Corse',
+  'jura': 'Jura',
+  'languedoc': 'Languedoc-Roussillon',
+  'languedoc-roussillon': 'Languedoc-Roussillon',
+  'roussillon': 'Languedoc-Roussillon',
+  'loire': 'Loire',
+  'vallée de la loire': 'Loire',
+  'val de loire': 'Loire',
+  'provence': 'Provence',
+  'rhône': 'Rhône',
+  'rhone': 'Rhône',
+  'vallée du rhône': 'Rhône',
+  'côtes du rhône': 'Rhône',
+  'sud-ouest': 'Sud-Ouest',
+  'sud ouest': 'Sud-Ouest',
+  'southwest': 'Sud-Ouest',
+};
 
 const SYSTEM_PROMPT = `Tu es un expert en vins français et internationaux. Analyse cette photo d'étiquette de bouteille de vin et extrais les informations suivantes.
 
@@ -26,6 +67,7 @@ RÈGLES IMPORTANTES:
 4. Sépare bien le nom de la cuvée du nom du domaine/château
 5. Pour l'appellation, inclus le niveau (AOC, AOP, IGP, Grand Cru, Premier Cru, etc.)
 6. Le champ "confidence" représente ta confiance globale dans l'extraction (0 à 1)
+7. IMPORTANT: Si le nom du vin est identique au nom du domaine, ou s'il n'y a pas de nom de cuvée spécifique, mets le même nom dans wine_name et domain_name
 
 MAPPINGS TYPES DE VIN:
 - Appellations rouges typiques: Pauillac, Saint-Émilion, Pomerol, Côtes du Rhône rouge, Bourgogne rouge, etc.
@@ -33,7 +75,10 @@ MAPPINGS TYPES DE VIN:
 - Appellations rosées typiques: Côtes de Provence, Bandol rosé, Tavel, etc.
 - Effervescents: Champagne, Crémant, Prosecco, Cava, etc.
 
-RÉGIONS FRANÇAISES: Bordeaux, Bourgogne, Champagne, Vallée de la Loire, Vallée du Rhône, Alsace, Provence, Languedoc-Roussillon, Sud-Ouest, Jura, Savoie, Corse
+RÉGIONS FRANÇAISES VALIDES:
+Alsace, Beaujolais, Bordeaux, Bourgogne, Champagne, Corse, Jura, Languedoc-Roussillon, Loire, Provence, Rhône, Sud-Ouest
+
+Si la région n'est pas dans cette liste (par exemple: Savoie, Californie, Espagne, Italie), retourne quand même le nom de la région trouvée.
 
 Retourne UNIQUEMENT un objet JSON valide, sans texte avant ou après.`;
 
@@ -44,6 +89,39 @@ serve(async (req) => {
   }
 
   try {
+    // Verify JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Non autorisé' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // Auth client for user verification
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Admin client for database operations (bypasses RLS)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(
+        JSON.stringify({ error: 'Token invalide' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
     const { image_base64 } = await req.json();
 
     if (!image_base64) {
@@ -105,7 +183,9 @@ serve(async (req) => {
   "volume_ml": volume en ml (nombre) ou null,
   "region": "région viticole" ou null,
   "confidence": nombre entre 0 et 1
-}`
+}
+
+IMPORTANT: Si le vin n'a pas de nom de cuvée distinct du domaine, mets le nom du domaine dans wine_name.`
               },
               {
                 type: 'image_url',
@@ -117,7 +197,7 @@ serve(async (req) => {
           }
         ],
         max_tokens: 1000,
-        temperature: 0.1, // Low temperature for more consistent extraction
+        temperature: 0.1,
       }),
     });
 
@@ -167,9 +247,9 @@ serve(async (req) => {
     }
     jsonContent = jsonContent.trim();
 
-    let wineData: WineLabelData;
+    let rawWineData: any;
     try {
-      wineData = JSON.parse(jsonContent);
+      rawWineData = JSON.parse(jsonContent);
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError, jsonContent);
       return new Response(
@@ -178,23 +258,172 @@ serve(async (req) => {
       );
     }
 
-    // Validate and sanitize the response
-    const sanitizedData: WineLabelData = {
-      wine_name: typeof wineData.wine_name === 'string' ? wineData.wine_name.trim() : null,
-      domain_name: typeof wineData.domain_name === 'string' ? wineData.domain_name.trim() : null,
-      year: typeof wineData.year === 'number' && wineData.year > 1800 && wineData.year <= new Date().getFullYear() ? wineData.year : null,
-      appellation: typeof wineData.appellation === 'string' ? wineData.appellation.trim() : null,
-      wine_type: ['rouge', 'blanc', 'rosé', 'effervescent', 'autre'].includes(wineData.wine_type as string) ? wineData.wine_type : null,
-      alcohol_percentage: typeof wineData.alcohol_percentage === 'number' && wineData.alcohol_percentage > 0 && wineData.alcohol_percentage < 100 ? wineData.alcohol_percentage : null,
-      volume_ml: typeof wineData.volume_ml === 'number' && wineData.volume_ml > 0 ? wineData.volume_ml : null,
-      region: typeof wineData.region === 'string' ? wineData.region.trim() : null,
-      confidence: typeof wineData.confidence === 'number' ? Math.min(1, Math.max(0, wineData.confidence)) : 0.5,
+    // Sanitize AI data
+    const wineName = typeof rawWineData.wine_name === 'string' ? rawWineData.wine_name.trim() : null;
+    const domainName = typeof rawWineData.domain_name === 'string' ? rawWineData.domain_name.trim() : null;
+    const appellationName = typeof rawWineData.appellation === 'string' ? rawWineData.appellation.trim() : null;
+    const extractedRegion = typeof rawWineData.region === 'string' ? rawWineData.region.trim() : null;
+
+    // Fallback: if wine_name is null, use domain_name
+    const finalWineName = wineName || domainName;
+
+    // Normalize region to enum value
+    let normalizedRegion: string | null = null;
+    let customRegion: string | null = null;
+
+    if (extractedRegion) {
+      const lowerRegion = extractedRegion.toLowerCase();
+      
+      // Check direct mapping
+      if (REGION_MAPPING[lowerRegion]) {
+        normalizedRegion = REGION_MAPPING[lowerRegion];
+      } else {
+        // Check if it's already a valid region (case-insensitive)
+        const matchedRegion = VALID_REGIONS.find(
+          r => r.toLowerCase() === lowerRegion
+        );
+        if (matchedRegion) {
+          normalizedRegion = matchedRegion;
+        } else {
+          // Not in enum, store as custom region
+          normalizedRegion = 'other';
+          customRegion = extractedRegion;
+        }
+      }
+    }
+
+    // Initialize result data
+    let resultData: WineLabelData = {
+      wine_name: finalWineName,
+      domain_name: domainName,
+      year: typeof rawWineData.year === 'number' && rawWineData.year > 1800 && rawWineData.year <= new Date().getFullYear() ? rawWineData.year : null,
+      appellation: appellationName,
+      wine_type: ['rouge', 'blanc', 'rosé', 'effervescent', 'autre'].includes(rawWineData.wine_type) ? rawWineData.wine_type : null,
+      alcohol_percentage: typeof rawWineData.alcohol_percentage === 'number' && rawWineData.alcohol_percentage > 0 && rawWineData.alcohol_percentage < 100 ? rawWineData.alcohol_percentage : null,
+      volume_ml: typeof rawWineData.volume_ml === 'number' && rawWineData.volume_ml > 0 ? rawWineData.volume_ml : null,
+      region: normalizedRegion,
+      custom_region: customRegion,
+      confidence: typeof rawWineData.confidence === 'number' ? Math.min(1, Math.max(0, rawWineData.confidence)) : 0.5,
+      domain_id: null,
+      appellation_id: null,
+      domain_created: false,
+      appellation_created: false,
     };
 
-    console.log('Sanitized wine data:', sanitizedData);
+    // Match or create domain if domain_name is present
+    if (domainName) {
+      console.log(`Matching domain: "${domainName}"`);
+      
+      // Search for similar domain using pg_trgm similarity
+      const { data: matchedDomains, error: domainSearchError } = await supabaseAdmin.rpc(
+        'search_similar_domain',
+        { search_name: domainName, threshold: 0.8 }
+      );
+
+      if (domainSearchError) {
+        console.error('Domain search error:', domainSearchError);
+        // Try a simpler exact match fallback
+        const { data: exactMatch } = await supabaseAdmin
+          .from('domain')
+          .select('id, name')
+          .ilike('name', domainName)
+          .limit(1)
+          .maybeSingle();
+        
+        if (exactMatch) {
+          resultData.domain_id = exactMatch.id;
+          resultData.domain_name = exactMatch.name;
+          console.log(`Found exact domain match: ${exactMatch.name} (${exactMatch.id})`);
+        }
+      } else if (matchedDomains && matchedDomains.length > 0) {
+        // Use the best match
+        resultData.domain_id = matchedDomains[0].id;
+        resultData.domain_name = matchedDomains[0].name;
+        console.log(`Found similar domain: ${matchedDomains[0].name} (similarity: ${matchedDomains[0].sim})`);
+      }
+
+      // Create domain if no match found
+      if (!resultData.domain_id) {
+        console.log(`Creating new domain: "${domainName}"`);
+        
+        const { data: newDomain, error: createDomainError } = await supabaseAdmin
+          .from('domain')
+          .insert({
+            name: domainName,
+            region: normalizedRegion as any || 'unknown',
+            custom_region: customRegion,
+          })
+          .select('id, name')
+          .single();
+
+        if (createDomainError) {
+          console.error('Failed to create domain:', createDomainError);
+        } else if (newDomain) {
+          resultData.domain_id = newDomain.id;
+          resultData.domain_created = true;
+          console.log(`Created new domain: ${newDomain.name} (${newDomain.id})`);
+        }
+      }
+    }
+
+    // Match or create appellation if appellation name is present
+    if (appellationName) {
+      console.log(`Matching appellation: "${appellationName}"`);
+      
+      // Search for similar appellation using pg_trgm similarity
+      const { data: matchedAppellations, error: appellationSearchError } = await supabaseAdmin.rpc(
+        'search_similar_appellation',
+        { search_name: appellationName, threshold: 0.8 }
+      );
+
+      if (appellationSearchError) {
+        console.error('Appellation search error:', appellationSearchError);
+        // Try a simpler exact match fallback
+        const { data: exactMatch } = await supabaseAdmin
+          .from('appellation')
+          .select('id, nom')
+          .ilike('nom', appellationName)
+          .limit(1)
+          .maybeSingle();
+        
+        if (exactMatch) {
+          resultData.appellation_id = exactMatch.id;
+          resultData.appellation = exactMatch.nom;
+          console.log(`Found exact appellation match: ${exactMatch.nom} (${exactMatch.id})`);
+        }
+      } else if (matchedAppellations && matchedAppellations.length > 0) {
+        // Use the best match
+        resultData.appellation_id = matchedAppellations[0].id;
+        resultData.appellation = matchedAppellations[0].nom;
+        console.log(`Found similar appellation: ${matchedAppellations[0].nom} (similarity: ${matchedAppellations[0].sim})`);
+      }
+
+      // Create appellation if no match found
+      if (!resultData.appellation_id) {
+        console.log(`Creating new appellation: "${appellationName}"`);
+        
+        const { data: newAppellation, error: createAppellationError } = await supabaseAdmin
+          .from('appellation')
+          .insert({
+            nom: appellationName,
+          })
+          .select('id, nom')
+          .single();
+
+        if (createAppellationError) {
+          console.error('Failed to create appellation:', createAppellationError);
+        } else if (newAppellation) {
+          resultData.appellation_id = newAppellation.id;
+          resultData.appellation_created = true;
+          console.log(`Created new appellation: ${newAppellation.nom} (${newAppellation.id})`);
+        }
+      }
+    }
+
+    console.log('Final scan result:', resultData);
 
     return new Response(
-      JSON.stringify({ success: true, data: sanitizedData }),
+      JSON.stringify({ success: true, data: resultData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
