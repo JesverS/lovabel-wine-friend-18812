@@ -17,12 +17,18 @@ interface WineLabelData {
   region: string | null;
   custom_region: string | null;
   confidence: number;
-  // Resolved IDs after matching
   domain_id: string | null;
   appellation_id: number | null;
   domain_created: boolean;
   appellation_created: boolean;
 }
+
+// Limites de scans par rôle
+const SCAN_LIMITS: Record<string, number> = {
+  'member': 50,
+  'admin': 200,
+  'super_admin': 999999,
+};
 
 // Valid region enum values for domain_region
 const VALID_REGIONS = [
@@ -93,7 +99,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
-        JSON.stringify({ error: 'Non autorisé' }),
+        JSON.stringify({ error: 'Non autorisé', code: 'UNAUTHORIZED' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -115,18 +121,64 @@ serve(async (req) => {
     const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
     if (claimsError || !claimsData?.claims?.sub) {
       return new Response(
-        JSON.stringify({ error: 'Token invalide' }),
+        JSON.stringify({ error: 'Token invalide', code: 'INVALID_TOKEN' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const userId = claimsData.claims.sub;
 
+    // === PARTIE 1: Vérification du rôle premium ===
+    const { data: userRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (roleError || !userRole) {
+      console.log(`User ${userId} attempted scan without premium role`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Fonctionnalité réservée aux membres premium',
+          code: 'PREMIUM_REQUIRED'
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`User ${userId} has role: ${userRole.role}`);
+
+    // === PARTIE 2: Vérification du quota mensuel ===
+    const monthlyLimit = SCAN_LIMITS[userRole.role] || 50;
+
+    const { data: usageData, error: usageError } = await supabaseAdmin.rpc(
+      'get_monthly_scan_count',
+      { p_user_id: userId }
+    );
+
+    if (usageError) {
+      console.error('Error checking scan quota:', usageError);
+    }
+
+    const currentUsage = usageData || 0;
+
+    if (currentUsage >= monthlyLimit) {
+      console.log(`User ${userId} exceeded quota: ${currentUsage}/${monthlyLimit}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Limite mensuelle atteinte (${currentUsage}/${monthlyLimit} scans)`,
+          code: 'QUOTA_EXCEEDED',
+          usage: { current: currentUsage, limit: monthlyLimit }
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { image_base64 } = await req.json();
 
     if (!image_base64) {
       return new Response(
-        JSON.stringify({ error: 'Image base64 requise' }),
+        JSON.stringify({ error: 'Image base64 requise', code: 'MISSING_IMAGE' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -135,7 +187,7 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       console.error('LOVABLE_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'Service IA non configuré' }),
+        JSON.stringify({ error: 'Service IA non configuré', code: 'SERVICE_ERROR' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -152,7 +204,7 @@ serve(async (req) => {
       }
     }
 
-    console.log('Sending image to Lovable AI for wine label analysis...');
+    console.log(`Sending image to Lovable AI for wine label analysis... (user: ${userId}, usage: ${currentUsage}/${monthlyLimit})`);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -202,22 +254,30 @@ IMPORTANT: Si le vin n'a pas de nom de cuvée distinct du domaine, mets le nom d
     });
 
     if (!response.ok) {
+      // Track failed scan
+      await supabaseAdmin.from('ai_scan_usage').insert({
+        user_id: userId,
+        scan_type: 'wine_label',
+        success: false,
+        error_code: `HTTP_${response.status}`,
+      });
+
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Limite de requêtes atteinte, réessayez plus tard' }),
+          JSON.stringify({ error: 'Limite de requêtes atteinte, réessayez plus tard', code: 'RATE_LIMITED' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'Crédits IA épuisés' }),
+          JSON.stringify({ error: 'Service temporairement indisponible, réessayez plus tard', code: 'CREDITS_EXHAUSTED' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       const errorText = await response.text();
       console.error('Lovable AI error:', response.status, errorText);
       return new Response(
-        JSON.stringify({ error: 'Erreur du service IA' }),
+        JSON.stringify({ error: 'Erreur du service IA', code: 'AI_ERROR' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -227,8 +287,14 @@ IMPORTANT: Si le vin n'a pas de nom de cuvée distinct du domaine, mets le nom d
 
     if (!content) {
       console.error('No content in AI response');
+      await supabaseAdmin.from('ai_scan_usage').insert({
+        user_id: userId,
+        scan_type: 'wine_label',
+        success: false,
+        error_code: 'NO_CONTENT',
+      });
       return new Response(
-        JSON.stringify({ error: 'Pas de réponse de l\'IA' }),
+        JSON.stringify({ error: 'Pas de réponse de l\'IA', code: 'NO_RESPONSE' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -252,8 +318,14 @@ IMPORTANT: Si le vin n'a pas de nom de cuvée distinct du domaine, mets le nom d
       rawWineData = JSON.parse(jsonContent);
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError, jsonContent);
+      await supabaseAdmin.from('ai_scan_usage').insert({
+        user_id: userId,
+        scan_type: 'wine_label',
+        success: false,
+        error_code: 'PARSE_ERROR',
+      });
       return new Response(
-        JSON.stringify({ error: 'Impossible de parser la réponse IA', raw: content }),
+        JSON.stringify({ error: 'Impossible de parser la réponse IA', raw: content, code: 'PARSE_ERROR' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -420,17 +492,31 @@ IMPORTANT: Si le vin n'a pas de nom de cuvée distinct du domaine, mets le nom d
       }
     }
 
+    // === PARTIE 3: Enregistrer le scan réussi ===
+    const tokensUsed = aiResponse.usage?.total_tokens || null;
+    await supabaseAdmin.from('ai_scan_usage').insert({
+      user_id: userId,
+      scan_type: 'wine_label',
+      success: true,
+      tokens_used: tokensUsed,
+    });
+
+    console.log(`Scan successful for user ${userId}. Tokens used: ${tokensUsed}. New usage: ${currentUsage + 1}/${monthlyLimit}`);
     console.log('Final scan result:', resultData);
 
     return new Response(
-      JSON.stringify({ success: true, data: resultData }),
+      JSON.stringify({ 
+        success: true, 
+        data: resultData,
+        usage: { current: currentUsage + 1, limit: monthlyLimit }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('scan-wine-label error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Erreur interne' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Erreur interne', code: 'INTERNAL_ERROR' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
