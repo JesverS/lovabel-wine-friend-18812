@@ -56,6 +56,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_scan_usage: {
+        Row: {
+          error_code: string | null
+          id: string
+          scan_type: string
+          scanned_at: string
+          success: boolean | null
+          tokens_used: number | null
+          user_id: string
+        }
+        Insert: {
+          error_code?: string | null
+          id?: string
+          scan_type?: string
+          scanned_at?: string
+          success?: boolean | null
+          tokens_used?: number | null
+          user_id: string
+        }
+        Update: {
+          error_code?: string | null
+          id?: string
+          scan_type?: string
+          scanned_at?: string
+          success?: boolean | null
+          tokens_used?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       appellation: {
         Row: {
           created_at: string | null
@@ -3399,6 +3429,7 @@ export type Database = {
         Returns: string
       }
       event_is_public: { Args: { _event_id: string }; Returns: boolean }
+      get_monthly_scan_count: { Args: { p_user_id: string }; Returns: number }
       get_team_applications_without_owner: {
         Args: never
         Returns: {

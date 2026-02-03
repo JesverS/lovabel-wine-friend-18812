@@ -20,6 +20,12 @@ export interface WineLabelData {
   appellation_created: boolean;
 }
 
+interface ScanErrorResponse {
+  error: string;
+  code?: 'PREMIUM_REQUIRED' | 'QUOTA_EXCEEDED' | 'RATE_LIMITED' | 'CREDITS_EXHAUSTED' | 'UNAUTHORIZED' | 'INVALID_TOKEN' | 'MISSING_IMAGE' | 'PARSE_ERROR' | 'AI_ERROR' | 'NO_RESPONSE' | 'SERVICE_ERROR' | 'INTERNAL_ERROR';
+  usage?: { current: number; limit: number };
+}
+
 interface UseWineLabelScanResult {
   scanning: boolean;
   scanResult: WineLabelData | null;
@@ -28,6 +34,34 @@ interface UseWineLabelScanResult {
   scanImage: (imageBase64: string) => Promise<WineLabelData | null>;
   reset: () => void;
 }
+
+const handleScanError = (data: ScanErrorResponse) => {
+  switch (data.code) {
+    case 'PREMIUM_REQUIRED':
+      toast.error('Cette fonctionnalité est réservée aux membres premium');
+      break;
+    case 'QUOTA_EXCEEDED':
+      toast.error(`Limite mensuelle atteinte (${data.usage?.current}/${data.usage?.limit} scans)`);
+      break;
+    case 'RATE_LIMITED':
+      toast.warning('Trop de requêtes, veuillez patienter quelques secondes');
+      break;
+    case 'CREDITS_EXHAUSTED':
+      toast.error('Service temporairement indisponible, réessayez plus tard');
+      break;
+    case 'UNAUTHORIZED':
+    case 'INVALID_TOKEN':
+      toast.error('Veuillez vous reconnecter');
+      break;
+    case 'PARSE_ERROR':
+    case 'AI_ERROR':
+    case 'NO_RESPONSE':
+      toast.error('Erreur d\'analyse, veuillez réessayer avec une photo plus nette');
+      break;
+    default:
+      toast.error(data.error || 'Erreur lors du scan');
+  }
+};
 
 export function useWineLabelScan(): UseWineLabelScanResult {
   const [scanning, setScanning] = useState(false);
@@ -51,7 +85,9 @@ export function useWineLabelScan(): UseWineLabelScanResult {
       }
 
       if (data.error) {
-        throw new Error(data.error);
+        handleScanError(data as ScanErrorResponse);
+        setError(data.error);
+        return null;
       }
 
       if (data.success && data.data) {
