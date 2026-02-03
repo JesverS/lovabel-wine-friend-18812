@@ -1,40 +1,326 @@
 
 
-# Plan d'Implementation : Scanner IA Premium avec Matching Intelligent
+# Plan Complet d'Amelioration du Scanner IA Premium
 
-## Resume des Modifications
+## Resume Executif
 
-Transformer le scanner d'etiquettes en fonctionnalite premium reservee aux utilisateurs avec un role dans `user_roles`, avec matching intelligent des domaines et appellations, et fallback vers le formulaire manuel pour les utilisateurs sans role.
+Ce plan couvre 4 axes d'amelioration identifies lors de l'audit :
+1. **Securisation backend** - Verification du role cote serveur
+2. **Quotas utilisateurs** - Limitation des scans par mois
+3. **Optimisation des couts** - Compression des images
+4. **Meilleure UX** - Messages d'erreur explicites
 
 ---
 
-## Architecture
+## Etat Actuel du Systeme
 
 ```text
-                    Utilisateur scanne une etiquette
-                               |
-                               v
-                    Verification role user_roles
-                              / \
-                             /   \
-                    A un role    Pas de role
-                         |            |
-                         v            v
-                 Scanner IA      Formulaire manuel
-                 (Premium)       (Standard)
-                         |
-                         v
-              Edge Function scan-wine-label
-                         |
-                         v
-              Matching intelligent
-              - Domaine (similarity >= 0.8)
-              - Appellation (similarity >= 0.8)
-              - Region (enum ou creation custom)
-                         |
-                         v
-              Pre-remplissage formulaire
-              + Image scannee = etiquette
+ARCHITECTURE ACTUELLE
+
+Frontend                         Backend
+---------                        -------
+useUserRole() ──check──> user_roles table
+     │                           
+     ▼                           
+canUseAI = true?                 
+     │                           
+     ▼                           
+WineLabelScanner                 
+     │                           
+     ▼                           
+supabase.functions.invoke ──────> scan-wine-label (Edge Function)
+                                       │
+                                       ▼
+                              Lovable AI Gateway (Gemini)
+                                       │
+                                       ▼
+                              Matching domaine/appellation
+                                       │
+                                       ▼
+                              Creation si non trouve
+```
+
+**Problemes identifies :**
+- L'Edge Function ne verifie PAS le role → contournement possible
+- Pas de tracking des scans → un utilisateur peut epuiser le quota
+- Images non compressees → consommation tokens elevee
+- Messages d'erreur 402/429 peu explicites
+
+---
+
+## Partie 1 : Securisation Backend
+
+### Modification de l'Edge Function
+
+**Fichier :** `supabase/functions/scan-wine-label/index.ts`
+
+**Changement :** Ajouter verification du role apres authentification JWT
+
+```typescript
+// Après vérification du JWT (ligne ~123)
+const userId = claimsData.claims.sub;
+
+// NOUVEAU: Vérifier que l'utilisateur a un rôle premium
+const { data: userRole, error: roleError } = await supabaseAdmin
+  .from('user_roles')
+  .select('role')
+  .eq('user_id', userId)
+  .maybeSingle();
+
+if (roleError || !userRole) {
+  console.log(`User ${userId} attempted scan without premium role`);
+  return new Response(
+    JSON.stringify({ 
+      error: 'Fonctionnalité réservée aux membres premium',
+      code: 'PREMIUM_REQUIRED'
+    }),
+    { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+console.log(`User ${userId} has role: ${userRole.role}`);
+```
+
+**Benefice :** Meme si quelqu'un appelle l'API directement, il sera bloque.
+
+---
+
+## Partie 2 : Quotas et Tracking des Scans
+
+### 2.1 Nouvelle Table de Tracking
+
+**Migration SQL :**
+
+```sql
+CREATE TABLE public.ai_scan_usage (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  scan_type text NOT NULL DEFAULT 'wine_label',
+  scanned_at timestamptz NOT NULL DEFAULT now(),
+  tokens_used integer,
+  success boolean DEFAULT true,
+  error_code text
+);
+
+-- Index pour requêtes par utilisateur et mois
+CREATE INDEX idx_ai_scan_usage_user_month 
+ON ai_scan_usage (user_id, date_trunc('month', scanned_at));
+
+-- RLS : utilisateur peut voir ses propres scans
+ALTER TABLE ai_scan_usage ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own scans" ON ai_scan_usage
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Fonction pour compter les scans du mois
+CREATE OR REPLACE FUNCTION get_monthly_scan_count(p_user_id uuid)
+RETURNS integer
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT COUNT(*)::integer
+  FROM ai_scan_usage
+  WHERE user_id = p_user_id
+  AND scanned_at >= date_trunc('month', now())
+  AND success = true;
+$$;
+```
+
+### 2.2 Limites par Role
+
+| Role | Scans/mois | Justification |
+|------|------------|---------------|
+| member | 50 | Utilisateur standard premium |
+| admin | 200 | Administrateur |
+| super_admin | Illimite | Pas de limite |
+
+### 2.3 Integration dans l'Edge Function
+
+```typescript
+// Constantes de limites
+const SCAN_LIMITS: Record<string, number> = {
+  'member': 50,
+  'admin': 200,
+  'super_admin': 999999, // Illimité
+};
+
+// Après vérification du rôle
+const monthlyLimit = SCAN_LIMITS[userRole.role] || 50;
+
+// Vérifier le quota
+const { data: usageData } = await supabaseAdmin.rpc(
+  'get_monthly_scan_count',
+  { p_user_id: userId }
+);
+
+const currentUsage = usageData || 0;
+
+if (currentUsage >= monthlyLimit) {
+  return new Response(
+    JSON.stringify({ 
+      error: `Limite mensuelle atteinte (${currentUsage}/${monthlyLimit} scans)`,
+      code: 'QUOTA_EXCEEDED',
+      usage: { current: currentUsage, limit: monthlyLimit }
+    }),
+    { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// Après le scan réussi, enregistrer l'usage
+await supabaseAdmin.from('ai_scan_usage').insert({
+  user_id: userId,
+  scan_type: 'wine_label',
+  success: true,
+  tokens_used: aiResponse.usage?.total_tokens || null,
+});
+```
+
+---
+
+## Partie 3 : Optimisation des Images
+
+### 3.1 Compression Cote Client
+
+**Fichier :** `src/components/WineLabelScanner.tsx`
+
+**Nouvelle fonction de compression :**
+
+```typescript
+const compressImage = async (base64: string, maxWidth: number = 1024, quality: number = 0.8): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      // Redimensionner si trop large
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+
+      // Convertir en JPEG compressé
+      const compressed = canvas.toDataURL('image/jpeg', quality);
+      resolve(compressed);
+    };
+    img.src = base64;
+  });
+};
+```
+
+**Integration :**
+
+```typescript
+// Dans handleFileSelect, après lecture du fichier
+const base64 = reader.result as string;
+const compressedBase64 = await compressImage(base64, 1024, 0.75);
+setImagePreview(compressedBase64);
+
+// Envoyer l'image compressée
+const result = await scanImage(compressedBase64);
+```
+
+**Impact estime :**
+- Image originale : 2-5 MB → ~500-800 tokens
+- Image compressee : 100-300 KB → ~200-400 tokens
+- **Reduction : 40-50% des couts**
+
+---
+
+## Partie 4 : Amelioration des Messages d'Erreur
+
+### 4.1 Codes d'Erreur Structures
+
+**Fichier :** `src/hooks/useWineLabelScan.ts`
+
+```typescript
+interface ScanError {
+  error: string;
+  code?: 'PREMIUM_REQUIRED' | 'QUOTA_EXCEEDED' | 'RATE_LIMITED' | 'CREDITS_EXHAUSTED' | 'UNKNOWN';
+  usage?: { current: number; limit: number };
+}
+
+// Dans le catch des erreurs
+const handleError = (data: ScanError) => {
+  switch (data.code) {
+    case 'PREMIUM_REQUIRED':
+      toast.error('Cette fonctionnalité est réservée aux membres premium');
+      break;
+    case 'QUOTA_EXCEEDED':
+      toast.error(`Limite mensuelle atteinte (${data.usage?.current}/${data.usage?.limit} scans)`);
+      break;
+    case 'RATE_LIMITED':
+      toast.warning('Trop de requêtes, veuillez patienter quelques secondes');
+      break;
+    case 'CREDITS_EXHAUSTED':
+      toast.error('Service temporairement indisponible, réessayez plus tard');
+      break;
+    default:
+      toast.error(data.error || 'Erreur lors du scan');
+  }
+};
+```
+
+### 4.2 Hook pour Afficher le Quota
+
+**Nouveau fichier :** `src/hooks/useScanQuota.ts`
+
+```typescript
+export function useScanQuota() {
+  const { user } = useAuth();
+  const [quota, setQuota] = useState<{ current: number; limit: number } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchQuota = async () => {
+      const { data: usage } = await supabase.rpc('get_monthly_scan_count', {
+        p_user_id: user.id
+      });
+
+      const { data: role } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const limits: Record<string, number> = {
+        member: 50,
+        admin: 200,
+        super_admin: 999999,
+      };
+
+      setQuota({
+        current: usage || 0,
+        limit: limits[role?.role || 'member'] || 50,
+      });
+    };
+
+    fetchQuota();
+  }, [user]);
+
+  return quota;
+}
+```
+
+### 4.3 Affichage dans l'UI
+
+**Dans WineLabelScanner :**
+
+```typescript
+// Afficher le quota restant
+{quota && (
+  <p className="text-xs text-muted-foreground text-right">
+    {quota.current}/{quota.limit} scans ce mois
+  </p>
+)}
 ```
 
 ---
@@ -43,310 +329,107 @@ Transformer le scanner d'etiquettes en fonctionnalite premium reservee aux utili
 
 | Fichier | Action | Description |
 |---------|--------|-------------|
-| `src/hooks/useUserRole.ts` | CREER | Hook pour verifier si l'utilisateur a un role |
-| `supabase/functions/scan-wine-label/index.ts` | MODIFIER | Ajouter matching domaine/appellation + creation |
-| `src/hooks/useWineLabelScan.ts` | MODIFIER | Retourner aussi l'image et les IDs matches |
-| `src/components/WineLabelScanner.tsx` | MODIFIER | Exposer l'image scannee via callback |
-| `src/components/CreateWineForPostDialog.tsx` | MODIFIER | Logique conditionnelle selon role + pre-remplir image |
-| `src/components/AddWineToDomainDialog.tsx` | MODIFIER | Meme logique |
-| `src/components/CreateWineInDomainDialog.tsx` | MODIFIER | Meme logique |
+| `supabase/functions/scan-wine-label/index.ts` | MODIFIER | Ajouter verif role + tracking + quotas |
+| `src/components/WineLabelScanner.tsx` | MODIFIER | Ajouter compression + affichage quota |
+| `src/hooks/useWineLabelScan.ts` | MODIFIER | Gestion erreurs structurees |
+| `src/hooks/useScanQuota.ts` | CREER | Hook pour recuperer quota restant |
+| Migration SQL | CREER | Table `ai_scan_usage` + fonction RPC |
 
 ---
 
-## Implementation Detaillee
+## Impact sur les Couts
 
-### 1. Hook useUserRole.ts
+### Avant optimisation
 
-Creer un hook qui verifie si l'utilisateur connecte a un role dans `user_roles` :
+| Scenario | Cout/scan | 1000 scans/mois |
+|----------|-----------|-----------------|
+| Images originales | ~$0.002 | ~$2/mois |
 
-```typescript
-// src/hooks/useUserRole.ts
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+### Apres optimisation
 
-export function useUserRole() {
-  const { user } = useAuth();
-  const [hasRole, setHasRole] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+| Scenario | Cout/scan | 1000 scans/mois |
+|----------|-----------|-----------------|
+| Images compressees | ~$0.001 | ~$1/mois |
+| Avec quotas (max 50/user × 20 users) | - | Plafonne a ~$1/mois |
 
-  useEffect(() => {
-    if (!user) {
-      setHasRole(false);
-      setRole(null);
-      setLoading(false);
-      return;
-    }
-
-    const checkRole = async () => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!error && data) {
-        setHasRole(true);
-        setRole(data.role);
-      } else {
-        setHasRole(false);
-        setRole(null);
-      }
-      setLoading(false);
-    };
-
-    checkRole();
-  }, [user]);
-
-  return { hasRole, role, loading, canUseAI: hasRole };
-}
-```
+**Budget recommande :** $5-10/mois pour couvrir les pics d'utilisation
 
 ---
 
-### 2. Modification Edge Function scan-wine-label
+## Resume des Etapes d'Implementation
 
-L'edge function doit maintenant :
-1. Extraire les donnees de l'etiquette (actuel)
-2. Matcher le domaine avec `similarity()` (seuil 0.6)
-3. Creer le domaine si pas de match + gerer la region
-4. Matcher l'appellation avec `similarity()` (seuil 0.6)
-5. Creer l'appellation si pas de match
-6. Fallback : si wine_name est null, utiliser domain_name
+1. **Etape 1 : Migration BDD**
+   - Creer table `ai_scan_usage`
+   - Creer fonction `get_monthly_scan_count`
 
-**Nouveau prompt IA :**
-- Demander explicitement les regions valides de l'enum
-- Si region non trouvee, retourner "other" + custom_region
+2. **Etape 2 : Securiser Edge Function**
+   - Verifier role `user_roles`
+   - Tracker chaque scan
+   - Appliquer limites mensuelles
 
-**Nouvelles donnees retournees :**
-```typescript
-interface ScanResult {
-  // Donnees brutes de l'IA
-  wine_name: string | null;
-  domain_name: string | null;
-  year: number | null;
-  appellation_name: string | null;
-  wine_type: 'rouge' | 'blanc' | 'rose' | 'effervescent' | 'autre' | null;
-  alcohol_percentage: number | null;
-  volume_ml: number | null;
-  region: string | null;  // Nom de la region trouvee
-  custom_region: string | null;  // Si hors enum
-  confidence: number;
-  
-  // IDs resolus apres matching
-  domain_id: string | null;  // UUID du domaine trouve/cree
-  appellation_id: number | null;  // ID de l'appellation trouvee/creee
-  domain_created: boolean;  // True si nouveau domaine cree
-  appellation_created: boolean;  // True si nouvelle appellation creee
-}
-```
+3. **Etape 3 : Optimiser Frontend**
+   - Compression images avant envoi
+   - Affichage quota restant
+   - Messages d'erreur explicites
 
-**Logique de matching domaine :**
-```sql
--- Recherche par similarite (pg_trgm)
-SELECT id, name, similarity(extensions.unaccent(lower(name)), extensions.unaccent(lower($domain_name))) as sim
-FROM domain
-WHERE similarity(extensions.unaccent(lower(name)), extensions.unaccent(lower($domain_name))) > 0.8
-ORDER BY sim DESC
-LIMIT 1;
-```
-
-Si aucun match :
-- Creer le domaine avec les infos extraites
-- Mapper la region vers l'enum `domain_region` ou utiliser "other" + custom_region
-
-**Logique de matching appellation :**
-```sql
-SELECT id, nom, similarity(normalized_nom, $normalized_appellation) as sim
-FROM appellation
-WHERE similarity(normalized_nom, $normalized_appellation) > 0.8
-ORDER BY sim DESC
-LIMIT 1;
-```
-
-Si aucun match :
-- Creer l'appellation avec le nom extrait
-
-**Fallback wine_name :**
-- Si `wine_name` est null et `domain_name` existe, utiliser `domain_name` comme `wine_name`
+4. **Etape 4 : Nouveau hook**
+   - `useScanQuota` pour UI
 
 ---
 
-### 3. Modification WineLabelScanner.tsx
+## Section Technique
 
-Ajouter une prop pour exposer l'image scannee :
+### Diagramme de Flux Final
 
-```typescript
-interface WineLabelScannerProps {
-  onScanComplete: (data: WineLabelData, imageBase64: string | null) => void;
-  disabled?: boolean;
-  className?: string;
-}
-```
-
-Quand le scan est termine, appeler `onScanComplete(result, imagePreview)`.
-
----
-
-### 4. Modification CreateWineForPostDialog.tsx
-
-**Changements majeurs :**
-
-1. Importer `useUserRole()`
-2. Afficher le scanner UNIQUEMENT si `canUseAI`
-3. Masquer le bouton "Ajouter mon domaine" en mode scan
-4. Pre-remplir l'image de l'etiquette avec la photo scannee
-5. Utiliser les IDs resolus (domain_id, appellation_id) directement
-
-**Logique conditionnelle :**
-```typescript
-const { canUseAI, loading: roleLoading } = useUserRole();
-const [isAIMode, setIsAIMode] = useState(false);  // True quand un scan a ete fait
-
-// Si pas de role : formulaire manuel complet (comme avant)
-// Si role : afficher scanner, et apres scan, pre-remplir tout
-```
-
-**Pre-remplissage apres scan :**
-```typescript
-const handleScanComplete = (data: ScanResult, imageBase64: string | null) => {
-  setIsAIMode(true);
-  
-  // Nom du vin (fallback sur domaine si null)
-  setName(data.wine_name || data.domain_name || '');
-  
-  // Domaine deja resolu
-  if (data.domain_id) {
-    setSelectedDomain({ id: data.domain_id, name: data.domain_name });
-  }
-  
-  // Appellation deja resolue
-  if (data.appellation_id) {
-    setAppellationId(data.appellation_id);
-  }
-  
-  // Autres champs
-  if (data.year) setYear(data.year.toString());
-  if (data.volume_ml) setVolume(data.volume_ml.toString());
-  if (data.wine_type) {
-    const typeMap = { rouge: 1, blanc: 2, rose: 5, effervescent: 8, autre: 7 };
-    setWineType(typeMap[data.wine_type] || 1);
-  }
-  
-  // Pre-remplir l'image de l'etiquette
-  if (imageBase64) {
-    setLabelPreview(imageBase64);
-    // Convertir base64 en File pour l'upload
-    fetch(imageBase64)
-      .then(res => res.blob())
-      .then(blob => {
-        const file = new File([blob], 'etiquette.jpg', { type: 'image/jpeg' });
-        setLabelFile(file);
-      });
-  }
-};
-```
-
----
-
-### 5. Gestion des Regions dans l'Edge Function
-
-**Regions valides (enum domain_region) :**
-- Champagne, Loire, Rhone, Alsace, Bourgogne, Bordeaux, Jura, Beaujolais, Languedoc-Roussillon, Sud-Ouest, Corse, Provence, unknown, other
-
-**Prompt IA mis a jour :**
 ```text
-Pour la region, choisis parmi les valeurs suivantes si possible :
-Alsace, Beaujolais, Bordeaux, Bourgogne, Champagne, Corse, Jura, Languedoc-Roussillon, Loire, Provence, Rhone, Sud-Ouest
-
-Si la region n'est pas dans cette liste, retourne :
-- "region": "other"
-- "custom_region": "nom de la region trouvee"
+Utilisateur prend photo
+         │
+         ▼
+   Compression image
+   (1024px max, 75% qualité)
+         │
+         ▼
+   useWineLabelScan.scanImage()
+         │
+         ▼
+   Edge Function: scan-wine-label
+         │
+         ├──> Vérif JWT ──> 401 si invalide
+         │
+         ├──> Vérif role user_roles ──> 403 si pas premium
+         │
+         ├──> Vérif quota mensuel ──> 429 si dépassé
+         │
+         ├──> Appel Lovable AI (Gemini)
+         │         │
+         │         └──> 402 si crédits épuisés
+         │         └──> 429 si rate limited
+         │
+         ├──> Matching domaine (similarity 0.8)
+         │
+         ├──> Matching appellation (similarity 0.8)
+         │
+         ├──> Création si non trouvé
+         │
+         ├──> INSERT ai_scan_usage (tracking)
+         │
+         └──> Retour JSON avec IDs résolus
+         │
+         ▼
+   Pré-remplissage formulaire
+   + Image comme étiquette
 ```
 
-**Mapping dans l'Edge Function :**
-```typescript
-// Normaliser la region vers l'enum
-const VALID_REGIONS = [
-  'Alsace', 'Beaujolais', 'Bordeaux', 'Bourgogne', 'Champagne', 
-  'Corse', 'Jura', 'Languedoc-Roussillon', 'Loire', 'Provence', 
-  'Rhône', 'Sud-Ouest'
-];
+### Securite
 
-const normalizedRegion = VALID_REGIONS.find(
-  r => r.toLowerCase() === extractedRegion?.toLowerCase()
-);
+- JWT verifie cote serveur
+- Role verifie en base de donnees
+- RLS sur `ai_scan_usage` (lecture propre)
+- Service role pour insertions
 
-if (normalizedRegion) {
-  domainData.region = normalizedRegion;
-  domainData.custom_region = null;
-} else if (extractedRegion) {
-  domainData.region = 'other';
-  domainData.custom_region = extractedRegion;
-} else {
-  domainData.region = 'unknown';
-  domainData.custom_region = null;
-}
-```
+### Points de Monitoring
 
----
-
-### 6. Interface Utilisateur Finale
-
-**Utilisateur AVEC role (Premium) :**
-1. Voit le scanner en haut du formulaire
-2. Prend une photo
-3. Tous les champs sont pre-remplis (domaine, vin, appellation, type, annee, volume)
-4. L'image scannee est utilisee comme etiquette
-5. Peut modifier les valeurs si besoin
-6. Pas de bouton "Ajouter mon domaine" visible
-7. Valide le formulaire
-
-**Utilisateur SANS role (Standard) :**
-1. Ne voit PAS le scanner
-2. Formulaire manuel classique
-3. Recherche domaine + bouton "Ajouter mon domaine" si non trouve
-4. Selection appellation avec bouton "Creer une appellation" si non trouvee
-5. Upload manuel de l'image
-
----
-
-## Base de Donnees
-
-Aucune migration necessaire. Les tables existantes suffisent :
-- `user_roles` : verification du role
-- `domain` : creation avec `region` et `custom_region`
-- `appellation` : creation avec `normalized_nom`
-- `wine` : creation avec les IDs resolus
-
-L'extension `pg_trgm` est deja installee pour la fonction `similarity()`.
-
----
-
-## Securite
-
-- L'edge function verifie le JWT
-- Les creations de domaines/appellations passent par RLS
-- Seuls les utilisateurs authentifies peuvent creer
-
----
-
-## Resume des Etapes
-
-1. Creer `useUserRole.ts` pour detecter les utilisateurs premium
-2. Modifier l'Edge Function pour :
-   - Fallback wine_name sur domain_name
-   - Matcher domaines avec similarity >= 0.8
-   - Creer domaine si pas de match (avec region)
-   - Matcher appellations avec similarity >= 0.8
-   - Creer appellation si pas de match
-   - Retourner les IDs resolus
-3. Modifier `WineLabelScanner` pour exposer l'image base64
-4. Modifier les dialogues de creation pour :
-   - Verifier le role avec `useUserRole()`
-   - Afficher scanner uniquement si premium
-   - Pre-remplir l'image avec la photo scannee
-   - Masquer "Ajouter mon domaine" en mode IA
-   - Utiliser les IDs resolus directement
+- Nombre de scans/jour via `ai_scan_usage`
+- Erreurs 402/429 dans les logs Edge Function
+- Ratio succes/echec par utilisateur
 
