@@ -4,7 +4,7 @@
 // Modifiez ce fichier pour mettre à jour le texte des CGU
 // N'oubliez pas d'incrémenter CGU_VERSION lors de modifications majeures
 
-export const CGU_VERSION = "1.0.0";
+export const CGU_VERSION = "1.1.0";
 
 export const CGU_TEXT = `
 # CONDITIONS GÉNÉRALES D'UTILISATION
@@ -115,7 +115,9 @@ Il est strictement interdit de publier tout contenu notamment :
 • diffamatoire, injurieux ou haineux ;
 • raciste, discriminatoire ou sexuel ;
 • illégal ou contraire à l'ordre public ;
-• incitant à une consommation excessive ou dangereuse d'alcool.
+• incitant à une consommation excessive ou dangereuse d'alcool ;
+• représentant ou suggérant des abus sur mineurs ;
+• constituant un comportement de prédation ou de sollicitation envers des mineurs.
 
 ### 6.3 Absence de modération
 
