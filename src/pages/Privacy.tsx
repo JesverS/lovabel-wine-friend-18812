@@ -2,6 +2,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { 
   Shield, 
   Database, 
@@ -19,11 +20,27 @@ import {
   Clock, 
   AlertTriangle, 
   RefreshCw, 
-  Building 
+  Building,
+  ShieldAlert
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
+import { useLocation, Link } from "react-router-dom";
 
 export default function Privacy() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const element = document.getElementById(location.hash.slice(1));
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  }, [location.hash]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Helmet>
@@ -457,12 +474,86 @@ export default function Privacy() {
             </CardContent>
           </Card>
 
-          {/* Section 15 - Modification de la politique */}
+          {/* Section 15 - Protection et Sécurité des Enfants */}
+          <Card id="child-safety" className="glass-card border-destructive/30 scroll-mt-24">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <ShieldAlert className="h-6 w-6" />
+                15. Protection et Sécurité des Enfants
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-destructive/10 border border-destructive/30 p-4 rounded-lg">
+                <p className="font-bold text-destructive">
+                  POLITIQUE DE TOLÉRANCE ZÉRO
+                </p>
+                <p className="text-muted-foreground mt-2">
+                  WineNote s'engage fermement dans la protection des mineurs et applique une politique de 
+                  <strong> TOLÉRANCE ZÉRO </strong> concernant l'exploitation et les abus sexuels sur mineurs 
+                  (CSAM - Child Sexual Abuse Material).
+                </p>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-semibold mb-3 text-destructive">Contenus strictement interdits :</h4>
+                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                  <li>Tout contenu représentant des abus sexuels sur mineurs</li>
+                  <li>Tout contenu sexualisant des mineurs</li>
+                  <li>Tout comportement de prédation envers des mineurs</li>
+                  <li>Toute tentative de contact inapproprié avec des mineurs</li>
+                </ul>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-semibold mb-3">Mécanisme de signalement</h4>
+                <p className="text-muted-foreground mb-4">
+                  Si vous êtes témoin d'un contenu ou comportement inapproprié impliquant des mineurs, 
+                  signalez-le immédiatement via notre formulaire de contact dédié.
+                </p>
+                <Button asChild variant="destructive">
+                  <Link to="/contact?subject=child-safety">
+                    <ShieldAlert className="h-4 w-4 mr-2" />
+                    Signaler un contenu
+                  </Link>
+                </Button>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-semibold mb-3">Mesures prises par WineNote</h4>
+                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                  <li>Suppression immédiate des contenus signalés</li>
+                  <li>Suspension/bannissement permanent des comptes concernés</li>
+                  <li>Signalement aux autorités compétentes (NCMEC, autorités locales)</li>
+                  <li>Conservation des logs à des fins d'enquête</li>
+                </ul>
+              </div>
+
+              <Separator />
+
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">Contact responsable sécurité enfants</h4>
+                <p className="text-muted-foreground">
+                  Pour toute notification concernant la sécurité des enfants :
+                </p>
+                <a href="mailto:contact@winenote.me" className="text-primary hover:underline font-semibold">
+                  contact@winenote.me
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 16 - Modification de la politique */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <RefreshCw className="h-6 w-6 text-primary" />
-                15. Modification de la politique
+                16. Modification de la politique
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -475,12 +566,12 @@ export default function Privacy() {
             </CardContent>
           </Card>
 
-          {/* Section 16 - Autorité de contrôle */}
+          {/* Section 17 - Autorité de contrôle */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building className="h-6 w-6 text-primary" />
-                16. Autorité de contrôle
+                17. Autorité de contrôle
               </CardTitle>
             </CardHeader>
             <CardContent>

@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Mail, MapPin, MessageSquare, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
 
 export default function Contact() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -22,6 +24,13 @@ export default function Contact() {
     subject: "",
     message: ""
   });
+
+  useEffect(() => {
+    const subject = searchParams.get('subject');
+    if (subject === 'child-safety') {
+      setFormData(prev => ({ ...prev, subject: 'child-safety' }));
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,6 +150,7 @@ export default function Contact() {
                       <SelectItem value="support">Support technique</SelectItem>
                       <SelectItem value="partnership">Partenariat</SelectItem>
                       <SelectItem value="suggestion">Suggestion</SelectItem>
+                      <SelectItem value="child-safety">Signalement sécurité enfants</SelectItem>
                       <SelectItem value="other">Autre</SelectItem>
                     </SelectContent>
                   </Select>
