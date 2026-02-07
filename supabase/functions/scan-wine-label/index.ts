@@ -25,6 +25,7 @@ interface WineLabelData {
 
 // Limites de scans par rôle
 const SCAN_LIMITS: Record<string, number> = {
+  'premium': 50,
   'member': 50,
   'admin': 200,
   'super_admin': 999999,

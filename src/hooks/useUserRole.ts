@@ -8,7 +8,7 @@ export function useUserRole() {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const checkRole = async () => {
     if (!user) {
       setHasRole(false);
       setRole(null);
@@ -16,32 +16,37 @@ export function useUserRole() {
       return;
     }
 
-    const checkRole = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (!error && data) {
-          setHasRole(true);
-          setRole(data.role);
-        } else {
-          setHasRole(false);
-          setRole(null);
-        }
-      } catch (err) {
-        console.error('Error checking user role:', err);
+      if (!error && data) {
+        setHasRole(true);
+        setRole(data.role);
+      } else {
         setHasRole(false);
         setRole(null);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      console.error('Error checking user role:', err);
+      setHasRole(false);
+      setRole(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     checkRole();
   }, [user]);
 
-  return { hasRole, role, loading, canUseAI: hasRole };
+  const refresh = () => {
+    setLoading(true);
+    checkRole();
+  };
+
+  return { hasRole, role, loading, canUseAI: hasRole, refresh };
 }

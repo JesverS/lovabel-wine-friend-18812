@@ -28,6 +28,7 @@ import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTa
 import { FollowDialogs } from '@/components/FollowDialogs';
 import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 import { PrivacySettings } from '@/components/PrivacySettings';
+import { InviteKeyRedemption } from '@/components/InviteKeyRedemption';
 import { OpenInAppBanner } from '@/components/OpenInAppBanner';
 import { getProfileDeepLink } from '@/lib/mobileAppUtils';
 import { Helmet } from 'react-helmet-async';
@@ -285,10 +286,11 @@ export default function UserProfile() {
                             <DialogTitle>Paramètres du compte</DialogTitle>
                           </DialogHeader>
                           <InnerTabs defaultValue="privacy" className="mt-4">
-                            <InnerTabsList className="grid w-full grid-cols-3">
+                            <InnerTabsList className="grid w-full grid-cols-4">
                               <InnerTabsTrigger value="privacy">Confidentialité</InnerTabsTrigger>
                               <InnerTabsTrigger value="stripe">Compte Stripe</InnerTabsTrigger>
                               <InnerTabsTrigger value="revenue">Mes revenus</InnerTabsTrigger>
+                              <InnerTabsTrigger value="premium">Premium</InnerTabsTrigger>
                             </InnerTabsList>
                             <InnerTabsContent value="privacy" className="mt-4">
                               <PrivacySettings />
@@ -298,6 +300,9 @@ export default function UserProfile() {
                             </InnerTabsContent>
                             <InnerTabsContent value="revenue" className="mt-4">
                               <OrganizerRevenueDashboard />
+                            </InnerTabsContent>
+                            <InnerTabsContent value="premium" className="mt-4">
+                              <InviteKeyRedemption />
                             </InnerTabsContent>
                           </InnerTabs>
                         </DialogContent>
