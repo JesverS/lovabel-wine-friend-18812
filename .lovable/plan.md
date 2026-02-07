@@ -1,232 +1,267 @@
 
 
-# Plan : Ajout de la Section Protection des Enfants (Google Play Compliance)
+# Plan : Systeme de Cles d'Invitation Premium
 
 ## Resume
 
-Ce plan ajoute une section dediee a la protection des enfants sur la page Privacy (Politique de Confidentialite), conformement aux exigences de Google Play pour les applications de reseaux sociaux. Il inclut egalement un lien direct avec ancre (#child-safety) pour permettre une navigation directe vers cette section.
+Ajout d'un systeme de codes d'invitation dans les parametres utilisateur. L'utilisateur entre un code, ce code lui attribue un role "premium" dans la table `user_roles`, ce qui debloque des fonctionnalites bonus (comme le scanner IA). Chaque cle a un quota d'utilisations, et on garde une trace de qui a utilise quelle cle.
 
 ---
 
-## Contexte et Exigences Google Play
-
-Google Play exige que les applications de reseaux sociaux :
-
-1. **Publier des normes explicites** interdisant l'exploitation et les abus sexuels sur mineurs
-2. **Fournir un mecanisme de signalement** integre a l'application
-3. **Gerer les contenus d'abus** en les supprimant apres notification
-4. **Respecter les lois** concernant la securite des enfants
-5. **Indiquer un contact responsable** de la securite des enfants
-
----
-
-## Architecture de la Solution
+## Architecture du Systeme
 
 ```text
-Page Privacy (/privacy)
-├── Sections existantes (1-16)
-│
-├── NOUVELLE Section 17 : Protection et Securite des Enfants
-│   ├── Tolerance zero (politique explicite)
-│   ├── Contenus interdits (liste)
-│   ├── Mecanisme de signalement (lien vers /contact)
-│   ├── Mesures prises (suppression, signalement NCMEC)
-│   ├── Contact responsable securite enfants
-│   └── Lien vers formulaire de contact pre-rempli
-│
-├── Section 18 (ancienne 15) : Modification de la politique
-└── Section 19 (ancienne 16) : Autorite de controle
+FLUX UTILISATEUR
 
-Lien direct : /privacy#child-safety
+Parametres du compte
+      |
+      v
+Onglet "Premium"  (nouveau)
+      |
+      v
+Champ "Code d'invitation"
+      |
+      v
+Edge Function: redeem-invite-key
+      |
+      +---> Verif: cle existe ?  ---> Non ---> Erreur "Code invalide"
+      |
+      +---> Verif: cle pas expiree ? ---> Expiree ---> Erreur "Code expire"
+      |
+      +---> Verif: quota restant ? ---> 0 ---> Erreur "Code epuise"
+      |
+      +---> Verif: user deja premium ? ---> Oui ---> Erreur "Deja actif"
+      |
+      +---> INSERT user_roles (user_id, role: 'premium')
+      |
+      +---> INSERT invite_key_usage (tracking)
+      |
+      +---> UPDATE invite_key (remaining_uses - 1)
+      |
+      v
+Succes : "Fonctionnalites premium activees !"
 ```
 
 ---
 
-## Modifications Prevues
+## Partie 1 : Base de Donnees
 
-### 1. Page Privacy.tsx
+### 1.1 Nouveau role dans l'enum `app_role`
 
-**Fichier :** `src/pages/Privacy.tsx`
+Ajout de la valeur `'premium'` a l'enum existant :
 
-**Ajouts :**
-- Import de `useEffect` et `useLocation` de React Router pour gerer le scroll vers l'ancre
-- Import d'icones supplementaires : `Baby` ou `ShieldAlert` de Lucide
-- Nouvelle Card avec `id="child-safety"` pour permettre le lien direct
-- Contenu conforme aux exigences Google Play
-- Lien vers `/contact?subject=child-safety` pour signalement
-
-**Contenu de la nouvelle section :**
-
-```text
-17. Protection et Securite des Enfants
-
-WineNote s'engage fermement dans la protection des mineurs et applique 
-une politique de TOLERANCE ZERO concernant l'exploitation et les abus 
-sexuels sur mineurs (CSAM - Child Sexual Abuse Material).
-
-CONTENUS STRICTEMENT INTERDITS :
-• Tout contenu representant des abus sexuels sur mineurs
-• Tout contenu sexualisant des mineurs
-• Tout comportement de predation envers des mineurs
-• Toute tentative de contact inapproprie avec des mineurs
-
-MECANISME DE SIGNALEMENT :
-Si vous etes temoin d'un contenu ou comportement inapproprie 
-impliquant des mineurs, signalez-le immediatement via notre 
-formulaire de contact dedie.
-
-[Bouton : Signaler un contenu]
-
-MESURES PRISES PAR WINENOTE :
-• Suppression immediate des contenus signales
-• Suspension/bannissement permanent des comptes concernes
-• Signalement aux autorites competentes (NCMEC, autorites locales)
-• Conservation des logs a des fins d'enquete
-
-CONTACT RESPONSABLE SECURITE ENFANTS :
-Pour toute notification concernant la securite des enfants :
-contact@winenote.me
+```sql
+ALTER TYPE public.app_role ADD VALUE 'premium';
 ```
 
-### 2. Page Contact.tsx
+### 1.2 Table `invite_key` (les codes d'invitation)
 
-**Fichier :** `src/pages/Contact.tsx`
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | uuid | Identifiant unique |
+| code | text | Le code d'invitation (unique, ex: "WINENOTE2026") |
+| description | text | Description interne (pour l'admin) |
+| role_granted | app_role | Le role attribue (default: 'premium') |
+| max_uses | integer | Nombre maximum d'utilisations |
+| remaining_uses | integer | Utilisations restantes |
+| expires_at | timestamptz | Date d'expiration (nullable) |
+| is_active | boolean | Active/desactivee manuellement |
+| created_by | uuid | L'admin qui a cree la cle |
+| created_at | timestamptz | Date de creation |
 
-**Modifications :**
-- Lecture du parametre `subject` dans l'URL via `useSearchParams`
-- Si `subject=child-safety`, pre-selection du sujet "Signalement securite enfants"
-- Ajout d'une nouvelle option dans le Select : "Signalement securite enfants"
+**RLS :**
+- SELECT : super_admin uniquement
+- INSERT/UPDATE/DELETE : super_admin uniquement
+- Pas d'acces direct par les utilisateurs normaux (tout passe par Edge Function)
 
-**Code :**
+### 1.3 Table `invite_key_usage` (tracking des utilisations)
 
-```typescript
-// Ajouter dans les imports
-import { useSearchParams } from "react-router-dom";
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | uuid | Identifiant unique |
+| invite_key_id | uuid | Reference vers la cle utilisee |
+| user_id | uuid | L'utilisateur qui a utilise la cle |
+| redeemed_at | timestamptz | Date d'utilisation |
 
-// Dans le composant
-const [searchParams] = useSearchParams();
+**RLS :**
+- SELECT : l'utilisateur peut voir ses propres utilisations
+- INSERT/UPDATE/DELETE : interdit (gere par Edge Function en service_role)
 
-// Dans useEffect au chargement
-useEffect(() => {
-  const subject = searchParams.get('subject');
-  if (subject === 'child-safety') {
-    setFormData(prev => ({ ...prev, subject: 'child-safety' }));
-  }
-}, [searchParams]);
+### 1.4 Resume SQL
 
-// Dans le Select, ajouter l'option
-<SelectItem value="child-safety">
-  Signalement securite enfants
-</SelectItem>
-```
+```sql
+-- Nouveau role
+ALTER TYPE public.app_role ADD VALUE 'premium';
 
-### 3. Mise a jour des CGU (Optionnel mais Recommande)
+-- Table des cles
+CREATE TABLE public.invite_key (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  description text,
+  role_granted app_role NOT NULL DEFAULT 'premium',
+  max_uses integer NOT NULL DEFAULT 1,
+  remaining_uses integer NOT NULL DEFAULT 1,
+  expires_at timestamptz,
+  is_active boolean NOT NULL DEFAULT true,
+  created_by uuid REFERENCES auth.users(id),
+  created_at timestamptz DEFAULT now()
+);
 
-**Fichier :** `src/content/cgu-text.ts`
+-- Table de tracking
+CREATE TABLE public.invite_key_usage (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  invite_key_id uuid NOT NULL REFERENCES invite_key(id),
+  user_id uuid NOT NULL REFERENCES auth.users(id),
+  redeemed_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(invite_key_id, user_id)
+);
 
-**Modifications :**
-- Ajouter une section explicite sur la protection des enfants dans les CGU
-- Mettre a jour `CGU_VERSION` vers "1.1.0"
-
-**Contenu suggere a ajouter apres la section 6.2 (Contenus interdits) :**
-
-```text
-• tout contenu representant ou suggerant des abus sur mineurs ;
-• tout comportement de predation ou de sollicitation envers des mineurs.
+-- RLS sur les deux tables
+-- + Index sur invite_key.code pour recherche rapide
 ```
 
 ---
 
-## Fichiers a Modifier
+## Partie 2 : Edge Function `redeem-invite-key`
+
+### Pourquoi une Edge Function ?
+
+L'insertion dans `user_roles` est protegee par RLS (seuls les super_admin peuvent inserer). Donc un utilisateur normal ne peut pas s'ajouter un role directement. L'Edge Function utilise le `service_role` pour effectuer l'operation de maniere securisee apres validation.
+
+### Logique de l'Edge Function
+
+```text
+1. Verifier le JWT (authentification)
+2. Recevoir le code d'invitation
+3. Valider le code :
+   - Existe dans invite_key
+   - is_active = true
+   - remaining_uses > 0
+   - expires_at est null OU dans le futur
+4. Verifier que l'utilisateur n'a pas deja un role
+5. Verifier que l'utilisateur n'a pas deja utilise CE code
+6. En transaction :
+   a. INSERT dans user_roles (user_id, role)
+   b. INSERT dans invite_key_usage (tracking)
+   c. UPDATE invite_key SET remaining_uses = remaining_uses - 1
+7. Retourner succes avec le role attribue
+```
+
+### Codes d'erreur
+
+| Code HTTP | Code | Message |
+|-----------|------|---------|
+| 400 | INVALID_CODE | Code d'invitation invalide |
+| 400 | CODE_EXPIRED | Ce code a expire |
+| 400 | CODE_EXHAUSTED | Ce code a atteint sa limite d'utilisation |
+| 400 | ALREADY_PREMIUM | Vous avez deja un role actif |
+| 400 | ALREADY_USED | Vous avez deja utilise ce code |
+
+---
+
+## Partie 3 : Frontend
+
+### 3.1 Nouveau composant `InviteKeyRedemption`
+
+**Fichier :** `src/components/InviteKeyRedemption.tsx`
+
+Un composant simple avec :
+- Un champ texte pour entrer le code
+- Un bouton "Activer"
+- Affichage du statut actuel (premium ou non)
+- Messages de succes/erreur
+
+```text
++------------------------------------------+
+|  Fonctionnalites Premium                  |
+|                                           |
+|  [Badge: Premium actif]  (si deja actif) |
+|  OU                                       |
+|  Entrez un code d'invitation :            |
+|  [____________] [Activer]                 |
+|                                           |
+|  Les fonctionnalites premium incluent :   |
+|  - Scanner IA d'etiquettes de vin         |
+|  - (futures fonctionnalites)              |
++------------------------------------------+
+```
+
+### 3.2 Integration dans les Parametres
+
+**Fichier :** `src/pages/UserProfile.tsx`
+
+Ajout d'un 4eme onglet "Premium" dans le dialog des parametres :
+
+```text
+[Confidentialite] [Compte Stripe] [Mes revenus] [Premium]
+```
+
+Le contenu de l'onglet affiche le composant `InviteKeyRedemption`.
+
+### 3.3 Mise a jour du hook `useUserRole`
+
+Apres activation reussie d'un code, le hook doit se rafraichir pour que l'UI reflète immediatement le nouveau role (ex: le scanner IA devient accessible sans recharger la page).
+
+---
+
+## Partie 4 : Securite
+
+### Points cles
+
+1. **L'utilisateur ne peut PAS modifier `user_roles` directement** - RLS bloque tout sauf super_admin
+2. **L'Edge Function valide tout cote serveur** - impossible de tricher en appelant l'API directement sans code valide
+3. **Chaque code a un quota** - impossible de partager un code sans limite
+4. **Tracking complet** - on sait exactement qui a utilise quel code et quand
+5. **Les codes peuvent etre desactives** - `is_active = false` pour revoquer un code
+
+### Prevention des abus
+
+- Contrainte `UNIQUE(invite_key_id, user_id)` : un user ne peut pas utiliser le meme code deux fois
+- Contrainte `UNIQUE user_id` sur `user_roles` : un user n'a qu'un seul role
+- Verification du role existant avant insertion
+
+---
+
+## Fichiers a Creer/Modifier
 
 | Fichier | Action | Description |
 |---------|--------|-------------|
-| `src/pages/Privacy.tsx` | MODIFIER | Ajouter section 17 Protection des Enfants avec ancre |
-| `src/pages/Contact.tsx` | MODIFIER | Ajouter sujet "child-safety" + lecture URL params |
-| `src/content/cgu-text.ts` | MODIFIER | Renforcer les contenus interdits (optionnel) |
-
----
-
-## URL et Navigation
-
-### Liens directs
-
-| URL | Description |
-|-----|-------------|
-| `/privacy#child-safety` | Scroll direct vers la section Protection des Enfants |
-| `/contact?subject=child-safety` | Formulaire pre-rempli pour signalement |
-
-### Integration dans l'app Android
-
-Pour la conformite Google Play, vous pourrez fournir ces URLs :
-- **Normes publiees :** `https://winenote.me/privacy#child-safety`
-- **Mecanisme de signalement :** `https://winenote.me/contact?subject=child-safety`
-- **Contact securite enfants :** `contact@winenote.me`
-
----
-
-## Apercu Visuel de la Nouvelle Section
-
-La section sera visuellement mise en evidence avec :
-- Icone `ShieldAlert` en rouge/orange pour attirer l'attention
-- Encadre avec bordure rouge pour "Tolerance Zero"
-- Bouton CTA visible pour le signalement
-- Contact email en evidence
+| Migration SQL | CREER | Tables invite_key + invite_key_usage + enum premium |
+| `supabase/functions/redeem-invite-key/index.ts` | CREER | Edge Function de validation et attribution |
+| `src/components/InviteKeyRedemption.tsx` | CREER | Composant UI pour entrer le code |
+| `src/pages/UserProfile.tsx` | MODIFIER | Ajouter onglet "Premium" dans parametres |
+| `src/hooks/useUserRole.ts` | MODIFIER | Ajouter fonction refresh pour mise a jour immediate |
 
 ---
 
 ## Section Technique
 
-### Gestion du Scroll vers l'Ancre
+### Impact sur le systeme existant
+
+Le scanner IA (`scan-wine-label`) verifie deja si l'utilisateur a un role dans `user_roles`. Le role `premium` sera automatiquement detecte sans modification de l'Edge Function existante, car la verification est :
 
 ```typescript
-// Dans Privacy.tsx
-import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+// scan-wine-label/index.ts (existant)
+const { data: userRole } = await supabaseAdmin
+  .from('user_roles')
+  .select('role')
+  .eq('user_id', userId)
+  .maybeSingle();
 
-export default function Privacy() {
-  const location = useLocation();
-
-  useEffect(() => {
-    if (location.hash) {
-      const element = document.getElementById(location.hash.slice(1));
-      if (element) {
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      }
-    }
-  }, [location.hash]);
-
-  // ...reste du composant
+if (!userRole) { // Bloque si PAS de role
+  return 403;
 }
 ```
 
-### Structure de la Carte
+Donc tout utilisateur avec un role (premium, admin, super_admin) aura automatiquement acces au scanner. Aucun changement necessaire dans `scan-wine-label`.
 
-```tsx
-<Card id="child-safety" className="glass-card border-red-500/30">
-  <CardHeader>
-    <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
-      <ShieldAlert className="h-6 w-6" />
-      17. Protection et Securite des Enfants
-    </CardTitle>
-  </CardHeader>
-  <CardContent>
-    {/* Contenu detaille */}
-  </CardContent>
-</Card>
-```
+### Limites du scan par role (mise a jour)
 
----
+| Role | Scans/mois |
+|------|------------|
+| premium | 50 |
+| admin | 200 |
+| super_admin | Illimite |
 
-## Checklist de Conformite Google Play
-
-Apres implementation, vous pourrez certifier :
-
-- [x] **Normes publiees** : Section 17 de la politique de confidentialite
-- [x] **Mecanisme integre** : Formulaire de contact avec sujet dedie
-- [x] **Gestion des contenus** : Engagement de suppression + signalement
-- [x] **Respect des lois** : Mention du signalement NCMEC/autorites
-- [x] **Contact responsable** : `contact@winenote.me` clairement indique
+Le `SCAN_LIMITS` dans `scan-wine-label` sera mis a jour pour inclure `'premium': 50`.
 
