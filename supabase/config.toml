@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.scan-wine-label]
 verify_jwt = true
+
+[functions.redeem-invite-key]
+verify_jwt = true

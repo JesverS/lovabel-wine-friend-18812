@@ -1461,6 +1461,74 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_key: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number
+          remaining_uses: number
+          role_granted: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          remaining_uses?: number
+          role_granted?: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          remaining_uses?: number
+          role_granted?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
+      invite_key_usage: {
+        Row: {
+          id: string
+          invite_key_id: string
+          redeemed_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invite_key_id: string
+          redeemed_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invite_key_id?: string
+          redeemed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_key_usage_invite_key_id_fkey"
+            columns: ["invite_key_id"]
+            isOneToOne: false
+            referencedRelation: "invite_key"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_completion: {
         Row: {
           completed_at: string
