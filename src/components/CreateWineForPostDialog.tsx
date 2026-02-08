@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Upload } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { CreateDomainDialog } from './CreateDomainDialog';
+import { CreateDomainSimpleDialog } from './CreateDomainSimpleDialog';
 import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
 import { AppellationSelect } from '@/components/wine/AppellationSelect';
 import { WineLabelScanner } from '@/components/WineLabelScanner';
@@ -233,20 +233,13 @@ export function CreateWineForPostDialog({
     setIsAIMode(false);
   };
 
-  const handleDomainCreated = async () => {
-    // Refresh domain search to show the newly created domain
-    if (domainSearch) {
-      const { data } = await supabase
-        .from('domain')
-        .select('id, name, region, logo_url')
-        .ilike('name', `%${domainSearch}%`)
-        .limit(10);
-      if (data && data.length > 0) {
-        setDomains(data);
-        // Auto-select the first result (likely the newly created one)
-        setSelectedDomain(data[0]);
-      }
-    }
+  const [createDomainOpen, setCreateDomainOpen] = useState(false);
+
+  const handleDomainCreated = (domain: any) => {
+    setSelectedDomain(domain);
+    setDomainSearch('');
+    setDomains([]);
+    setCreateDomainOpen(false);
   };
 
   // Show "Ajouter mon domaine" only in manual mode (not AI mode)
@@ -342,10 +335,15 @@ export function CreateWineForPostDialog({
                     )}
                     {/* Only show create domain button in manual mode */}
                     {showCreateDomainButton && (
-                      <CreateDomainDialog 
-                        onDomainCreated={handleDomainCreated}
-                        initialName={domainSearch}
-                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setCreateDomainOpen(true)}
+                      >
+                        Créer un nouveau domaine
+                      </Button>
                     )}
                   </div>
                 )}
@@ -460,6 +458,13 @@ export function CreateWineForPostDialog({
           </div>
         </DialogContent>
       </Dialog>
+
+      <CreateDomainSimpleDialog
+        open={createDomainOpen}
+        onOpenChange={setCreateDomainOpen}
+        onDomainCreated={handleDomainCreated}
+        initialName={domainSearch}
+      />
     </>
   );
 }

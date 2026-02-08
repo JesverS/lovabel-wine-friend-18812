@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Loader2, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { CreateDomainDialog } from './CreateDomainDialog';
+import { CreateDomainSimpleDialog } from './CreateDomainSimpleDialog';
 
 interface AddDomainToEventDialogProps {
   eventId: string;
@@ -26,6 +26,7 @@ export function AddDomainToEventDialog({ eventId, onDomainAdded }: AddDomainToEv
   const [domainResults, setDomainResults] = useState<any[]>([]);
   const [showDomainResults, setShowDomainResults] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<any>(null);
+  const [createDomainOpen, setCreateDomainOpen] = useState(false);
 
   const searchDomains = async (query: string) => {
     if (!query.trim() || query.trim().length < 2) {
@@ -126,6 +127,7 @@ export function AddDomainToEventDialog({ eventId, onDomainAdded }: AddDomainToEv
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(isOpen) => {
       setOpen(isOpen);
       if (!isOpen) resetForm();
@@ -164,13 +166,14 @@ export function AddDomainToEventDialog({ eventId, onDomainAdded }: AddDomainToEv
                     <p className="text-sm text-muted-foreground">
                       Aucun domaine trouvé
                     </p>
-                    <CreateDomainDialog
-                      onDomainCreated={() => {
-                        searchDomains(domainSearch);
-                        onDomainAdded();
-                      }}
-                      initialName={domainSearch}
-                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCreateDomainOpen(true)}
+                    >
+                      Créer un nouveau domaine
+                    </Button>
                   </div>
                 ) : (
                   domainResults.map((domain) => (
@@ -218,5 +221,19 @@ export function AddDomainToEventDialog({ eventId, onDomainAdded }: AddDomainToEv
         </div>
       </DialogContent>
     </Dialog>
+
+    <CreateDomainSimpleDialog
+      open={createDomainOpen}
+      onOpenChange={setCreateDomainOpen}
+      onDomainCreated={(domain) => {
+        setSelectedDomain(domain);
+        setDomainSearch(domain.name);
+        setShowDomainResults(false);
+        setCreateDomainOpen(false);
+        onDomainAdded();
+      }}
+      initialName={domainSearch}
+    />
+    </>
   );
 }

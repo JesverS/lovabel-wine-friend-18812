@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Loader2, Upload, X, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CreateDomainDialog } from './CreateDomainDialog';
+import { CreateDomainSimpleDialog } from './CreateDomainSimpleDialog';
 import { WineTypeSelect } from '@/components/wine/WineTypeSelect';
 import { AppellationSelect } from '@/components/wine/AppellationSelect';
 
@@ -62,6 +62,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   const [labelFile, setLabelFile] = useState<File | null>(null);
   const [labelPreview, setLabelPreview] = useState<string>('');
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [createDomainOpen, setCreateDomainOpen] = useState(false);
 
   // Live search with debounce
   useEffect(() => {
@@ -402,6 +403,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(isOpen) => {
       setOpen(isOpen);
       if (!isOpen) resetForm();
@@ -707,12 +709,14 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
                       <p className="text-sm text-muted-foreground">
                         Aucun domaine trouvé
                       </p>
-                      <CreateDomainDialog
-                        onDomainCreated={() => {
-                          searchDomains(domainSearch);
-                        }}
-                        initialName={domainSearch}
-                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCreateDomainOpen(true)}
+                      >
+                        Créer un nouveau domaine
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -865,5 +869,18 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
         )}
       </DialogContent>
     </Dialog>
+
+    <CreateDomainSimpleDialog
+      open={createDomainOpen}
+      onOpenChange={setCreateDomainOpen}
+      onDomainCreated={(domain) => {
+        setSelectedDomain(domain);
+        setDomainSearch(domain.name);
+        setShowDomainResults(false);
+        setCreateDomainOpen(false);
+      }}
+      initialName={domainSearch}
+    />
+    </>
   );
 }
