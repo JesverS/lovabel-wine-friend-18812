@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 interface WineLabelScannerProps {
   onScanComplete: (data: WineLabelData, imageBase64: string | null) => void;
+  onDismissMatch?: () => void;
   disabled?: boolean;
   className?: string;
 }
@@ -49,7 +50,7 @@ const compressImage = async (base64: string, maxWidth: number = 1024, quality: n
   });
 };
 
-export function WineLabelScanner({ onScanComplete, disabled, className }: WineLabelScannerProps) {
+export function WineLabelScanner({ onScanComplete, onDismissMatch, disabled, className }: WineLabelScannerProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [captureMode, setCaptureMode] = useState<'none' | 'camera' | 'file'>('none');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -259,14 +260,25 @@ export function WineLabelScanner({ onScanComplete, disabled, className }: WineLa
             </p>
           )}
           {scanResult.wine_name && (
-            <p className="flex items-center gap-1 flex-wrap">
-              <span className="text-muted-foreground">Vin:</span> {scanResult.wine_name}
-              {scanResult.wine_matched && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
-                  déjà en base
-                </Badge>
+            <div className="space-y-0.5">
+              <p className="flex items-center gap-1 flex-wrap">
+                <span className="text-muted-foreground">Vin:</span> {scanResult.wine_name}
+                {scanResult.wine_matched && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
+                    déjà en base
+                  </Badge>
+                )}
+              </p>
+              {scanResult.wine_matched && onDismissMatch && (
+                <button
+                  type="button"
+                  onClick={onDismissMatch}
+                  className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+                >
+                  Ce n'est pas ce vin
+                </button>
               )}
-            </p>
+            </div>
           )}
           {scanResult.year && (
             <p><span className="text-muted-foreground">Année:</span> {scanResult.year}</p>
