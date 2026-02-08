@@ -127,41 +127,59 @@ function MobileAppBanner() {
 
   if (platform === 'ios') {
     return (
-      <a
-        href={APP_STORE_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-3 rounded-2xl bg-foreground/10 backdrop-blur-md border border-foreground/20 px-5 py-3 mb-6 transition-colors hover:bg-foreground/20"
-      >
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-foreground/10">
-          <Smartphone className="h-5 w-5 text-foreground" />
+      <div className="bg-gradient-to-r from-primary/15 to-primary/5 border-b border-primary/20">
+        <div className="container mx-auto px-4 py-3">
+          <a
+            href={APP_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
+                <Smartphone className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">WineNote sur iPhone</p>
+                <p className="text-xs text-muted-foreground">Téléchargez l'app pour une meilleure expérience</p>
+              </div>
+            </div>
+            <Button size="sm" className="shrink-0 bg-primary text-primary-foreground">
+              <Download className="h-4 w-4 mr-1" />
+              Installer
+            </Button>
+          </a>
         </div>
-        <div className="flex-1 text-left">
-          <p className="text-sm font-semibold text-foreground">Disponible sur iPhone</p>
-          <p className="text-xs text-muted-foreground">Téléchargez WineNote sur l'App Store</p>
-        </div>
-        <Download className="h-5 w-5 text-primary" />
-      </a>
+      </div>
     );
   }
 
   if (platform === 'android') {
     return (
-      <a
-        href={ANDROID_BETA_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-3 rounded-2xl bg-foreground/10 backdrop-blur-md border border-foreground/20 px-5 py-3 mb-6 transition-colors hover:bg-foreground/20"
-      >
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-foreground/10">
-          <Smartphone className="h-5 w-5 text-foreground" />
+      <div className="bg-gradient-to-r from-primary/15 to-primary/5 border-b border-primary/20">
+        <div className="container mx-auto px-4 py-3">
+          <a
+            href={ANDROID_BETA_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
+                <Smartphone className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">WineNote sur Android</p>
+                <p className="text-xs text-muted-foreground">Rejoignez notre bêta test !</p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" className="shrink-0">
+              Rejoindre
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </a>
         </div>
-        <div className="flex-1 text-left">
-          <p className="text-sm font-semibold text-foreground">Bientôt disponible sur Android</p>
-          <p className="text-xs text-muted-foreground">Rejoignez notre programme de bêta test !</p>
-        </div>
-        <ArrowRight className="h-5 w-5 text-primary" />
-      </a>
+      </div>
     );
   }
 
@@ -193,6 +211,9 @@ export default function About() {
       </Helmet>
       <Header />
       
+      {/* Mobile App Banner — prominent position right after header */}
+      <MobileAppBanner />
+      
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
@@ -211,11 +232,6 @@ export default function About() {
               <Grape className="w-4 h-4 mr-2" />
               Bienvenue sur WineNote
             </Badge>
-
-            {/* Mobile App Banner — shown only on mobile */}
-            <div className="max-w-sm mx-auto">
-              <MobileAppBanner />
-            </div>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6">
               Découvrez <span className="text-gradient-wine">WineNote</span>
