@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Camera, Upload, Loader2, X, Scan, CheckCircle, AlertCircle } from 'lucide-react';
 import { useWineLabelScan, WineLabelData } from '@/hooks/useWineLabelScan';
 import { useScanQuota } from '@/hooks/useScanQuota';
@@ -258,7 +259,14 @@ export function WineLabelScanner({ onScanComplete, disabled, className }: WineLa
             </p>
           )}
           {scanResult.wine_name && (
-            <p><span className="text-muted-foreground">Vin:</span> {scanResult.wine_name}</p>
+            <p className="flex items-center gap-1 flex-wrap">
+              <span className="text-muted-foreground">Vin:</span> {scanResult.wine_name}
+              {scanResult.wine_matched && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
+                  déjà en base
+                </Badge>
+              )}
+            </p>
           )}
           {scanResult.year && (
             <p><span className="text-muted-foreground">Année:</span> {scanResult.year}</p>

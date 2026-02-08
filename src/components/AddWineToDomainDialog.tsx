@@ -31,6 +31,7 @@ export function AddWineToDomainDialog({
   const { canUseAI, loading: roleLoading } = useUserRole();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [matchedWineId, setMatchedWineId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [year, setYear] = useState('');
   const [volume, setVolume] = useState('750');
@@ -63,19 +64,28 @@ export function AddWineToDomainDialog({
 
   const handleCreateWine = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !labelFile) return;
+    if (!name.trim() || (!labelFile && !matchedWineId)) return;
 
     setLoading(true);
 
     try {
+      // If wine was matched, use existing wine
+      if (matchedWineId) {
+        toast.success('Vin existant utilisé');
+        setOpen(false);
+        resetForm();
+        onWineCreated();
+        return;
+      }
+
       // Upload label to domain bucket
-      const fileExt = labelFile.name.split('.').pop();
+      const fileExt = labelFile!.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${domainId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('domain')
-        .upload(filePath, labelFile);
+        .upload(filePath, labelFile!);
 
       if (uploadError) throw uploadError;
 
@@ -125,6 +135,7 @@ export function AddWineToDomainDialog({
     setAppellationId(null);
     setLabelFile(null);
     setLabelPreview('');
+    setMatchedWineId(null);
   };
 
   return (
@@ -158,8 +169,14 @@ export function AddWineToDomainDialog({
               if (data.appellation_id) {
                 setAppellationId(data.appellation_id);
               }
-              // Pre-fill label image
-              if (imageBase64) {
+              // Check for matched wine
+              if (data.wine_matched && data.wine_id) {
+                setMatchedWineId(data.wine_id);
+              } else {
+                setMatchedWineId(null);
+              }
+              // Pre-fill label image (only if not matched)
+              if (imageBase64 && !data.wine_matched) {
                 setLabelPreview(imageBase64);
                 try {
                   const response = await fetch(imageBase64);
@@ -311,14 +328,16 @@ export function AddWineToDomainDialog({
 
           <Button
             type="submit"
-            disabled={loading || !name.trim() || !labelFile}
+            disabled={loading || !name.trim() || (!labelFile && !matchedWineId)}
             className="w-full"
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Création...
+                {matchedWineId ? 'Chargement...' : 'Création...'}
               </>
+            ) : matchedWineId ? (
+              'Utiliser ce vin'
             ) : (
               'Créer le vin'
             )}

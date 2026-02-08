@@ -18,6 +18,9 @@ export interface WineLabelData {
   appellation_id: number | null;
   domain_created: boolean;
   appellation_created: boolean;
+  // Wine duplicate detection
+  wine_id: string | null;
+  wine_matched: boolean;
 }
 
 interface ScanErrorResponse {
@@ -101,6 +104,11 @@ export function useWineLabelScan(): UseWineLabelScanResult {
           toast.info('Étiquette partiellement reconnue, vérifiez les informations');
         } else {
           toast.warning('Reconnaissance difficile, complétez manuellement si nécessaire');
+        }
+        
+        // Show wine match info
+        if (data.data.wine_matched) {
+          toast.success('Ce vin existe déjà en base de données !');
         }
         
         // Show creation info
