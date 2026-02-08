@@ -52,6 +52,7 @@ const compressImage = async (base64: string, maxWidth: number = 1024, quality: n
 
 export function WineLabelScanner({ onScanComplete, onDismissMatch, disabled, className }: WineLabelScannerProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [matchDismissed, setMatchDismissed] = useState(false);
   const [captureMode, setCaptureMode] = useState<'none' | 'camera' | 'file'>('none');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +103,7 @@ export function WineLabelScanner({ onScanComplete, onDismissMatch, disabled, cla
 
   const handleReset = () => {
     setImagePreview(null);
+    setMatchDismissed(false);
     setCaptureMode('none');
     reset();
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -269,14 +271,22 @@ export function WineLabelScanner({ onScanComplete, onDismissMatch, disabled, cla
                   </Badge>
                 )}
               </p>
-              {scanResult.wine_matched && onDismissMatch && (
+              {scanResult.wine_matched && onDismissMatch && !matchDismissed && (
                 <button
                   type="button"
-                  onClick={onDismissMatch}
+                  onClick={() => {
+                    setMatchDismissed(true);
+                    onDismissMatch();
+                  }}
                   className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
                 >
                   Ce n'est pas ce vin
                 </button>
+              )}
+              {matchDismissed && (
+                <p className="text-[11px] text-primary">
+                  ✓ Vous pouvez modifier les informations du vin
+                </p>
               )}
             </div>
           )}
