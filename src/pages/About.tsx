@@ -256,6 +256,38 @@ export default function About() {
                 Explorer les cours
               </Button>
             </div>
+
+            {/* Mobile App Download — right below hero CTAs */}
+            <div className="mt-8 pt-6 border-t border-foreground/10">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Smartphone className="h-5 w-5 text-primary" />
+                <p className="text-sm font-semibold text-foreground">Également disponible sur mobile</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <a
+                  href={APP_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-5 py-3 text-sm font-medium transition-opacity hover:opacity-90"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                  </svg>
+                  Télécharger sur l'App Store
+                </a>
+                <a
+                  href={ANDROID_BETA_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-foreground/20 bg-background/50 backdrop-blur-sm px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
+                    <path d="M17.523 2.246a.625.625 0 0 0-.855.216l-1.249 2.12A7.867 7.867 0 0 0 12 3.88a7.867 7.867 0 0 0-3.42.702L7.332 2.462a.625.625 0 1 0-1.07.648l1.2 2.036A7.46 7.46 0 0 0 4 11.878h16a7.46 7.46 0 0 0-3.462-6.732l1.2-2.036a.625.625 0 0 0-.215-.864zM8.5 9.128a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75zm7 0a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75zM4 12.878v7a1 1 0 0 0 1 1h1v2.5a1.25 1.25 0 1 0 2.5 0v-2.5h5v2.5a1.25 1.25 0 1 0 2.5 0v-2.5h1a1 1 0 0 0 1-1v-7H4zm-2.25 0a1.25 1.25 0 0 0-1.25 1.25v4.5a1.25 1.25 0 1 0 2.5 0v-4.5a1.25 1.25 0 0 0-1.25-1.25zm20.5 0a1.25 1.25 0 0 0-1.25 1.25v4.5a1.25 1.25 0 1 0 2.5 0v-4.5a1.25 1.25 0 0 0-1.25-1.25z"/>
+                  </svg>
+                  Bêta Test Android
+                </a>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -447,38 +479,6 @@ export default function About() {
                 >
                   Explorer les cours
                 </Button>
-              </div>
-
-              {/* Mobile App Download Section — always visible */}
-              <div className="pt-8 border-t border-border/50">
-                <div className="flex items-center justify-center gap-2 mb-5">
-                  <Smartphone className="h-5 w-5 text-primary" />
-                  <p className="text-sm font-semibold text-foreground">Également disponible sur mobile</p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <a
-                    href={APP_STORE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-5 py-3 text-sm font-medium transition-opacity hover:opacity-90"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
-                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                    </svg>
-                    Télécharger sur l'App Store
-                  </a>
-                  <a
-                    href={ANDROID_BETA_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
-                      <path d="M17.523 2.246a.625.625 0 0 0-.855.216l-1.249 2.12A7.867 7.867 0 0 0 12 3.88a7.867 7.867 0 0 0-3.42.702L7.332 2.462a.625.625 0 1 0-1.07.648l1.2 2.036A7.46 7.46 0 0 0 4 11.878h16a7.46 7.46 0 0 0-3.462-6.732l1.2-2.036a.625.625 0 0 0-.215-.864zM8.5 9.128a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75zm7 0a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75zM4 12.878v7a1 1 0 0 0 1 1h1v2.5a1.25 1.25 0 1 0 2.5 0v-2.5h5v2.5a1.25 1.25 0 1 0 2.5 0v-2.5h1a1 1 0 0 0 1-1v-7H4zm-2.25 0a1.25 1.25 0 0 0-1.25 1.25v4.5a1.25 1.25 0 1 0 2.5 0v-4.5a1.25 1.25 0 0 0-1.25-1.25zm20.5 0a1.25 1.25 0 0 0-1.25 1.25v4.5a1.25 1.25 0 1 0 2.5 0v-4.5a1.25 1.25 0 0 0-1.25-1.25z"/>
-                    </svg>
-                    Bêta Test Android
-                  </a>
-                </div>
               </div>
             </div>
           </div>
