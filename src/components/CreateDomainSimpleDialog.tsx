@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,23 +9,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { REGIONS } from "@/lib/regionUtils";
 
-interface CreateDomainForGameDialogProps {
+interface CreateDomainSimpleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDomainCreated: (domain: any) => void;
+  initialName?: string;
 }
 
-export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated }: CreateDomainForGameDialogProps) {
-  const [name, setName] = useState("");
+export function CreateDomainSimpleDialog({ open, onOpenChange, onDomainCreated, initialName = "" }: CreateDomainSimpleDialogProps) {
+  const [name, setName] = useState(initialName);
   const [region, setRegion] = useState("");
   const [customRegion, setCustomRegion] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleCreateDomain = async (e: FormEvent) => {
+  useEffect(() => {
+    if (open) {
+      setName(initialName);
+    }
+  }, [open, initialName]);
+
+  const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    // Si "other" est sélectionné mais pas de région personnalisée
     if (region === "other" && !customRegion.trim()) {
       toast.error("Veuillez saisir le nom de la région");
       return;
@@ -68,14 +74,13 @@ export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated 
           <DialogDescription>Ajoutez les informations du domaine viticole</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleCreateDomain} className="space-y-5 mt-2">
-          {/* Nom du domaine */}
+        <form onSubmit={handleCreate} className="space-y-5 mt-2">
           <div className="space-y-2">
-            <Label htmlFor="domain-name" className="text-sm font-medium">
+            <Label htmlFor="domain-simple-name" className="text-sm font-medium">
               Nom du domaine <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="domain-name"
+              id="domain-simple-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Château Margaux"
@@ -84,13 +89,12 @@ export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated 
             />
           </div>
 
-          {/* Région */}
           <div className="space-y-2">
-            <Label htmlFor="domain-region" className="text-sm font-medium">
+            <Label htmlFor="domain-simple-region" className="text-sm font-medium">
               Région viticole
             </Label>
             <Select value={region} onValueChange={setRegion}>
-              <SelectTrigger id="domain-region" className="h-11">
+              <SelectTrigger id="domain-simple-region" className="h-11">
                 <SelectValue placeholder="Sélectionnez une région" />
               </SelectTrigger>
               <SelectContent>
@@ -103,14 +107,13 @@ export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated 
             </Select>
           </div>
 
-          {/* Champ personnalisé si "Autre" est sélectionné */}
           {region === "other" && (
             <div className="space-y-2">
-              <Label htmlFor="custom-region" className="text-sm font-medium">
+              <Label htmlFor="domain-simple-custom-region" className="text-sm font-medium">
                 Nom de la région <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="custom-region"
+                id="domain-simple-custom-region"
                 value={customRegion}
                 onChange={(e) => setCustomRegion(e.target.value)}
                 placeholder="Ex: Savoie, Lorraine..."
@@ -120,7 +123,6 @@ export function CreateDomainForGameDialog({ open, onOpenChange, onDomainCreated 
             </div>
           )}
 
-          {/* Boutons d'action */}
           <div className="flex gap-3 pt-4">
             <Button
               type="button"

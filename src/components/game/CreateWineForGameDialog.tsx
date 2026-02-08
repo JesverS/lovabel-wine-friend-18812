@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Plus, ArrowLeft, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreateDomainForGameDialog } from "./CreateDomainForGameDialog";
+import { CreateDomainSimpleDialog } from "@/components/CreateDomainSimpleDialog";
 import { AppellationSelect } from "@/components/wine/AppellationSelect";
 
 interface CreateWineForGameDialogProps {
@@ -397,10 +397,11 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
         </DialogContent>
       </Dialog>
 
-      <CreateDomainForGameDialog
+      <CreateDomainSimpleDialog
         open={createDomainOpen}
         onOpenChange={setCreateDomainOpen}
         onDomainCreated={handleDomainCreated}
+        initialName={domainSearch}
       />
     </>
   );
