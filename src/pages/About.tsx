@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -20,10 +21,13 @@ import {
   Share2,
   PartyPopper,
   ArrowRight,
-  Grape
+  Grape,
+  Smartphone,
+  Download
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { getMobilePlatform, APP_STORE_URL, ANDROID_BETA_URL } from "@/lib/mobileAppUtils";
 
 const FEATURES = [
   {
@@ -105,6 +109,65 @@ const VALUES = [
   }
 ];
 
+function MobileAppBanner() {
+  const [platform, setPlatform] = useState<'ios' | 'android' | null>(null);
+
+  useEffect(() => {
+    setPlatform(getMobilePlatform());
+  }, []);
+
+  // Auto-redirect iOS users to the App Store after 1s
+  useEffect(() => {
+    if (platform !== 'ios') return;
+    const timer = setTimeout(() => {
+      window.location.href = APP_STORE_URL;
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [platform]);
+
+  if (platform === 'ios') {
+    return (
+      <a
+        href={APP_STORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-3 rounded-2xl bg-foreground/10 backdrop-blur-md border border-foreground/20 px-5 py-3 mb-6 transition-colors hover:bg-foreground/20"
+      >
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-foreground/10">
+          <Smartphone className="h-5 w-5 text-foreground" />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-semibold text-foreground">Disponible sur iPhone</p>
+          <p className="text-xs text-muted-foreground">Téléchargez WineNote sur l'App Store</p>
+        </div>
+        <Download className="h-5 w-5 text-primary" />
+      </a>
+    );
+  }
+
+  if (platform === 'android') {
+    return (
+      <a
+        href={ANDROID_BETA_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-3 rounded-2xl bg-foreground/10 backdrop-blur-md border border-foreground/20 px-5 py-3 mb-6 transition-colors hover:bg-foreground/20"
+      >
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-foreground/10">
+          <Smartphone className="h-5 w-5 text-foreground" />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-semibold text-foreground">Bientôt disponible sur Android</p>
+          <p className="text-xs text-muted-foreground">Rejoignez notre programme de bêta test !</p>
+        </div>
+        <ArrowRight className="h-5 w-5 text-primary" />
+      </a>
+    );
+  }
+
+  return null;
+}
+
 export default function About() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -148,6 +211,12 @@ export default function About() {
               <Grape className="w-4 h-4 mr-2" />
               Bienvenue sur WineNote
             </Badge>
+
+            {/* Mobile App Banner — shown only on mobile */}
+            <div className="max-w-sm mx-auto">
+              <MobileAppBanner />
+            </div>
+
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6">
               Découvrez <span className="text-gradient-wine">WineNote</span>
             </h1>
@@ -346,7 +415,7 @@ export default function About() {
               <p className="text-lg text-muted-foreground mb-8">
                 Rejoignez une communauté passionnée et commencez votre voyage œnologique dès aujourd'hui.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
                 <Button 
                   size="lg" 
                   onClick={handleStartClick}
@@ -362,6 +431,38 @@ export default function About() {
                 >
                   Explorer les cours
                 </Button>
+              </div>
+
+              {/* Mobile App Download Section — always visible */}
+              <div className="pt-8 border-t border-border/50">
+                <div className="flex items-center justify-center gap-2 mb-5">
+                  <Smartphone className="h-5 w-5 text-primary" />
+                  <p className="text-sm font-semibold text-foreground">Également disponible sur mobile</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <a
+                    href={APP_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-5 py-3 text-sm font-medium transition-opacity hover:opacity-90"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
+                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                    </svg>
+                    Télécharger sur l'App Store
+                  </a>
+                  <a
+                    href={ANDROID_BETA_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
+                      <path d="M17.523 2.246a.625.625 0 0 0-.855.216l-1.249 2.12A7.867 7.867 0 0 0 12 3.88a7.867 7.867 0 0 0-3.42.702L7.332 2.462a.625.625 0 1 0-1.07.648l1.2 2.036A7.46 7.46 0 0 0 4 11.878h16a7.46 7.46 0 0 0-3.462-6.732l1.2-2.036a.625.625 0 0 0-.215-.864zM8.5 9.128a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75zm7 0a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75zM4 12.878v7a1 1 0 0 0 1 1h1v2.5a1.25 1.25 0 1 0 2.5 0v-2.5h5v2.5a1.25 1.25 0 1 0 2.5 0v-2.5h1a1 1 0 0 0 1-1v-7H4zm-2.25 0a1.25 1.25 0 0 0-1.25 1.25v4.5a1.25 1.25 0 1 0 2.5 0v-4.5a1.25 1.25 0 0 0-1.25-1.25zm20.5 0a1.25 1.25 0 0 0-1.25 1.25v4.5a1.25 1.25 0 1 0 2.5 0v-4.5a1.25 1.25 0 0 0-1.25-1.25z"/>
+                    </svg>
+                    Bêta Test Android
+                  </a>
+                </div>
               </div>
             </div>
           </div>

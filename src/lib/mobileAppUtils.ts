@@ -35,6 +35,7 @@ export function isMobileDevice(): boolean {
 // App Store URLs
 export const APP_STORE_URL = 'https://apps.apple.com/fr/app/wine-note-meet-share-learn/id6757152544';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.winenote.android';
+export const ANDROID_BETA_URL = 'https://play.google.com/apps/testing/com.jeangaspard.winenote';
 
 /**
  * Get the appropriate store URL for the current platform
