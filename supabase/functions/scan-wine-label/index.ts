@@ -21,6 +21,8 @@ interface WineLabelData {
   appellation_id: number | null;
   domain_created: boolean;
   appellation_created: boolean;
+  wine_id: string | null;
+  wine_matched: boolean;
 }
 
 // Limites de scans par rôle
@@ -381,6 +383,8 @@ IMPORTANT: Si le vin n'a pas de nom de cuvée distinct du domaine, mets le nom d
       appellation_id: null,
       domain_created: false,
       appellation_created: false,
+      wine_id: null,
+      wine_matched: false,
     };
 
     // Match or create domain if domain_name is present
@@ -491,6 +495,37 @@ IMPORTANT: Si le vin n'a pas de nom de cuvée distinct du domaine, mets le nom d
           console.log(`Created new appellation: ${newAppellation.nom} (${newAppellation.id})`);
         }
       }
+    }
+
+    // === PARTIE 2.5: Recherche de vin existant (seulement si domaine trouvé, pas créé) ===
+    if (
+      resultData.domain_id &&
+      !resultData.domain_created &&
+      resultData.year &&
+      finalWineName
+    ) {
+      console.log(`Searching existing wine: "${finalWineName}" in domain ${resultData.domain_id} for year ${resultData.year}`);
+      
+      const { data: matchedWines, error: wineSearchError } = await supabaseAdmin.rpc(
+        'search_existing_wine',
+        {
+          search_name: finalWineName,
+          p_domain_id: resultData.domain_id,
+          p_year: resultData.year,
+        }
+      );
+
+      if (wineSearchError) {
+        console.error('Wine search error:', wineSearchError);
+      } else if (matchedWines && matchedWines.length > 0) {
+        resultData.wine_id = matchedWines[0].id;
+        resultData.wine_matched = true;
+        console.log(`Found existing wine: ${matchedWines[0].name} (${matchedWines[0].year}) - similarity: ${matchedWines[0].sim}`);
+      } else {
+        console.log('No existing wine match found');
+      }
+    } else if (resultData.domain_created) {
+      console.log('Domain was newly created, skipping wine search');
     }
 
     // === PARTIE 3: Enregistrer le scan réussi ===

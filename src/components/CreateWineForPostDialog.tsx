@@ -35,6 +35,7 @@ export function CreateWineForPostDialog({
   const { canUseAI, loading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(false);
   const [isAIMode, setIsAIMode] = useState(false); // True when a scan was done
+  const [matchedWineId, setMatchedWineId] = useState<string | null>(null);
   const [name, setName] = useState(initialWineName);
   const [year, setYear] = useState('');
   const [volume, setVolume] = useState('750');
@@ -106,6 +107,13 @@ export function CreateWineForPostDialog({
     // Wine name (fallback to domain name if null)
     setName(data.wine_name || data.domain_name || '');
     
+    // Check for matched wine
+    if (data.wine_matched && data.wine_id) {
+      setMatchedWineId(data.wine_id);
+    } else {
+      setMatchedWineId(null);
+    }
+    
     // Domain already resolved by edge function
     if (data.domain_id && data.domain_name) {
       setSelectedDomain({ 
@@ -130,8 +138,8 @@ export function CreateWineForPostDialog({
       setWineType(typeMap[data.wine_type] || 1);
     }
     
-    // Pre-fill label image with the scanned photo
-    if (imageBase64) {
+    // Pre-fill label image with the scanned photo (only if not matched)
+    if (imageBase64 && !data.wine_matched) {
       setLabelPreview(imageBase64);
       // Convert base64 to File for upload
       try {
@@ -159,6 +167,30 @@ export function CreateWineForPostDialog({
     setLoading(true);
 
     try {
+      // If wine was matched, use existing wine instead of creating
+      if (matchedWineId) {
+        const { data: existingWine, error: fetchError } = await supabase
+          .from('wine')
+          .select(`
+            *,
+            domain:domain_id(id, name, region, logo_url)
+          `)
+          .eq('id', matchedWineId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        toast({
+          title: 'Succès',
+          description: 'Vin existant utilisé',
+        });
+
+        onWineCreated(existingWine);
+        onOpenChange(false);
+        resetForm();
+        return;
+      }
+
       let labelUrl = 'https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png';
 
       if (labelFile) {
@@ -231,6 +263,7 @@ export function CreateWineForPostDialog({
     setDomains([]);
     setSelectedDomain(null);
     setIsAIMode(false);
+    setMatchedWineId(null);
   };
 
   const [createDomainOpen, setCreateDomainOpen] = useState(false);
@@ -291,6 +324,7 @@ export function CreateWineForPostDialog({
                       onClick={() => {
                         setSelectedDomain(null);
                         setIsAIMode(false); // Allow manual mode again
+                        setMatchedWineId(null); // Reset wine match
                       }}
                     >
                       Changer
@@ -448,8 +482,10 @@ export function CreateWineForPostDialog({
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Création...
+                    {matchedWineId ? 'Chargement...' : 'Création...'}
                   </>
+                ) : matchedWineId ? (
+                  'Utiliser ce vin'
                 ) : (
                   'Créer la bouteille'
                 )}

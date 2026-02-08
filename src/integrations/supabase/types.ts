@@ -3627,6 +3627,16 @@ export type Database = {
           website_url: string
         }[]
       }
+      search_existing_wine: {
+        Args: { p_domain_id: string; p_year: number; search_name: string }
+        Returns: {
+          id: string
+          label_url: string
+          name: string
+          sim: number
+          year: number
+        }[]
+      }
       search_similar_appellation: {
         Args: { search_name: string; threshold?: number }
         Returns: {
