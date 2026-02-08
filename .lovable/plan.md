@@ -1,267 +1,134 @@
 
 
-# Plan : Systeme de Cles d'Invitation Premium
+# Plan : Corriger la Creation de Domaine dans les Formulaires de Vin
 
-## Resume
+## Probleme Identifie
 
-Ajout d'un systeme de codes d'invitation dans les parametres utilisateur. L'utilisateur entre un code, ce code lui attribue un role "premium" dans la table `user_roles`, ce qui debloque des fonctionnalites bonus (comme le scanner IA). Chaque cle a un quota d'utilisations, et on garde une trace de qui a utilise quelle cle.
+Le composant `CreateDomainDialog` est utilise dans 4 endroits differents de l'application, mais sa logique est inadaptee dans 3 cas sur 4.
 
----
+### Ce que fait `CreateDomainDialog` actuellement (le probleme) :
+1. Demande un **role** (Proprietaire / Administrateur / Employe)
+2. Cree une **demande d'adhesion** (`user_domain_application`) apres la creation du domaine
+3. Affiche le bouton "Ajouter **mon** domaine" (implique la possession)
+4. Propose un formulaire lourd : logo, description, role...
 
-## Architecture du Systeme
+C'est completement inadapte quand on veut simplement **enregistrer un domaine** pour l'associer a une bouteille. Ce n'est pas parce qu'on ajoute un vin de "Chateau Margaux" qu'on travaille pour ce domaine.
 
-```text
-FLUX UTILISATEUR
-
-Parametres du compte
-      |
-      v
-Onglet "Premium"  (nouveau)
-      |
-      v
-Champ "Code d'invitation"
-      |
-      v
-Edge Function: redeem-invite-key
-      |
-      +---> Verif: cle existe ?  ---> Non ---> Erreur "Code invalide"
-      |
-      +---> Verif: cle pas expiree ? ---> Expiree ---> Erreur "Code expire"
-      |
-      +---> Verif: quota restant ? ---> 0 ---> Erreur "Code epuise"
-      |
-      +---> Verif: user deja premium ? ---> Oui ---> Erreur "Deja actif"
-      |
-      +---> INSERT user_roles (user_id, role: 'premium')
-      |
-      +---> INSERT invite_key_usage (tracking)
-      |
-      +---> UPDATE invite_key (remaining_uses - 1)
-      |
-      v
-Succes : "Fonctionnalites premium activees !"
-```
+### Ce que fait `CreateDomainForGameDialog` (le bon modele) :
+1. Formulaire leger : **nom + region** uniquement
+2. Cree le domaine directement en base
+3. Retourne le domaine cree via callback
+4. Pas de role, pas de demande d'adhesion
 
 ---
 
-## Partie 1 : Base de Donnees
+## Cartographie des Usages
 
-### 1.1 Nouveau role dans l'enum `app_role`
-
-Ajout de la valeur `'premium'` a l'enum existant :
-
-```sql
-ALTER TYPE public.app_role ADD VALUE 'premium';
-```
-
-### 1.2 Table `invite_key` (les codes d'invitation)
-
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | uuid | Identifiant unique |
-| code | text | Le code d'invitation (unique, ex: "WINENOTE2026") |
-| description | text | Description interne (pour l'admin) |
-| role_granted | app_role | Le role attribue (default: 'premium') |
-| max_uses | integer | Nombre maximum d'utilisations |
-| remaining_uses | integer | Utilisations restantes |
-| expires_at | timestamptz | Date d'expiration (nullable) |
-| is_active | boolean | Active/desactivee manuellement |
-| created_by | uuid | L'admin qui a cree la cle |
-| created_at | timestamptz | Date de creation |
-
-**RLS :**
-- SELECT : super_admin uniquement
-- INSERT/UPDATE/DELETE : super_admin uniquement
-- Pas d'acces direct par les utilisateurs normaux (tout passe par Edge Function)
-
-### 1.3 Table `invite_key_usage` (tracking des utilisations)
-
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | uuid | Identifiant unique |
-| invite_key_id | uuid | Reference vers la cle utilisee |
-| user_id | uuid | L'utilisateur qui a utilise la cle |
-| redeemed_at | timestamptz | Date d'utilisation |
-
-**RLS :**
-- SELECT : l'utilisateur peut voir ses propres utilisations
-- INSERT/UPDATE/DELETE : interdit (gere par Edge Function en service_role)
-
-### 1.4 Resume SQL
-
-```sql
--- Nouveau role
-ALTER TYPE public.app_role ADD VALUE 'premium';
-
--- Table des cles
-CREATE TABLE public.invite_key (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  code text NOT NULL UNIQUE,
-  description text,
-  role_granted app_role NOT NULL DEFAULT 'premium',
-  max_uses integer NOT NULL DEFAULT 1,
-  remaining_uses integer NOT NULL DEFAULT 1,
-  expires_at timestamptz,
-  is_active boolean NOT NULL DEFAULT true,
-  created_by uuid REFERENCES auth.users(id),
-  created_at timestamptz DEFAULT now()
-);
-
--- Table de tracking
-CREATE TABLE public.invite_key_usage (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  invite_key_id uuid NOT NULL REFERENCES invite_key(id),
-  user_id uuid NOT NULL REFERENCES auth.users(id),
-  redeemed_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(invite_key_id, user_id)
-);
-
--- RLS sur les deux tables
--- + Index sur invite_key.code pour recherche rapide
-```
+| Fichier | Composant utilise | Contexte | Correct ? |
+|---------|-------------------|----------|-----------|
+| `UserDomains.tsx` | `CreateDomainDialog` | L'utilisateur gere **ses** domaines | OUI (role logique) |
+| `CreateWineForPostDialog.tsx` | `CreateDomainDialog` | Creation de vin pour un post | NON |
+| `AddWineDialog.tsx` (Cave) | `CreateDomainDialog` | Creation de vin pour une cave | NON |
+| `AddDomainToEventDialog.tsx` | `CreateDomainDialog` | Ajout de domaine a un evenement | NON |
+| `CreateWineForGameDialog.tsx` | `CreateDomainForGameDialog` | Creation de vin pour le jeu | OUI (modele correct) |
 
 ---
 
-## Partie 2 : Edge Function `redeem-invite-key`
+## Solution
 
-### Pourquoi une Edge Function ?
+### Etape 1 : Creer un composant generique `CreateDomainSimpleDialog`
 
-L'insertion dans `user_roles` est protegee par RLS (seuls les super_admin peuvent inserer). Donc un utilisateur normal ne peut pas s'ajouter un role directement. L'Edge Function utilise le `service_role` pour effectuer l'operation de maniere securisee apres validation.
+Un nouveau composant reutilisable base sur la logique de `CreateDomainForGameDialog`, avec une interface flexible pour etre utilise partout :
 
-### Logique de l'Edge Function
+- Champs : **Nom du domaine** (obligatoire) + **Region** (optionnelle, parmi les regions en base)
+- Region "Autre" avec champ libre si necessaire
+- Callback `onDomainCreated(domain)` qui retourne l'objet domaine cree
+- Props `open` / `onOpenChange` pour etre controle de l'exterieur
+- Optionnellement, prop `initialName` pour pre-remplir le nom depuis la recherche
 
-```text
-1. Verifier le JWT (authentification)
-2. Recevoir le code d'invitation
-3. Valider le code :
-   - Existe dans invite_key
-   - is_active = true
-   - remaining_uses > 0
-   - expires_at est null OU dans le futur
-4. Verifier que l'utilisateur n'a pas deja un role
-5. Verifier que l'utilisateur n'a pas deja utilise CE code
-6. En transaction :
-   a. INSERT dans user_roles (user_id, role)
-   b. INSERT dans invite_key_usage (tracking)
-   c. UPDATE invite_key SET remaining_uses = remaining_uses - 1
-7. Retourner succes avec le role attribue
-```
+### Etape 2 : Remplacer les usages problematiques
 
-### Codes d'erreur
+**Fichier `CreateWineForPostDialog.tsx` :**
+- Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog`
+- Le callback `onDomainCreated` selectionne directement le domaine cree (auto-selection)
 
-| Code HTTP | Code | Message |
-|-----------|------|---------|
-| 400 | INVALID_CODE | Code d'invitation invalide |
-| 400 | CODE_EXPIRED | Ce code a expire |
-| 400 | CODE_EXHAUSTED | Ce code a atteint sa limite d'utilisation |
-| 400 | ALREADY_PREMIUM | Vous avez deja un role actif |
-| 400 | ALREADY_USED | Vous avez deja utilise ce code |
+**Fichier `AddWineDialog.tsx` (Cave) :**
+- Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog`
+- Meme logique : apres creation, auto-selectionner le domaine
 
----
+**Fichier `AddDomainToEventDialog.tsx` :**
+- Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog`
+- Apres creation du domaine, relancer la recherche pour le retrouver
 
-## Partie 3 : Frontend
+### Etape 3 : Supprimer `CreateDomainForGameDialog`
 
-### 3.1 Nouveau composant `InviteKeyRedemption`
+Ce composant devient redondant puisque `CreateDomainSimpleDialog` fait exactement la meme chose. Le fichier `CreateWineForGameDialog.tsx` sera mis a jour pour utiliser le nouveau composant generique.
 
-**Fichier :** `src/components/InviteKeyRedemption.tsx`
+### Etape 4 : Garder `CreateDomainDialog` uniquement pour `UserDomains`
 
-Un composant simple avec :
-- Un champ texte pour entrer le code
-- Un bouton "Activer"
-- Affichage du statut actuel (premium ou non)
-- Messages de succes/erreur
-
-```text
-+------------------------------------------+
-|  Fonctionnalites Premium                  |
-|                                           |
-|  [Badge: Premium actif]  (si deja actif) |
-|  OU                                       |
-|  Entrez un code d'invitation :            |
-|  [____________] [Activer]                 |
-|                                           |
-|  Les fonctionnalites premium incluent :   |
-|  - Scanner IA d'etiquettes de vin         |
-|  - (futures fonctionnalites)              |
-+------------------------------------------+
-```
-
-### 3.2 Integration dans les Parametres
-
-**Fichier :** `src/pages/UserProfile.tsx`
-
-Ajout d'un 4eme onglet "Premium" dans le dialog des parametres :
-
-```text
-[Confidentialite] [Compte Stripe] [Mes revenus] [Premium]
-```
-
-Le contenu de l'onglet affiche le composant `InviteKeyRedemption`.
-
-### 3.3 Mise a jour du hook `useUserRole`
-
-Apres activation reussie d'un code, le hook doit se rafraichir pour que l'UI reflète immediatement le nouveau role (ex: le scanner IA devient accessible sans recharger la page).
+Le composant `CreateDomainDialog` avec sa logique de role et de demande d'adhesion reste pertinent **uniquement** dans la page "Mes domaines" (`UserDomains.tsx`). Aucune modification ici.
 
 ---
 
-## Partie 4 : Securite
-
-### Points cles
-
-1. **L'utilisateur ne peut PAS modifier `user_roles` directement** - RLS bloque tout sauf super_admin
-2. **L'Edge Function valide tout cote serveur** - impossible de tricher en appelant l'API directement sans code valide
-3. **Chaque code a un quota** - impossible de partager un code sans limite
-4. **Tracking complet** - on sait exactement qui a utilise quel code et quand
-5. **Les codes peuvent etre desactives** - `is_active = false` pour revoquer un code
-
-### Prevention des abus
-
-- Contrainte `UNIQUE(invite_key_id, user_id)` : un user ne peut pas utiliser le meme code deux fois
-- Contrainte `UNIQUE user_id` sur `user_roles` : un user n'a qu'un seul role
-- Verification du role existant avant insertion
-
----
-
-## Fichiers a Creer/Modifier
+## Fichiers a Creer / Modifier
 
 | Fichier | Action | Description |
 |---------|--------|-------------|
-| Migration SQL | CREER | Tables invite_key + invite_key_usage + enum premium |
-| `supabase/functions/redeem-invite-key/index.ts` | CREER | Edge Function de validation et attribution |
-| `src/components/InviteKeyRedemption.tsx` | CREER | Composant UI pour entrer le code |
-| `src/pages/UserProfile.tsx` | MODIFIER | Ajouter onglet "Premium" dans parametres |
-| `src/hooks/useUserRole.ts` | MODIFIER | Ajouter fonction refresh pour mise a jour immediate |
+| `src/components/CreateDomainSimpleDialog.tsx` | CREER | Nouveau composant leger (nom + region) |
+| `src/components/CreateWineForPostDialog.tsx` | MODIFIER | Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog` + auto-selection |
+| `src/components/AddWineDialog.tsx` | MODIFIER | Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog` + auto-selection |
+| `src/components/AddDomainToEventDialog.tsx` | MODIFIER | Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog` |
+| `src/components/game/CreateWineForGameDialog.tsx` | MODIFIER | Remplacer `CreateDomainForGameDialog` par `CreateDomainSimpleDialog` |
+| `src/components/game/CreateDomainForGameDialog.tsx` | SUPPRIMER | Remplace par le composant generique |
+
+---
+
+## Detail du Nouveau Composant
+
+```text
++------------------------------------------+
+|  Creer un nouveau domaine                 |
+|  Ajoutez les informations du domaine      |
+|                                           |
+|  Nom du domaine *                         |
+|  [____________________________]           |
+|                                           |
+|  Region viticole                          |
+|  [v Selectionnez une region     ]         |
+|                                           |
+|  (si "Autre" selectionne)                 |
+|  Nom de la region *                       |
+|  [____________________________]           |
+|                                           |
+|  [Annuler]        [Creer le domaine]      |
++------------------------------------------+
+```
+
+### Props du composant :
+
+```text
+CreateDomainSimpleDialog
+  - open: boolean
+  - onOpenChange: (open: boolean) => void
+  - onDomainCreated: (domain: { id, name, region, custom_region, logo_url }) => void
+  - initialName?: string  (pre-remplit le nom depuis la recherche)
+```
 
 ---
 
 ## Section Technique
 
-### Impact sur le systeme existant
+### Comportement apres creation dans chaque contexte
 
-Le scanner IA (`scan-wine-label`) verifie deja si l'utilisateur a un role dans `user_roles`. Le role `premium` sera automatiquement detecte sans modification de l'Edge Function existante, car la verification est :
+**Post / Cave :** Le domaine est immediatement selectionne dans le formulaire de creation de vin. L'utilisateur continue de remplir les champs du vin sans interruption.
 
-```typescript
-// scan-wine-label/index.ts (existant)
-const { data: userRole } = await supabaseAdmin
-  .from('user_roles')
-  .select('role')
-  .eq('user_id', userId)
-  .maybeSingle();
+**Evenement :** Apres creation du domaine, la recherche est relancee automatiquement pour le retrouver dans la liste, ou bien le domaine est directement selectionne.
 
-if (!userRole) { // Bloque si PAS de role
-  return 403;
-}
-```
+**Jeu :** Le domaine est selectionne et l'utilisateur passe directement a l'etape 2 (creation de la bouteille).
 
-Donc tout utilisateur avec un role (premium, admin, super_admin) aura automatiquement acces au scanner. Aucun changement necessaire dans `scan-wine-label`.
+### Ce qui ne change pas
 
-### Limites du scan par role (mise a jour)
-
-| Role | Scans/mois |
-|------|------------|
-| premium | 50 |
-| admin | 200 |
-| super_admin | Illimite |
-
-Le `SCAN_LIMITS` dans `scan-wine-label` sera mis a jour pour inclure `'premium': 50`.
+- `CreateDomainDialog` reste inchange et continue d'etre utilise dans `UserDomains.tsx` pour la gestion des domaines de l'utilisateur (avec role et demande d'adhesion)
+- Aucune modification de base de donnees necessaire
+- Aucune modification d'Edge Function necessaire
 
