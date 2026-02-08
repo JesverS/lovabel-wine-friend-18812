@@ -32,6 +32,7 @@ export function AddWineToDomainDialog({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [matchedWineId, setMatchedWineId] = useState<string | null>(null);
+  const [scannedImageBase64, setScannedImageBase64] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [year, setYear] = useState('');
   const [volume, setVolume] = useState('750');
@@ -136,6 +137,22 @@ export function AddWineToDomainDialog({
     setLabelFile(null);
     setLabelPreview('');
     setMatchedWineId(null);
+    setScannedImageBase64(null);
+  };
+
+  const handleDismissMatch = async () => {
+    setMatchedWineId(null);
+    if (scannedImageBase64) {
+      setLabelPreview(scannedImageBase64);
+      try {
+        const response = await fetch(scannedImageBase64);
+        const blob = await response.blob();
+        const file = new File([blob], 'etiquette.jpg', { type: 'image/jpeg' });
+        setLabelFile(file);
+      } catch (err) {
+        console.error('Failed to restore scanned image:', err);
+      }
+    }
   };
 
   return (
@@ -158,6 +175,7 @@ export function AddWineToDomainDialog({
         {canUseAI && !roleLoading && (
           <WineLabelScanner
             onScanComplete={async (data: WineLabelData, imageBase64: string | null) => {
+              if (imageBase64) setScannedImageBase64(imageBase64);
               if (data.wine_name) setName(data.wine_name);
               if (data.year) setYear(data.year.toString());
               if (data.volume_ml) setVolume(data.volume_ml.toString());
@@ -188,6 +206,7 @@ export function AddWineToDomainDialog({
                 }
               }
             }}
+            onDismissMatch={handleDismissMatch}
             disabled={loading}
           />
         )}

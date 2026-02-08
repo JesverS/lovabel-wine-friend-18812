@@ -36,6 +36,7 @@ export function CreateWineForPostDialog({
   const [loading, setLoading] = useState(false);
   const [isAIMode, setIsAIMode] = useState(false); // True when a scan was done
   const [matchedWineId, setMatchedWineId] = useState<string | null>(null);
+  const [scannedImageBase64, setScannedImageBase64] = useState<string | null>(null);
   const [name, setName] = useState(initialWineName);
   const [year, setYear] = useState('');
   const [volume, setVolume] = useState('750');
@@ -103,6 +104,7 @@ export function CreateWineForPostDialog({
 
   const handleScanComplete = async (data: WineLabelData, imageBase64: string | null) => {
     setIsAIMode(true);
+    if (imageBase64) setScannedImageBase64(imageBase64);
     
     // Wine name (fallback to domain name if null)
     setName(data.wine_name || data.domain_name || '');
@@ -264,6 +266,23 @@ export function CreateWineForPostDialog({
     setSelectedDomain(null);
     setIsAIMode(false);
     setMatchedWineId(null);
+    setScannedImageBase64(null);
+  };
+
+  const handleDismissMatch = async () => {
+    setMatchedWineId(null);
+    // Restore scanned image as label file
+    if (scannedImageBase64) {
+      setLabelPreview(scannedImageBase64);
+      try {
+        const response = await fetch(scannedImageBase64);
+        const blob = await response.blob();
+        const file = new File([blob], 'etiquette.jpg', { type: 'image/jpeg' });
+        setLabelFile(file);
+      } catch (err) {
+        console.error('Failed to restore scanned image:', err);
+      }
+    }
   };
 
   const [createDomainOpen, setCreateDomainOpen] = useState(false);
@@ -295,6 +314,7 @@ export function CreateWineForPostDialog({
               {canUseAI && !roleLoading && (
                 <WineLabelScanner
                   onScanComplete={handleScanComplete}
+                  onDismissMatch={handleDismissMatch}
                   disabled={loading}
                 />
               )}
