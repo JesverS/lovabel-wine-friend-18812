@@ -1,134 +1,98 @@
 
 
-# Plan : Corriger la Creation de Domaine dans les Formulaires de Vin
+# Plan : Promotion de l'App Mobile sur la Page About
 
-## Probleme Identifie
+## Resume
 
-Le composant `CreateDomainDialog` est utilise dans 4 endroits differents de l'application, mais sa logique est inadaptee dans 3 cas sur 4.
+Ajouter une section de promotion de l'application mobile sur la page About, avec un comportement adapte selon la plateforme :
+- **iOS** : Banniere visible + bouton "Telecharger sur l'App Store" qui redirige directement vers l'App Store
+- **Android** : Banniere visible + bouton "Rejoindre la beta test" qui redirige vers le lien de beta test Google Play
+- **Desktop** : Section statique avec les deux liens (App Store + Beta Android) affiches cote a cote
 
-### Ce que fait `CreateDomainDialog` actuellement (le probleme) :
-1. Demande un **role** (Proprietaire / Administrateur / Employe)
-2. Cree une **demande d'adhesion** (`user_domain_application`) apres la creation du domaine
-3. Affiche le bouton "Ajouter **mon** domaine" (implique la possession)
-4. Propose un formulaire lourd : logo, description, role...
-
-C'est completement inadapte quand on veut simplement **enregistrer un domaine** pour l'associer a une bouteille. Ce n'est pas parce qu'on ajoute un vin de "Chateau Margaux" qu'on travaille pour ce domaine.
-
-### Ce que fait `CreateDomainForGameDialog` (le bon modele) :
-1. Formulaire leger : **nom + region** uniquement
-2. Cree le domaine directement en base
-3. Retourne le domaine cree via callback
-4. Pas de role, pas de demande d'adhesion
+L'URL du Play Store dans `mobileAppUtils.ts` sera mise a jour avec le lien de beta test fourni.
 
 ---
 
-## Cartographie des Usages
+## Comportement Detaille
 
-| Fichier | Composant utilise | Contexte | Correct ? |
-|---------|-------------------|----------|-----------|
-| `UserDomains.tsx` | `CreateDomainDialog` | L'utilisateur gere **ses** domaines | OUI (role logique) |
-| `CreateWineForPostDialog.tsx` | `CreateDomainDialog` | Creation de vin pour un post | NON |
-| `AddWineDialog.tsx` (Cave) | `CreateDomainDialog` | Creation de vin pour une cave | NON |
-| `AddDomainToEventDialog.tsx` | `CreateDomainDialog` | Ajout de domaine a un evenement | NON |
-| `CreateWineForGameDialog.tsx` | `CreateDomainForGameDialog` | Creation de vin pour le jeu | OUI (modele correct) |
+### Sur iPhone (iOS detecte)
+1. **Redirection automatique** : A l'ouverture de la page About, l'utilisateur est redirige automatiquement vers la fiche App Store apres un court delai (~1 seconde), pour lui laisser le temps de voir la page
+2. **Banniere dans le hero** : Une banniere apparait en haut du hero avec le message "Disponible sur iPhone" et un bouton "Telecharger l'app" au cas ou la redirection automatique ne se declencherait pas
 
----
+### Sur Android
+1. **Pas de redirection automatique** (la beta n'est pas une app stable, on ne force pas)
+2. **Banniere dans le hero** : Un message "Bientot disponible sur Android" avec un bouton "Rejoindre la beta test" qui ouvre le lien Google Play Testing
 
-## Solution
-
-### Etape 1 : Creer un composant generique `CreateDomainSimpleDialog`
-
-Un nouveau composant reutilisable base sur la logique de `CreateDomainForGameDialog`, avec une interface flexible pour etre utilise partout :
-
-- Champs : **Nom du domaine** (obligatoire) + **Region** (optionnelle, parmi les regions en base)
-- Region "Autre" avec champ libre si necessaire
-- Callback `onDomainCreated(domain)` qui retourne l'objet domaine cree
-- Props `open` / `onOpenChange` pour etre controle de l'exterieur
-- Optionnellement, prop `initialName` pour pre-remplir le nom depuis la recherche
-
-### Etape 2 : Remplacer les usages problematiques
-
-**Fichier `CreateWineForPostDialog.tsx` :**
-- Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog`
-- Le callback `onDomainCreated` selectionne directement le domaine cree (auto-selection)
-
-**Fichier `AddWineDialog.tsx` (Cave) :**
-- Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog`
-- Meme logique : apres creation, auto-selectionner le domaine
-
-**Fichier `AddDomainToEventDialog.tsx` :**
-- Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog`
-- Apres creation du domaine, relancer la recherche pour le retrouver
-
-### Etape 3 : Supprimer `CreateDomainForGameDialog`
-
-Ce composant devient redondant puisque `CreateDomainSimpleDialog` fait exactement la meme chose. Le fichier `CreateWineForGameDialog.tsx` sera mis a jour pour utiliser le nouveau composant generique.
-
-### Etape 4 : Garder `CreateDomainDialog` uniquement pour `UserDomains`
-
-Le composant `CreateDomainDialog` avec sa logique de role et de demande d'adhesion reste pertinent **uniquement** dans la page "Mes domaines" (`UserDomains.tsx`). Aucune modification ici.
+### Sur Desktop
+1. **Section "Disponible sur mobile"** : Affichee apres le hero ou dans la section CTA, avec deux boutons/badges :
+   - Bouton App Store (lien iOS)
+   - Bouton "Beta Android" (lien beta test)
 
 ---
 
-## Fichiers a Creer / Modifier
+## Fichiers a Modifier
 
 | Fichier | Action | Description |
 |---------|--------|-------------|
-| `src/components/CreateDomainSimpleDialog.tsx` | CREER | Nouveau composant leger (nom + region) |
-| `src/components/CreateWineForPostDialog.tsx` | MODIFIER | Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog` + auto-selection |
-| `src/components/AddWineDialog.tsx` | MODIFIER | Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog` + auto-selection |
-| `src/components/AddDomainToEventDialog.tsx` | MODIFIER | Remplacer `CreateDomainDialog` par `CreateDomainSimpleDialog` |
-| `src/components/game/CreateWineForGameDialog.tsx` | MODIFIER | Remplacer `CreateDomainForGameDialog` par `CreateDomainSimpleDialog` |
-| `src/components/game/CreateDomainForGameDialog.tsx` | SUPPRIMER | Remplace par le composant generique |
-
----
-
-## Detail du Nouveau Composant
-
-```text
-+------------------------------------------+
-|  Creer un nouveau domaine                 |
-|  Ajoutez les informations du domaine      |
-|                                           |
-|  Nom du domaine *                         |
-|  [____________________________]           |
-|                                           |
-|  Region viticole                          |
-|  [v Selectionnez une region     ]         |
-|                                           |
-|  (si "Autre" selectionne)                 |
-|  Nom de la region *                       |
-|  [____________________________]           |
-|                                           |
-|  [Annuler]        [Creer le domaine]      |
-+------------------------------------------+
-```
-
-### Props du composant :
-
-```text
-CreateDomainSimpleDialog
-  - open: boolean
-  - onOpenChange: (open: boolean) => void
-  - onDomainCreated: (domain: { id, name, region, custom_region, logo_url }) => void
-  - initialName?: string  (pre-remplit le nom depuis la recherche)
-```
+| `src/lib/mobileAppUtils.ts` | MODIFIER | Ajouter la constante `ANDROID_BETA_URL` avec le lien de beta test |
+| `src/pages/About.tsx` | MODIFIER | Ajouter la banniere mobile dans le hero + section "Disponible sur mobile" + logique de redirection auto iOS |
 
 ---
 
 ## Section Technique
 
-### Comportement apres creation dans chaque contexte
+### Modification de `mobileAppUtils.ts`
 
-**Post / Cave :** Le domaine est immediatement selectionne dans le formulaire de creation de vin. L'utilisateur continue de remplir les champs du vin sans interruption.
+Ajout d'une nouvelle constante pour le lien de beta test Android :
 
-**Evenement :** Apres creation du domaine, la recherche est relancee automatiquement pour le retrouver dans la liste, ou bien le domaine est directement selectionne.
+```text
+APP_STORE_URL    = https://apps.apple.com/fr/app/wine-note-meet-share-learn/id6757152544
+ANDROID_BETA_URL = https://play.google.com/apps/testing/com.jeangaspard.winenote
+```
 
-**Jeu :** Le domaine est selectionne et l'utilisateur passe directement a l'etape 2 (creation de la bouteille).
+Le `PLAY_STORE_URL` existant reste inchange (il pourra servir quand l'app Android sera en production).
 
-### Ce qui ne change pas
+### Modification de `About.tsx`
 
-- `CreateDomainDialog` reste inchange et continue d'etre utilise dans `UserDomains.tsx` pour la gestion des domaines de l'utilisateur (avec role et demande d'adhesion)
-- Aucune modification de base de donnees necessaire
-- Aucune modification d'Edge Function necessaire
+**1. Redirection automatique iOS :**
+- Un `useEffect` detecte la plateforme via `getMobilePlatform()`
+- Si `ios` : redirection vers `APP_STORE_URL` apres 1 seconde de delai (pour que la page ait le temps de s'afficher)
+- Si `android` : pas de redirection automatique
+
+**2. Banniere mobile dans le hero (visible uniquement sur mobile) :**
+
+```text
+Sur iOS :
++--------------------------------------------------+
+|  Disponible sur iPhone                            |
+|  Telechargez WineNote pour une meilleure          |
+|  experience                                       |
+|  [Telecharger sur l'App Store]                    |
++--------------------------------------------------+
+
+Sur Android :
++--------------------------------------------------+
+|  Bientot disponible sur Android                   |
+|  Rejoignez notre programme de beta test           |
+|  et soyez parmi les premiers !                    |
+|  [Rejoindre la beta test]                         |
++--------------------------------------------------+
+```
+
+Cette banniere sera placee juste en dessous du badge "Bienvenue sur WineNote" dans le hero, avant le titre H1. Elle n'apparait que sur mobile (detection via `getMobilePlatform()`).
+
+**3. Section desktop "Disponible sur mobile" :**
+
+Ajoutee dans la section CTA existante (en bas de page), visible sur toutes les tailles d'ecran, avec deux boutons :
+- Icone Apple + "App Store"
+- Icone Android + "Beta Test Android"
+
+Les deux sont des liens externes (`<a href="..." target="_blank">`).
+
+### Points techniques complementaires
+
+- La detection de plateforme utilise `getMobilePlatform()` deja existant dans `mobileAppUtils.ts` (basee sur le `userAgent`)
+- La redirection iOS utilise `window.location.href` pour ouvrir la page App Store directement (pas un deep link, donc pas de fallback necessaire)
+- Le delai de 1 seconde avant redirection iOS permet a l'utilisateur de voir brievement la page et de comprendre ce qui se passe
+- Sur desktop, les deux liens sont toujours visibles pour permettre aux utilisateurs de decouvrir l'app depuis leur ordinateur
 
