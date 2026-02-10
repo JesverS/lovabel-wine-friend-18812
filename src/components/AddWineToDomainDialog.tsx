@@ -94,26 +94,29 @@ export function AddWineToDomainDialog({
         .from('domain')
         .getPublicUrl(filePath);
 
-      // Create wine
-      const { error: wineError } = await supabase
-        .from('wine')
-        .insert({
-          name: name.trim(),
-          year: year ? parseInt(year) : null,
-          domain_id: domainId,
-          volume_ml: parseInt(volume),
-          price: price ? parseFloat(price) : null,
-          description: description.trim() || null,
-          label_url: urlData.publicUrl,
-          alcohol_percentage: alcoholPercentage ? parseFloat(alcoholPercentage) : null,
-          stock: parseInt(stock),
-          type: wineType,
-          appellation_id: appellationId,
+      // Create wine via RPC (with duplicate check)
+      const { data: rpcResult, error: rpcError } = await supabase
+        .rpc('find_or_create_wine', {
+          p_name: name.trim(),
+          p_domain_id: domainId,
+          p_year: year ? parseInt(year) : null,
+          p_volume_ml: parseInt(volume),
+          p_price: price ? parseFloat(price) : null,
+          p_description: description.trim() || null,
+          p_label_url: urlData.publicUrl,
+          p_alcohol_percentage: alcoholPercentage ? parseFloat(alcoholPercentage) : null,
+          p_type: wineType,
+          p_appellation_id: appellationId,
         });
 
-      if (wineError) throw wineError;
+      if (rpcError) throw rpcError;
 
-      toast.success('Vin créé avec succès');
+      const result = rpcResult?.[0];
+      if (result?.was_created) {
+        toast.success('Vin créé avec succès');
+      } else {
+        toast.success('Vin existant utilisé');
+      }
       setOpen(false);
       resetForm();
       onWineCreated();

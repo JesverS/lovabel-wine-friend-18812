@@ -213,29 +213,35 @@ export function CreateWineForPostDialog({
         labelUrl = urlData.publicUrl;
       }
 
-      const { data: wineData, error: wineError } = await supabase
+      // Create wine via RPC (with duplicate check)
+      const { data: rpcResult, error: rpcError } = await supabase
+        .rpc('find_or_create_wine', {
+          p_name: name.trim(),
+          p_domain_id: selectedDomain.id,
+          p_year: year ? parseInt(year) : null,
+          p_volume_ml: parseInt(volume),
+          p_description: description.trim() || null,
+          p_label_url: labelUrl,
+          p_type: wineType,
+          p_appellation_id: appellationId,
+        });
+
+      if (rpcError) throw rpcError;
+
+      const result = rpcResult?.[0];
+
+      // Fetch full wine data with domain for onWineCreated callback
+      const { data: wineData, error: fetchError } = await supabase
         .from('wine')
-        .insert({
-          name: name.trim(),
-          year: year ? parseInt(year) : null,
-          domain_id: selectedDomain.id,
-          volume_ml: parseInt(volume),
-          description: description.trim() || null,
-          label_url: labelUrl,
-          type: wineType,
-          appellation_id: appellationId,
-        })
-        .select(`
-          *,
-          domain:domain_id(id, name, region, logo_url)
-        `)
+        .select(`*, domain:domain_id(id, name, region, logo_url)`)
+        .eq('id', result.wine_id)
         .single();
 
-      if (wineError) throw wineError;
+      if (fetchError) throw fetchError;
 
       toast({
         title: 'Succès',
-        description: 'Vin créé avec succès',
+        description: result.was_created ? 'Vin créé avec succès' : 'Vin existant utilisé',
       });
 
       onWineCreated(wineData);

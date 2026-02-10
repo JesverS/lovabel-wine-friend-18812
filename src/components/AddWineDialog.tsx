@@ -322,31 +322,30 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
 
       setUploadingImages(false);
 
-      // Create wine in registry
-      const { data: wineData, error: wineError } = await supabase
-        .from('wine')
-        .insert({
-          name: searchQuery,
-          year: year ? parseInt(year) : null,
-          domain_id: finalDomainId,
-          volume_ml: parseInt(volume),
-          price: price ? parseFloat(price) : null,
-          description,
-          label_url: domainUrlData.publicUrl,
-          type: wineType,
-          appellation_id: appellationId,
-        })
-        .select()
-        .single();
+      // Create wine via RPC (with duplicate check)
+      const { data: rpcResult, error: rpcError } = await supabase
+        .rpc('find_or_create_wine', {
+          p_name: searchQuery,
+          p_domain_id: finalDomainId,
+          p_year: year ? parseInt(year) : null,
+          p_volume_ml: parseInt(volume),
+          p_price: price ? parseFloat(price) : null,
+          p_description: description || null,
+          p_label_url: domainUrlData.publicUrl,
+          p_type: wineType,
+          p_appellation_id: appellationId,
+        });
 
-      if (wineError) throw wineError;
+      if (rpcError) throw rpcError;
+
+      const result = rpcResult?.[0];
 
       // Add wine to cellar
       const { error: cellarWineError } = await supabase
         .from('cellar_wine')
         .insert({
           cellar_id: cellarId,
-          wine_id: wineData.id,
+          wine_id: result.wine_id,
           domain_id: finalDomainId,
           quantity: parseInt(quantity),
           label_url: cellarUrlData.publicUrl,
@@ -356,7 +355,7 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
 
       toast({
         title: 'Succès',
-        description: 'Vin créé et ajouté à la cave',
+        description: result.was_created ? 'Vin créé et ajouté à la cave' : 'Vin existant ajouté à la cave',
       });
 
       setOpen(false);
