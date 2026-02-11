@@ -766,12 +766,12 @@ export default function UserProfile() {
           </TabsContent>
 
           <TabsContent value="favorites" className="mt-6">
-            {isOwnProfile ? (
-              <UserFavorites />
+            {isOwnProfile || canViewContent ? (
+              <UserFavorites userId={profile?.id} />
             ) : (
               <Card>
                 <CardContent className="p-8 text-center">
-                  <p className="text-muted-foreground">Les favoris ne sont visibles que par le propriétaire du profil</p>
+                  <p className="text-muted-foreground">Les favoris ne sont visibles que par le propriétaire du profil ou ses abonnés</p>
                 </CardContent>
               </Card>
             )}
