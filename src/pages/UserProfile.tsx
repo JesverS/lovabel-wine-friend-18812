@@ -754,12 +754,12 @@ export default function UserProfile() {
           </TabsContent>
 
           <TabsContent value="tastings" className="mt-6">
-            {isOwnProfile ? (
-              <UserTastings />
+            {isOwnProfile || canViewContent ? (
+              <UserTastings userId={profile?.id} />
             ) : (
               <Card>
                 <CardContent className="p-8 text-center">
-                  <p className="text-muted-foreground">Les dégustations ne sont visibles que par le propriétaire du profil</p>
+                  <p className="text-muted-foreground">Les dégustations ne sont visibles que par le propriétaire du profil ou ses abonnés</p>
                 </CardContent>
               </Card>
             )}
