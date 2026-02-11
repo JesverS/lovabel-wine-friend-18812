@@ -112,30 +112,33 @@ export function CreateWineForGameDialog({ open, onOpenChange, onWineCreated }: C
         data: { publicUrl },
       } = supabase.storage.from("domain").getPublicUrl(filePath);
 
-      // 2. Créer la bouteille avec is_playable = true
+      // 2. Créer ou réutiliser la bouteille via RPC anti-doublon
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('find_or_create_wine', {
+        p_name: wineData.name.trim(),
+        p_domain_id: selectedDomain.id,
+        p_year: wineData.year,
+        p_label_url: publicUrl,
+        p_type: wineData.wineType,
+        p_appellation_id: wineData.appellationId,
+        p_is_playable: true,
+        p_cepages: wineData.cepages ? { cepages: wineData.cepages } : null,
+      });
+
+      if (rpcError) throw rpcError;
+
+      const result = rpcResult?.[0];
+      if (!result) throw new Error("Aucun résultat retourné");
+
+      // Récupérer l'objet complet avec le domaine pour le callback
       const { data: wine, error: wineError } = await supabase
-        .from("wine")
-        .insert({
-          domain_id: selectedDomain.id,
-          name: wineData.name.trim(),
-          year: wineData.year,
-          label_url: publicUrl,
-          type: wineData.wineType,
-        is_playable: true,
-        cepages: wineData.cepages ? { cepages: wineData.cepages } : null,
-        appellation_id: wineData.appellationId,
-      })
-        .select(
-          `
-          id, name, year, label_url, type,
-          domain:domain_id(id, name, logo_url, region)
-        `,
-        )
+        .from('wine')
+        .select(`id, name, year, label_url, type, domain:domain_id(id, name, logo_url, region)`)
+        .eq('id', result.wine_id)
         .single();
 
       if (wineError) throw wineError;
 
-      toast.success("Bouteille créée avec succès !");
+      toast.success(result.was_created ? "Bouteille créée avec succès !" : "Vin existant utilisé");
 
       // 3. Callback avec la nouvelle bouteille
       onWineCreated(wine);
