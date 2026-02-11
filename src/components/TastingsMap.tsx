@@ -11,6 +11,7 @@ const MAPBOX_TOKEN = "pk.eyJ1IjoiamdzZWciLCJhIjoiY21pbTRiazJuMXVsajNjcXhhNWhwMHB
 
 interface TastingsMapProps {
   sourceFilter?: string | null;
+  userId?: string;
 }
 
 interface TastingLocation {
@@ -34,20 +35,21 @@ const SOURCE_COLORS = {
   spontaneous: "#ef4444", // Rouge
 };
 
-export default function TastingsMap({ sourceFilter }: TastingsMapProps) {
+export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) {
   const { user } = useAuth();
+  const targetUserId = userId || user?.id;
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [tastings, setTastings] = useState<TastingLocation[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!targetUserId) return;
 
     const fetchTastings = async () => {
       try {
         const { data, error } = await supabase.rpc("get_user_tastings_with_location", {
-          p_user_id: user.id,
+          p_user_id: targetUserId,
           p_source_filter: sourceFilter,
         });
 
@@ -63,7 +65,7 @@ export default function TastingsMap({ sourceFilter }: TastingsMapProps) {
     };
 
     fetchTastings();
-  }, [user, sourceFilter]);
+  }, [targetUserId, sourceFilter]);
 
   useEffect(() => {
     if (!mapContainer.current || !MAPBOX_TOKEN || tastings.length === 0) return;

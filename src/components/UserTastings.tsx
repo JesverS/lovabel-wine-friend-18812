@@ -67,8 +67,14 @@ const DOMAINS_PER_PAGE = 10;
 const EVENTS_PER_PAGE = 20;
 const CELLARS_PER_PAGE = 20;
 
-export const UserTastings = () => {
+interface UserTastingsProps {
+  userId?: string;
+}
+
+export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
   const { user } = useAuth();
+  const targetUserId = userId || user?.id;
+  const isOwnProfile = !userId || userId === user?.id;
   const [viewMode, setViewMode] = useState<ViewMode>('date');
   const [tastings, setTastings] = useState<TastingNote[]>([]);
   const [domains, setDomains] = useState<DomainGroup[]>([]);
@@ -85,7 +91,7 @@ export const UserTastings = () => {
   const [showSpontaneousDialog, setShowSpontaneousDialog] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (targetUserId) {
       setPage(0);
       setHasMore(true);
       
@@ -111,10 +117,10 @@ export const UserTastings = () => {
         }
       }
     }
-  }, [user, viewMode, selectedDomain, selectedEvent, selectedCellar, showDisliked]);
+  }, [targetUserId, viewMode, selectedDomain, selectedEvent, selectedCellar, showDisliked]);
 
   const fetchTastingsByDate = async (pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * TASTINGS_PER_PAGE;
@@ -123,7 +129,7 @@ export const UserTastings = () => {
     let query = supabase
       .from('user_wine_notice' as any)
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', targetUserId)
       .order('created_at', { ascending: false });
 
     if (!showDisliked) {
@@ -177,7 +183,7 @@ export const UserTastings = () => {
   };
 
   const fetchDomains = async (pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * DOMAINS_PER_PAGE;
@@ -186,7 +192,7 @@ export const UserTastings = () => {
     let query = supabase
       .from('user_wine_notice' as any)
       .select('wine_id')
-      .eq('user_id', user.id);
+      .eq('user_id', targetUserId);
 
     if (!showDisliked) {
       query = query.in('liked', [0, 1]);
@@ -238,7 +244,7 @@ export const UserTastings = () => {
   };
 
   const fetchTastingsByDomain = async (domainId: string, pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * TASTINGS_PER_PAGE;
@@ -261,7 +267,7 @@ export const UserTastings = () => {
     let query = supabase
       .from('user_wine_notice' as any)
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', targetUserId)
       .in('wine_id', wineIds)
       .order('created_at', { ascending: false });
 
@@ -315,7 +321,7 @@ export const UserTastings = () => {
   };
 
   const fetchEvents = async (pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * EVENTS_PER_PAGE;
@@ -324,7 +330,7 @@ export const UserTastings = () => {
     let noticeQuery = supabase
       .from('user_wine_notice' as any)
       .select('id')
-      .eq('user_id', user.id);
+      .eq('user_id', targetUserId);
 
     if (!showDisliked) {
       noticeQuery = noticeQuery.in('liked', [0, 1]);
@@ -390,7 +396,7 @@ export const UserTastings = () => {
   };
 
   const fetchCellars = async (pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * CELLARS_PER_PAGE;
@@ -399,7 +405,7 @@ export const UserTastings = () => {
     let noticeQuery = supabase
       .from('user_wine_notice' as any)
       .select('id')
-      .eq('user_id', user.id);
+      .eq('user_id', targetUserId);
 
     if (!showDisliked) {
       noticeQuery = noticeQuery.in('liked', [0, 1]);
@@ -462,7 +468,7 @@ export const UserTastings = () => {
   };
 
   const fetchTastingsByEvent = async (eventId: string, pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * TASTINGS_PER_PAGE;
@@ -484,7 +490,7 @@ export const UserTastings = () => {
     let query = supabase
       .from('user_wine_notice' as any)
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', targetUserId)
       .in('id', noticeIds)
       .order('created_at', { ascending: false });
 
@@ -538,7 +544,7 @@ export const UserTastings = () => {
   };
 
   const fetchTastingsByCellar = async (cellarId: string, pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * TASTINGS_PER_PAGE;
@@ -560,7 +566,7 @@ export const UserTastings = () => {
     let query = supabase
       .from('user_wine_notice' as any)
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', targetUserId)
       .in('id', noticeIds)
       .order('created_at', { ascending: false });
 
@@ -1130,7 +1136,7 @@ export const UserTastings = () => {
             ))}
           </div>
         ) : viewMode === 'map' ? (
-          <TastingsMap sourceFilter={null} />
+          <TastingsMap sourceFilter={null} userId={targetUserId} />
         ) : null}
 
         {loading && <p className="text-center py-4">Chargement...</p>}
@@ -1179,27 +1185,27 @@ export const UserTastings = () => {
         />
       )}
 
-      <SpontaneousTastingDialog
-        open={showSpontaneousDialog}
-        onOpenChange={setShowSpontaneousDialog}
-        onSuccess={() => {
-          // Recharger les données après ajout
-          if (viewMode === 'date') {
-            fetchTastingsByDate(0);
-          } else if (viewMode === 'map') {
-            // La carte se rechargera automatiquement
-          }
-        }}
-      />
+      {isOwnProfile && (
+        <>
+          <SpontaneousTastingDialog
+            open={showSpontaneousDialog}
+            onOpenChange={setShowSpontaneousDialog}
+            onSuccess={() => {
+              if (viewMode === 'date') {
+                fetchTastingsByDate(0);
+              }
+            }}
+          />
 
-      {/* Bouton flottant pour dégustation spontanée */}
-      <Button
-        onClick={() => setShowSpontaneousDialog(true)}
-        className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-50"
-        size="icon"
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
+          <Button
+            onClick={() => setShowSpontaneousDialog(true)}
+            className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-50"
+            size="icon"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        </>
+      )}
     </div>
   );
 };
