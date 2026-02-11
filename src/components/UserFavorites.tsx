@@ -40,8 +40,14 @@ interface DomainGroup {
 const WINES_PER_PAGE = 15;
 const DOMAINS_PER_PAGE = 10;
 
-export const UserFavorites = () => {
+interface UserFavoritesProps {
+  userId?: string;
+}
+
+export const UserFavorites = ({ userId }: UserFavoritesProps = {}) => {
   const { user } = useAuth();
+  const targetUserId = userId || user?.id;
+  const isOwnProfile = !userId || userId === user?.id;
   const [viewMode, setViewMode] = useState<ViewMode>('date');
   const [favorites, setFavorites] = useState<FavoriteWine[]>([]);
   const [domains, setDomains] = useState<DomainGroup[]>([]);
@@ -52,7 +58,7 @@ export const UserFavorites = () => {
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    if (user) {
+    if (targetUserId) {
       setPage(0);
       setHasMore(true);
       if (viewMode === 'date') {
@@ -63,10 +69,10 @@ export const UserFavorites = () => {
         fetchWinesByDomain(selectedDomain, 0);
       }
     }
-  }, [user, viewMode, selectedDomain]);
+  }, [targetUserId, viewMode, selectedDomain]);
 
   const fetchFavoritesByDate = async (pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * WINES_PER_PAGE;
@@ -75,7 +81,7 @@ export const UserFavorites = () => {
     const { data, error } = await supabase
       .from('user_favorite' as any)
       .select('wine_id, domain_id, created_at')
-      .eq('user_id', user.id)
+      .eq('user_id', targetUserId)
       .order('created_at', { ascending: false })
       .range(from, to);
 
@@ -115,7 +121,7 @@ export const UserFavorites = () => {
   };
 
   const fetchDomains = async (pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * DOMAINS_PER_PAGE;
@@ -124,7 +130,7 @@ export const UserFavorites = () => {
     const { data, error } = await supabase
       .from('user_favorite' as any)
       .select('domain_id')
-      .eq('user_id', user.id);
+      .eq('user_id', targetUserId);
 
     if (!error && data && data.length > 0) {
       const domainCounts = (data as any[]).reduce((acc: Record<string, number>, item: any) => {
@@ -164,7 +170,7 @@ export const UserFavorites = () => {
   };
 
   const fetchWinesByDomain = async (domainId: string, pageNum: number) => {
-    if (!user) return;
+    if (!targetUserId) return;
     setLoading(true);
 
     const from = pageNum * WINES_PER_PAGE;
@@ -173,7 +179,7 @@ export const UserFavorites = () => {
     const { data, error } = await supabase
       .from('user_favorite' as any)
       .select('wine_id, domain_id, created_at')
-      .eq('user_id', user.id)
+      .eq('user_id', targetUserId)
       .eq('domain_id', domainId)
       .order('created_at', { ascending: false })
       .range(from, to);
@@ -404,9 +410,8 @@ export const UserFavorites = () => {
         <WineDetailsDialog
           wine={selectedWine}
           onClose={() => setSelectedWine(null)}
-          onFavoriteRemoved={() => {
+          onFavoriteRemoved={isOwnProfile ? () => {
             setSelectedWine(null);
-            // Refresh the favorites list
             setPage(0);
             setHasMore(true);
             if (viewMode === "date") {
@@ -415,7 +420,7 @@ export const UserFavorites = () => {
               setDomains([]);
               fetchDomains(0);
             }
-          }}
+          } : undefined}
         />
       )}
     </div>
