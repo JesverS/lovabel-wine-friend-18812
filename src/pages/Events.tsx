@@ -17,6 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -380,9 +381,23 @@ const Events = () => {
             )}
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-32">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-                <p className="text-muted-foreground">Chargement...</p>
+              <div className="grid gap-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="p-4 md:p-6">
+                    <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+                      <Skeleton className="w-full md:w-32 h-48 md:h-32 rounded-lg flex-shrink-0" />
+                      <div className="flex-1 space-y-3">
+                        <Skeleton className="h-7 w-2/3" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <div className="flex gap-4 pt-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
               </div>
             ) : activeTab === 'public' ? (
               publicEvents.length === 0 ? (

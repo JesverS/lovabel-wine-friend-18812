@@ -8,6 +8,7 @@ import { Footer } from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MapPin, Store, Search } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -176,9 +177,33 @@ export default function Cellars() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <div className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
-          <p>Chargement des cavistes...</p>
-        </div>
+        <main className="container mx-auto px-4 py-24 flex-grow">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-12">
+              <Skeleton className="h-12 w-72 mx-auto mb-4" />
+              <Skeleton className="h-5 w-96 mx-auto" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i} className="border-2 overflow-hidden">
+                  <div className="h-2 bg-muted" />
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4 mb-6">
+                      <Skeleton className="w-20 h-20 rounded-full flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-6 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-2/3 mb-6" />
+                    <Skeleton className="h-10 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </main>
         <Footer />
       </div>
     );
