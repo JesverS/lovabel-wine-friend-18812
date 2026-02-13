@@ -113,7 +113,7 @@ export const Footer = () => {
 
         <div className="border-t border-primary-foreground/20 pt-8 text-center text-sm text-primary-foreground/60">
           <p>
-            © 2025 Wine Note. Tous droits réservés. L'abus d'alcool est dangereux pour la santé, à consommer avec
+            © 2026 Wine Note. Tous droits réservés. L'abus d'alcool est dangereux pour la santé, à consommer avec
             modération.
           </p>
         </div>
