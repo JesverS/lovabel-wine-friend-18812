@@ -92,6 +92,16 @@ export const Header = () => {
           >
             Game
           </Link>
+          <Link 
+            to="/feed" 
+            className={`text-sm font-medium transition-colors ${
+              isActive('/feed')
+                ? 'text-primary border-b-2 border-primary pb-1' 
+                : 'text-foreground hover:text-primary'
+            }`}
+          >
+            Feed
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3">
