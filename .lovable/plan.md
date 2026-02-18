@@ -1,77 +1,88 @@
 
 
-# Plan d'amelioration UX - 5 corrections
+# Plan d'implementation - Corrections UX critiques et importantes
 
-> Note : Mon audit precedent comportait 8 points. Le "probleme 9" n'existe pas dans la liste. Ce plan couvre donc les points **1, 6, 7 et 8**. Si vous pensiez a un autre point, n'hesitez pas a preciser.
+## 1. Error Boundary global (Probleme 1)
 
----
+Creer un composant `ErrorBoundary` en class component React (seule facon de capturer les erreurs de rendu). Il affichera une page de fallback avec le logo, un message d'erreur et un bouton "Recharger la page".
 
-## 1. Bouton CTA dans le Hero (probleme 1)
-
-Ajouter deux boutons d'action dans le Hero de la page d'accueil, sous le sous-titre actuel :
-
-- **"Decouvrir" / "Explorer"** : redirige vers `/learning` (ou `/events`)
-- **"Se connecter"** : visible uniquement pour les utilisateurs non connectes, redirige vers `/auth`
-
-Les boutons seront stylises avec les variantes existantes (`default` pour le CTA principal, `outline` avec fond semi-transparent pour le secondaire).
-
-**Fichier concerne** : `src/components/Hero.tsx`
+**Fichiers :**
+- Creer `src/components/ErrorBoundary.tsx`
+- Modifier `src/App.tsx` : envelopper le contenu dans `<ErrorBoundary>`
 
 ---
 
-## 2. Mise a jour du copyright (probleme 6)
+## 2. Labels d'onglets profil visiteur (Probleme 3)
 
-Remplacer "2025" par "2026" dans le footer.
+Remplacer tous les "Mes caves", "Mes domaines", "Mes evenements", "Mes degustations", "Mes favoris" par des labels conditionnels selon `isOwnProfile` :
 
-**Fichier concerne** : `src/components/Footer.tsx`
+| Actuel | Propre profil | Visite |
+|--------|--------------|--------|
+| Mes caves | Mes caves | Caves |
+| Mes domaines | Mes domaines | Domaines |
+| Mes evenements | Mes evenements | Evenements |
+| Mes degustations | Mes degustations | Degustations |
+| Mes favoris | Mes favoris | Favoris |
 
----
+Cela concerne les TabsTrigger desktop (ligne 519-524), le bouton hamburger mobile (lignes 417-421), et les labels du Drawer mobile (lignes 456-509).
 
-## 3. Squelettes de chargement pour Cellars et Events (probleme 7)
-
-Actuellement, les pages Cellars et Events affichent un simple texte "Chargement..." pendant le fetch. Remplacer par des squelettes (skeleton loaders) reprenant la forme des cartes affichees.
-
-- **Cellars** : grille de 4-6 cartes squelettes avec avatar rond, ligne de titre et ligne de localisation
-- **Events** : grille de 3-4 cartes squelettes avec rectangle pour la banniere, lignes de titre, date et lieu
-
-On reutilisera le composant `Skeleton` deja present dans `src/components/ui/skeleton.tsx`.
-
-**Fichiers concernes** : `src/pages/Cellars.tsx`, `src/pages/Events.tsx`
+**Fichier :** `src/pages/UserProfile.tsx`
 
 ---
 
-## 4. Barre de navigation fixe mobile (probleme 8)
+## 3. Onglet Domaines visible pour visiteurs (Probleme 4)
 
-Ajouter un composant `MobileBottomNav` affiche uniquement sur mobile (< 768px) avec 5 icones :
+Actuellement le contenu de l'onglet "Domaines" est bloque par `isOwnProfile`. Le rendre accessible selon `canViewContent`, de la meme maniere que les degustations et favoris. Le composant `UserDomains` devra accepter un `userId` optionnel pour afficher les domaines d'un autre utilisateur (en masquant les actions de creation/candidature).
 
-| Icone | Label | Route |
-|-------|-------|-------|
-| Home | Accueil | `/` |
-| Search | Recherche | `/search` |
-| MessageSquare | Feed | `/feed` |
-| Heart | Favoris | `/favorites` |
-| User | Profil | `/user/:slug` ou `/auth` |
-
-Comportement :
-- Fixe en bas de l'ecran, z-index eleve, fond avec glassmorphism
-- Icone active mise en surbrillance selon la route courante
-- Masque sur desktop (via `md:hidden`)
-- Un `padding-bottom` sera ajoute au body/layout pour eviter que le contenu soit cache derriere la barre
-
-**Fichiers concernes** :
-- Nouveau fichier : `src/components/MobileBottomNav.tsx`
-- `src/App.tsx` : integration du composant dans le layout global (a l'interieur du BrowserRouter)
+**Fichiers :**
+- `src/pages/UserProfile.tsx` : remplacer la condition `isOwnProfile` par `isOwnProfile || canViewContent`
+- `src/components/UserDomains.tsx` : ajouter prop `userId` optionnelle, masquer les boutons de creation si ce n'est pas son propre profil
 
 ---
 
-## Resume technique
+## 4. Lien Feed dans le header desktop (Probleme 5)
+
+Ajouter un lien "Feed" dans la navigation desktop du Header, entre "Game" et la barre de recherche.
+
+**Fichier :** `src/components/Header.tsx`
+
+---
+
+## 5. Skeleton loader pour le profil utilisateur (Probleme 6)
+
+Remplacer le texte "Chargement..." par un squelette qui reproduit la structure de la page profil : avatar rond, lignes de texte pour le nom et la description, puis un bloc pour les onglets.
+
+**Fichier :** `src/pages/UserProfile.tsx`
+
+---
+
+## 6. Page Auth : lien de retour a l'accueil (Probleme 12)
+
+Ajouter un lien cliquable sur le titre "Wine Note" en haut de la page `/auth` qui redirige vers `/`. Utiliser le composant `Link` existant.
+
+**Fichier :** `src/pages/Auth.tsx`
+
+---
+
+## Points non traites dans ce plan
+
+| Point | Raison |
+|-------|--------|
+| React Query sur toutes les pages (2) | Refactoring massif, a traiter par lot dans un plan dedie |
+| Rate limiting edge functions (8) | Infrastructure backend, plan dedie recommande |
+| Dark mode (9) | Necessite un ThemeProvider + audit visuel complet |
+| Internationalisation (11) | Chantier structurel majeur |
+
+---
+
+## Resume des fichiers
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/Hero.tsx` | Ajouter 2 boutons CTA (Decouvrir + Connexion conditionnel) |
-| `src/components/Footer.tsx` | Copyright 2025 vers 2026 |
-| `src/pages/Cellars.tsx` | Remplacer texte de chargement par grille de Skeleton |
-| `src/pages/Events.tsx` | Remplacer texte de chargement par grille de Skeleton |
-| `src/components/MobileBottomNav.tsx` | Nouveau composant barre de nav mobile |
-| `src/App.tsx` | Integrer MobileBottomNav |
+| `src/components/ErrorBoundary.tsx` | Nouveau composant ErrorBoundary |
+| `src/App.tsx` | Integrer ErrorBoundary autour du contenu |
+| `src/pages/UserProfile.tsx` | Labels conditionnels, domaines visibles, skeleton loader |
+| `src/components/UserDomains.tsx` | Prop userId, masquer actions non-proprietaire |
+| `src/components/Header.tsx` | Ajouter lien Feed |
+| `src/pages/Auth.tsx` | Lien retour accueil |
 
