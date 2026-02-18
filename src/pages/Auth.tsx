@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -246,7 +246,7 @@ export default function Auth() {
       </Helmet>
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-primary mb-2">Wine Note</h1>
+          <Link to="/" className="text-4xl font-bold text-primary mb-2 hover:opacity-80 transition-opacity inline-block">Wine Note</Link>
           <p className="text-muted-foreground">
             {isForgotPassword
               ? "Réinitialisation du mot de passe"

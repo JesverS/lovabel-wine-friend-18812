@@ -8,20 +8,26 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CreateDomainDialog } from '@/components/CreateDomainDialog';
 
-export function UserDomains() {
+interface UserDomainsProps {
+  userId?: string;
+}
+
+export function UserDomains({ userId }: UserDomainsProps) {
   const { user } = useAuth();
+  const effectiveUserId = userId || user?.id;
+  const isOwnProfile = !userId || userId === user?.id;
   const [domains, setDomains] = useState<any[]>([]);
   const [pendingApplications, setPendingApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
+    if (effectiveUserId) {
       fetchUserDomains();
     }
-  }, [user]);
+  }, [effectiveUserId]);
 
   const fetchUserDomains = async () => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     setLoading(true);
     
@@ -29,7 +35,7 @@ export function UserDomains() {
     const { data: userDomains } = await supabase
       .from('user_domain')
       .select('domain_id, domain(*), role')
-      .eq('user_id', user.id);
+      .eq('user_id', effectiveUserId);
 
     if (userDomains) {
       const domainsList = userDomains.map((ud: any) => ({
@@ -39,13 +45,16 @@ export function UserDomains() {
       setDomains(domainsList);
     }
 
-    // Récupérer les demandes en attente
-    const { data: applications } = await supabase
-      .from('user_domain_application')
-      .select('*, domain(*)')
-      .eq('user_id', user.id);
-
-    setPendingApplications(applications || []);
+    // Récupérer les demandes en attente (seulement pour son propre profil)
+    if (isOwnProfile && user) {
+      const { data: applications } = await supabase
+        .from('user_domain_application')
+        .select('*, domain(*)')
+        .eq('user_id', user.id);
+      setPendingApplications(applications || []);
+    } else {
+      setPendingApplications([]);
+    }
 
     setLoading(false);
   };
@@ -70,8 +79,8 @@ export function UserDomains() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Mes domaines</h2>
-        <CreateDomainDialog onDomainCreated={fetchUserDomains} />
+        <h2 className="text-2xl font-bold">{isOwnProfile ? 'Mes domaines' : 'Domaines'}</h2>
+        {isOwnProfile && <CreateDomainDialog onDomainCreated={fetchUserDomains} />}
       </div>
 
       {pendingApplications.length > 0 && (

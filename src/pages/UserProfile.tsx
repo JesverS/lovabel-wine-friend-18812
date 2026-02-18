@@ -11,6 +11,7 @@ import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users, Clock } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -210,8 +211,26 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Chargement...</p>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <main className="container mx-auto px-4 py-12 max-w-4xl pt-32 flex-grow">
+          <div className="bg-card rounded-lg border p-4 md:p-8 mb-8">
+            <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
+              <Skeleton className="w-20 h-20 md:w-24 md:h-24 rounded-full mx-auto md:mx-0" />
+              <div className="flex-1 space-y-3">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-6 gap-1">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 rounded-md" />
+            ))}
+          </div>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -414,11 +433,11 @@ export default function UserProfile() {
                     <Menu className="w-5 h-5" />
                     <span className="font-medium">
                       {activeTab === 'posts' && 'Posts'}
-                      {activeTab === 'cellars' && 'Mes caves'}
-                      {activeTab === 'domains' && 'Mes domaines'}
-                      {activeTab === 'events' && 'Mes événements'}
-                      {activeTab === 'tastings' && 'Mes dégustations'}
-                      {activeTab === 'favorites' && 'Mes favoris'}
+                      {activeTab === 'cellars' && (isOwnProfile ? 'Mes caves' : 'Caves')}
+                      {activeTab === 'domains' && (isOwnProfile ? 'Mes domaines' : 'Domaines')}
+                      {activeTab === 'events' && (isOwnProfile ? 'Mes événements' : 'Événements')}
+                      {activeTab === 'tastings' && (isOwnProfile ? 'Mes dégustations' : 'Dégustations')}
+                      {activeTab === 'favorites' && (isOwnProfile ? 'Mes favoris' : 'Favoris')}
                     </span>
                   </span>
                   <span className="text-muted-foreground text-sm">Changer</span>
@@ -453,7 +472,7 @@ export default function UserProfile() {
                     >
                       <Store className="w-6 h-6" />
                       <div className="flex-1 text-left">
-                        <div className="font-medium">Mes caves</div>
+                        <div className="font-medium">{isOwnProfile ? 'Mes caves' : 'Caves'}</div>
                         <div className="text-sm opacity-80">{cellars.length} cave(s)</div>
                       </div>
                     </button>
@@ -466,8 +485,8 @@ export default function UserProfile() {
                     >
                       <MapPin className="w-6 h-6" />
                       <div className="flex-1 text-left">
-                        <div className="font-medium">Mes domaines</div>
-                        <div className="text-sm opacity-80">Gérer mes domaines</div>
+                        <div className="font-medium">{isOwnProfile ? 'Mes domaines' : 'Domaines'}</div>
+                        <div className="text-sm opacity-80">{isOwnProfile ? 'Gérer mes domaines' : 'Domaines viticoles'}</div>
                       </div>
                     </button>
 
@@ -479,7 +498,7 @@ export default function UserProfile() {
                     >
                       <CalendarDays className="w-6 h-6" />
                       <div className="flex-1 text-left">
-                        <div className="font-medium">Mes événements</div>
+                        <div className="font-medium">{isOwnProfile ? 'Mes événements' : 'Événements'}</div>
                         <div className="text-sm opacity-80">{events.length} événement(s)</div>
                       </div>
                     </button>
@@ -492,7 +511,7 @@ export default function UserProfile() {
                     >
                       <Wine className="w-6 h-6" />
                       <div className="flex-1 text-left">
-                        <div className="font-medium">Mes dégustations</div>
+                        <div className="font-medium">{isOwnProfile ? 'Mes dégustations' : 'Dégustations'}</div>
                         <div className="text-sm opacity-80">Historique</div>
                       </div>
                     </button>
@@ -505,7 +524,7 @@ export default function UserProfile() {
                     >
                       <Heart className="w-6 h-6" />
                       <div className="flex-1 text-left">
-                        <div className="font-medium">Mes favoris</div>
+                        <div className="font-medium">{isOwnProfile ? 'Mes favoris' : 'Favoris'}</div>
                         <div className="text-sm opacity-80">Vins sauvegardés</div>
                       </div>
                     </button>
@@ -517,11 +536,11 @@ export default function UserProfile() {
             /* Tabs desktop */
             <TabsList className="grid w-full grid-cols-6 gap-1">
               <TabsTrigger value="posts">Posts</TabsTrigger>
-              <TabsTrigger value="cellars">Mes caves</TabsTrigger>
-              <TabsTrigger value="domains">Mes domaines</TabsTrigger>
-              <TabsTrigger value="events">Mes événements</TabsTrigger>
-              <TabsTrigger value="tastings">Mes dégustations</TabsTrigger>
-              <TabsTrigger value="favorites">Mes favoris</TabsTrigger>
+              <TabsTrigger value="cellars">{isOwnProfile ? 'Mes caves' : 'Caves'}</TabsTrigger>
+              <TabsTrigger value="domains">{isOwnProfile ? 'Mes domaines' : 'Domaines'}</TabsTrigger>
+              <TabsTrigger value="events">{isOwnProfile ? 'Mes événements' : 'Événements'}</TabsTrigger>
+              <TabsTrigger value="tastings">{isOwnProfile ? 'Mes dégustations' : 'Dégustations'}</TabsTrigger>
+              <TabsTrigger value="favorites">{isOwnProfile ? 'Mes favoris' : 'Favoris'}</TabsTrigger>
             </TabsList>
           )}
 
@@ -609,12 +628,18 @@ export default function UserProfile() {
           </TabsContent>
 
           <TabsContent value="domains" className="mt-6">
-            {isOwnProfile ? (
-              <UserDomains />
+            {isOwnProfile || canViewContent ? (
+              <UserDomains userId={profile?.id} />
             ) : (
               <Card>
                 <CardContent className="p-8 text-center">
-                  <p className="text-muted-foreground">Les domaines ne sont visibles que par le propriétaire du profil</p>
+                  <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">Profil privé</h3>
+                  <p className="text-muted-foreground">
+                    {followStatus === 'pending' 
+                      ? 'Votre demande d\'abonnement est en attente d\'approbation'
+                      : 'Suivez ce profil pour voir ses domaines'}
+                  </p>
                 </CardContent>
               </Card>
             )}
