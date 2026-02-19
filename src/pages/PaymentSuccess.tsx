@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, ExternalLink, Wine, AlertCircle } from "lucide-react";
 import { getEventDeepLink, getStoreUrl, isMobileDevice } from "@/lib/mobileAppUtils";
 
-type VerificationState = "verifying" | "success" | "pending" | "error";
+type VerificationState = "verifying" | "success" | "pending" | "processing" | "error";
 
 const MAX_VERIFICATION_RETRIES = 15; // 15 tentatives x 2s = 30 secondes max
 
@@ -68,17 +68,16 @@ export default function PaymentSuccess() {
 
         if (payment?.status === "completed") {
           setState("success");
-        } else if (payment?.status === "pending") {
-          // Payment still processing, retry with limit
-          if (currentRetry < MAX_VERIFICATION_RETRIES) {
-            setState("pending");
-            setRetryCount(currentRetry + 1);
-            setTimeout(() => verifyPayment(currentRetry + 1), 2000);
-          } else {
-            // Max retries reached - show success anyway (webhook might be delayed)
-            // User can refresh the app to check actual status
-            setState("success");
-          }
+          } else if (payment?.status === "pending") {
+            // Payment still processing, retry with limit
+            if (currentRetry < MAX_VERIFICATION_RETRIES) {
+              setState("pending");
+              setRetryCount(currentRetry + 1);
+              setTimeout(() => verifyPayment(currentRetry + 1), 2000);
+            } else {
+              // Max retries reached - show intermediate "processing" state
+              setState("processing");
+            }
         } else {
           setState("error");
         }
@@ -117,6 +116,42 @@ export default function PaymentSuccess() {
       }
     }
   };
+
+  // Processing state (max retries reached, webhook delayed)
+  if (state === "processing") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Helmet>
+          <title>Traitement en cours | Wine Note</title>
+        </Helmet>
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4">
+              <AlertCircle className="h-12 w-12 text-amber-500" />
+            </div>
+            <CardTitle>Paiement en cours de traitement</CardTitle>
+            <CardDescription>
+              Votre paiement a bien été reçu mais la confirmation prend plus de temps que prévu. 
+              Vous recevrez une notification dès que votre accès sera activé.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button 
+              onClick={handleOpenInApp}
+              className="w-full"
+              size="lg"
+            >
+              <ExternalLink className="mr-2 h-5 w-5" />
+              Vérifier dans l'app
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              Si le problème persiste, contactez notre support.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Verifying state
   if (state === "verifying" || state === "pending") {

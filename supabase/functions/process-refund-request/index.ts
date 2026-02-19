@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import Stripe from "https://esm.sh/stripe@14.21.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +28,7 @@ serve(async (req) => {
     );
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2023-10-16",
+      apiVersion: "2025-08-27.basil",
     });
 
     // Authentifier l'utilisateur
@@ -156,6 +156,27 @@ serve(async (req) => {
         })
         .eq("id", requestId);
 
+      // Notifier le participant du remboursement approuvé
+      const { data: eventData } = await supabaseAdmin
+        .from("event")
+        .select("name, slug")
+        .eq("id", refundRequest.event_id)
+        .single();
+
+      await supabaseAdmin.rpc("create_notification", {
+        p_user_id: refundRequest.user_id,
+        p_type: "refund_approved",
+        p_title: "Remboursement approuvé",
+        p_message: `Votre remboursement de ${Number(refundRequest.refund_amount).toFixed(2)}€ pour ${eventData?.name || "l'événement"} a été approuvé.`,
+        p_data: {
+          event_id: refundRequest.event_id,
+          event_slug: eventData?.slug,
+          refund_amount: refundRequest.refund_amount,
+        },
+      });
+
+      logStep("Notification envoyée au participant (approved)");
+
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -181,6 +202,27 @@ serve(async (req) => {
         .eq("id", requestId);
 
       logStep("Demande rejetée", { rejectionReason });
+
+      // Notifier le participant du rejet
+      const { data: rejEventData } = await supabaseAdmin
+        .from("event")
+        .select("name, slug")
+        .eq("id", refundRequest.event_id)
+        .single();
+
+      await supabaseAdmin.rpc("create_notification", {
+        p_user_id: refundRequest.user_id,
+        p_type: "refund_rejected",
+        p_title: "Remboursement refusé",
+        p_message: `Votre demande de remboursement pour ${rejEventData?.name || "l'événement"} a été refusée.${rejectionReason ? ` Motif : ${rejectionReason}` : ""}`,
+        p_data: {
+          event_id: refundRequest.event_id,
+          event_slug: rejEventData?.slug,
+          rejection_reason: rejectionReason || null,
+        },
+      });
+
+      logStep("Notification envoyée au participant (rejected)");
 
       return new Response(
         JSON.stringify({ 

@@ -66,7 +66,7 @@ serve(async (req) => {
     // Get event details with organizer - use admin client to bypass RLS for private events
     const { data: event, error: eventError } = await supabaseAdmin
       .from("event")
-      .select("id, name, price, currency, access_type, max_participants, organizer_id")
+      .select("id, name, price, currency, access_type, max_participants, organizer_id, start_date")
       .eq("id", eventId)
       .single();
 
@@ -79,6 +79,15 @@ serve(async (req) => {
     }
 
     logStep("Event found", { eventId: event.id, price: event.price, organizerId: event.organizer_id });
+
+    // Vérifier que l'événement n'est pas déjà passé
+    if (event.start_date && new Date(event.start_date) < new Date()) {
+      logStep("Event already started", { startDate: event.start_date });
+      return new Response(JSON.stringify({ error: "Cet événement est déjà passé ou en cours" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (event.access_type !== "paid") {
       return new Response(JSON.stringify({ error: "Cet événement n'est pas payant" }), {

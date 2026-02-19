@@ -50,10 +50,13 @@ export function EventPaymentButton({
     setLoading(true);
 
     try {
-      const currentUrl = window.location.href;
-      const separator = currentUrl.includes('?') ? '&' : '?';
-      const successUrl = `${currentUrl}${separator}payment=success`;
-      const cancelUrl = `${currentUrl}${separator}payment=cancelled`;
+      const url = new URL(window.location.href);
+      const successParams = new URLSearchParams(url.search);
+      successParams.set('payment', 'success');
+      const cancelParams = new URLSearchParams(url.search);
+      cancelParams.set('payment', 'cancelled');
+      const successUrl = `${url.origin}${url.pathname}?${successParams.toString()}`;
+      const cancelUrl = `${url.origin}${url.pathname}?${cancelParams.toString()}`;
 
       const { data, error } = await supabase.functions.invoke('create-event-checkout-session', {
         body: {
