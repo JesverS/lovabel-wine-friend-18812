@@ -1,77 +1,67 @@
 
 
-# Plan d'implementation - Corrections UX critiques et importantes
+# Plan de correction du systeme de paiement
 
-## 1. Error Boundary global (Probleme 1)
+## Problemes identifies et corrections
 
-Creer un composant `ErrorBoundary` en class component React (seule facon de capturer les erreurs de rendu). Il affichera une page de fallback avec le logo, un message d'erreur et un bouton "Recharger la page".
+### 1. Version Stripe incoherente dans `process-refund-request` (Bug)
 
-**Fichiers :**
-- Creer `src/components/ErrorBoundary.tsx`
-- Modifier `src/App.tsx` : envelopper le contenu dans `<ErrorBoundary>`
+`process-refund-request/index.ts` utilise `stripe@14.21.0` avec `apiVersion: "2023-10-16"` alors que toutes les autres fonctions utilisent `stripe@18.5.0` avec `apiVersion: "2025-08-27.basil"`. Cela peut provoquer des incompatibilites lors des appels API Stripe.
 
----
+**Correction** : Mettre a jour l'import et l'apiVersion pour etre coherent.
 
-## 2. Labels d'onglets profil visiteur (Probleme 3)
-
-Remplacer tous les "Mes caves", "Mes domaines", "Mes evenements", "Mes degustations", "Mes favoris" par des labels conditionnels selon `isOwnProfile` :
-
-| Actuel | Propre profil | Visite |
-|--------|--------------|--------|
-| Mes caves | Mes caves | Caves |
-| Mes domaines | Mes domaines | Domaines |
-| Mes evenements | Mes evenements | Evenements |
-| Mes degustations | Mes degustations | Degustations |
-| Mes favoris | Mes favoris | Favoris |
-
-Cela concerne les TabsTrigger desktop (ligne 519-524), le bouton hamburger mobile (lignes 417-421), et les labels du Drawer mobile (lignes 456-509).
-
-**Fichier :** `src/pages/UserProfile.tsx`
+**Fichier** : `supabase/functions/process-refund-request/index.ts` (lignes 3 et 31)
 
 ---
 
-## 3. Onglet Domaines visible pour visiteurs (Probleme 4)
+### 2. Fausse confirmation de paiement apres timeout (Bug UX)
 
-Actuellement le contenu de l'onglet "Domaines" est bloque par `isOwnProfile`. Le rendre accessible selon `canViewContent`, de la meme maniere que les degustations et favoris. Le composant `UserDomains` devra accepter un `userId` optionnel pour afficher les domaines d'un autre utilisateur (en masquant les actions de creation/candidature).
+`PaymentSuccess.tsx` affiche "Paiement reussi" apres 15 retries meme si le webhook n'a pas encore confirme. L'utilisateur croit avoir acces mais ce n'est pas garanti.
 
-**Fichiers :**
-- `src/pages/UserProfile.tsx` : remplacer la condition `isOwnProfile` par `isOwnProfile || canViewContent`
-- `src/components/UserDomains.tsx` : ajouter prop `userId` optionnelle, masquer les boutons de creation si ce n'est pas son propre profil
+**Correction** : Apres le max de retries, afficher un etat intermediaire "Paiement en cours de traitement" avec un bouton "Verifier dans l'app" au lieu de forcer le succes.
 
----
-
-## 4. Lien Feed dans le header desktop (Probleme 5)
-
-Ajouter un lien "Feed" dans la navigation desktop du Header, entre "Game" et la barre de recherche.
-
-**Fichier :** `src/components/Header.tsx`
+**Fichier** : `src/pages/PaymentSuccess.tsx`
 
 ---
 
-## 5. Skeleton loader pour le profil utilisateur (Probleme 6)
+### 3. Notification manquante apres traitement de remboursement (Fonctionnalite manquante)
 
-Remplacer le texte "Chargement..." par un squelette qui reproduit la structure de la page profil : avatar rond, lignes de texte pour le nom et la description, puis un bloc pour les onglets.
+Quand l'organisateur approuve ou rejette un remboursement, le participant n'est pas notifie. Il doit revenir manuellement verifier.
 
-**Fichier :** `src/pages/UserProfile.tsx`
+**Correction** : Ajouter des appels `create_notification` dans `process-refund-request` pour informer le participant du resultat (approuve avec montant rembourse, ou rejete avec motif).
 
----
-
-## 6. Page Auth : lien de retour a l'accueil (Probleme 12)
-
-Ajouter un lien cliquable sur le titre "Wine Note" en haut de la page `/auth` qui redirige vers `/`. Utiliser le composant `Link` existant.
-
-**Fichier :** `src/pages/Auth.tsx`
+**Fichier** : `supabase/functions/process-refund-request/index.ts`
 
 ---
 
-## Points non traites dans ce plan
+### 4. Pas de verification de la date de l'evenement (Faille logique)
+
+Aucune fonction ne verifie si `start_date` est dans le futur avant d'accepter un paiement. Un utilisateur pourrait payer pour un evenement deja passe.
+
+**Correction** : Ajouter une verification dans `create-event-checkout-session` et dans `reserve_event_spot` pour bloquer les paiements si l'evenement est passe.
+
+**Fichiers** :
+- `supabase/functions/create-event-checkout-session/index.ts`
+- Optionnel : ajouter la verification dans la fonction SQL `reserve_event_spot` via migration
+
+---
+
+### 5. URL de success/cancel fragile dans EventPaymentButton (Amelioration)
+
+L'utilisation de `window.location.href` avec ajout naif de `?payment=success` peut creer des URL invalides si des parametres existent deja.
+
+**Correction** : Utiliser `URL` API pour construire proprement l'URL avec les parametres.
+
+**Fichier** : `src/components/EventPaymentButton.tsx`
+
+---
+
+## Points non traites (risque faible)
 
 | Point | Raison |
 |-------|--------|
-| React Query sur toutes les pages (2) | Refactoring massif, a traiter par lot dans un plan dedie |
-| Rate limiting edge functions (8) | Infrastructure backend, plan dedie recommande |
-| Dark mode (9) | Necessite un ThemeProvider + audit visuel complet |
-| Internationalisation (11) | Chantier structurel majeur |
+| RLS SELECT sur event_payment | A verifier en base, mais PaymentSuccess utilise aussi user_event comme fallback |
+| cleanup-expired-payments sans auth | Risque negligeable, ne supprime que des records expires |
 
 ---
 
@@ -79,10 +69,8 @@ Ajouter un lien cliquable sur le titre "Wine Note" en haut de la page `/auth` qu
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/ErrorBoundary.tsx` | Nouveau composant ErrorBoundary |
-| `src/App.tsx` | Integrer ErrorBoundary autour du contenu |
-| `src/pages/UserProfile.tsx` | Labels conditionnels, domaines visibles, skeleton loader |
-| `src/components/UserDomains.tsx` | Prop userId, masquer actions non-proprietaire |
-| `src/components/Header.tsx` | Ajouter lien Feed |
-| `src/pages/Auth.tsx` | Lien retour accueil |
+| `supabase/functions/process-refund-request/index.ts` | Mise a jour Stripe version + ajout notifications |
+| `src/pages/PaymentSuccess.tsx` | Remplacer faux succes par etat intermediaire |
+| `supabase/functions/create-event-checkout-session/index.ts` | Verifier que l'evenement n'est pas passe |
+| `src/components/EventPaymentButton.tsx` | Construction URL propre |
 
