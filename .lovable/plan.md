@@ -1,76 +1,189 @@
 
 
-# Plan de correction du systeme de paiement
+# Plan : Notifications Push pour app React Native
 
-## Problemes identifies et corrections
+## Architecture globale
 
-### 1. Version Stripe incoherente dans `process-refund-request` (Bug)
+Le systeme repose sur 3 couches :
 
-`process-refund-request/index.ts` utilise `stripe@14.21.0` avec `apiVersion: "2023-10-16"` alors que toutes les autres fonctions utilisent `stripe@18.5.0` avec `apiVersion: "2025-08-27.basil"`. Cela peut provoquer des incompatibilites lors des appels API Stripe.
-
-**Correction** : Mettre a jour l'import et l'apiVersion pour etre coherent.
-
-**Fichier** : `supabase/functions/process-refund-request/index.ts` (lignes 3 et 31)
-
----
-
-### 2. Fausse confirmation de paiement apres timeout (Bug UX)
-
-`PaymentSuccess.tsx` affiche "Paiement reussi" apres 15 retries meme si le webhook n'a pas encore confirme. L'utilisateur croit avoir acces mais ce n'est pas garanti.
-
-**Correction** : Apres le max de retries, afficher un etat intermediaire "Paiement en cours de traitement" avec un bouton "Verifier dans l'app" au lieu de forcer le succes.
-
-**Fichier** : `src/pages/PaymentSuccess.tsx`
-
----
-
-### 3. Notification manquante apres traitement de remboursement (Fonctionnalite manquante)
-
-Quand l'organisateur approuve ou rejette un remboursement, le participant n'est pas notifie. Il doit revenir manuellement verifier.
-
-**Correction** : Ajouter des appels `create_notification` dans `process-refund-request` pour informer le participant du resultat (approuve avec montant rembourse, ou rejete avec motif).
-
-**Fichier** : `supabase/functions/process-refund-request/index.ts`
+```text
+App React Native
+  |
+  | (enregistre le device token via Supabase)
+  v
+Table push_notification_token (Supabase)
+  |
+  | (trigger sur INSERT dans table notification)
+  v
+Edge Function send-push-notification
+  |
+  | (appel HTTP)
+  v
+Firebase Cloud Messaging (FCM)
+  |
+  +---> APNs (iPhone)
+  +---> Google Push (Android)
+```
 
 ---
 
-### 4. Pas de verification de la date de l'evenement (Faille logique)
+## Ce que je peux implementer (cote Supabase)
 
-Aucune fonction ne verifie si `start_date` est dans le futur avant d'accepter un paiement. Un utilisateur pourrait payer pour un evenement deja passe.
+### 1. Table `push_notification_token`
 
-**Correction** : Ajouter une verification dans `create-event-checkout-session` et dans `reserve_event_spot` pour bloquer les paiements si l'evenement est passe.
+Migration SQL pour creer la table qui stocke les tokens des appareils :
 
-**Fichiers** :
-- `supabase/functions/create-event-checkout-session/index.ts`
-- Optionnel : ajouter la verification dans la fonction SQL `reserve_event_spot` via migration
+- `id` (uuid, PK)
+- `user_id` (uuid, FK vers auth.users)
+- `device_token` (text, unique)
+- `platform` (text : 'ios', 'android')
+- `created_at`, `updated_at`
+- Contrainte unique sur `(user_id, device_token)`
+- Politiques RLS : chaque utilisateur ne peut gerer que ses propres tokens
+
+### 2. Edge Function `send-push-notification`
+
+Fonction qui recoit un `user_id`, `title`, `body`, `data` et :
+- Recupere tous les tokens de l'utilisateur dans `push_notification_token`
+- Genere un access token OAuth2 a partir du compte de service Firebase (Google Service Account JSON)
+- Envoie via l'API FCM HTTP v1 (`https://fcm.googleapis.com/v1/projects/{project_id}/messages:send`)
+- Gere le nettoyage des tokens invalides (suppression si FCM retourne `UNREGISTERED`)
+
+### 3. Trigger automatique sur la table `notification`
+
+Un trigger SQL sur `AFTER INSERT` de la table `notification` qui appelle `send-push-notification` via `pg_net` (requete HTTP asynchrone). Chaque notification in-app declenchera automatiquement une notification push, sans aucune modification des fonctions existantes.
+
+### 4. Endpoint pour enregistrer/supprimer les tokens
+
+L'Edge Function `send-push-notification` gerera aussi un mode `register` et `unregister` pour que l'app native puisse enregistrer ou supprimer un token (ou l'app peut directement inserer/supprimer dans la table via le SDK Supabase).
 
 ---
 
-### 5. URL de success/cancel fragile dans EventPaymentButton (Amelioration)
+## Ce que vous devez faire (cote config + app native)
 
-L'utilisation de `window.location.href` avec ajout naif de `?payment=success` peut creer des URL invalides si des parametres existent deja.
+### Etape 1 : Configurer Firebase
 
-**Correction** : Utiliser `URL` API pour construire proprement l'URL avec les parametres.
+1. Aller sur [Firebase Console](https://console.firebase.google.com)
+2. Creer un projet (ou utiliser un existant)
+3. Activer Cloud Messaging
+4. **Pour iOS** : Uploader votre cle APNs (.p8) dans Firebase > Project Settings > Cloud Messaging > Apple app configuration
+5. **Pour Android** : Telecharger `google-services.json` et l'ajouter au projet Android
+6. Telecharger le fichier JSON du compte de service : Firebase > Project Settings > Service Accounts > Generate new private key
 
-**Fichier** : `src/components/EventPaymentButton.tsx`
+### Etape 2 : Me fournir le secret
+
+Me donner le contenu du fichier JSON du compte de service Firebase. Je le stockerai comme secret Supabase (`FIREBASE_SERVICE_ACCOUNT_KEY`) accessible uniquement par les Edge Functions.
+
+### Etape 3 : Code React Native (a implementer dans votre codebase native)
+
+#### Installation des dependances
+
+```bash
+# Si vous utilisez react-native-firebase
+npm install @react-native-firebase/app @react-native-firebase/messaging
+cd ios && pod install
+```
+
+#### Enregistrement du token
+
+```typescript
+// Dans votre app React Native
+import messaging from '@react-native-firebase/messaging';
+import { supabase } from './supabaseClient';
+
+// Demander la permission (iOS)
+async function requestPermission() {
+  const authStatus = await messaging().requestPermission();
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+  return enabled;
+}
+
+// Enregistrer le token
+async function registerPushToken() {
+  const permitted = await requestPermission();
+  if (!permitted) return;
+
+  const token = await messaging().getToken();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !token) return;
+
+  // Upsert dans push_notification_token
+  await supabase
+    .from('push_notification_token')
+    .upsert({
+      user_id: user.id,
+      device_token: token,
+      platform: Platform.OS, // 'ios' ou 'android'
+    }, { onConflict: 'device_token' });
+}
+
+// Ecouter le rafraichissement du token
+messaging().onTokenRefresh(async (newToken) => {
+  // Meme logique d'upsert avec le nouveau token
+});
+```
+
+#### Gestion des notifications recues
+
+```typescript
+// Notification recue en foreground
+messaging().onMessage(async (remoteMessage) => {
+  // Afficher une alerte ou un toast in-app
+});
+
+// Notification cliquee (app en background)
+messaging().onNotificationOpenedApp((remoteMessage) => {
+  // Naviguer vers le bon ecran selon remoteMessage.data
+  // Ex: si data.event_slug -> naviguer vers l'evenement
+});
+
+// App ouverte via notification (app fermee)
+messaging()
+  .getInitialNotification()
+  .then((remoteMessage) => {
+    if (remoteMessage) {
+      // Meme logique de navigation
+    }
+  });
+```
+
+#### Desinscription a la deconnexion
+
+```typescript
+async function unregisterPushToken() {
+  const token = await messaging().getToken();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !token) return;
+
+  await supabase
+    .from('push_notification_token')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('device_token', token);
+}
+```
 
 ---
 
-## Points non traites (risque faible)
+## Resume de la repartition
 
-| Point | Raison |
-|-------|--------|
-| RLS SELECT sur event_payment | A verifier en base, mais PaymentSuccess utilise aussi user_event comme fallback |
-| cleanup-expired-payments sans auth | Risque negligeable, ne supprime que des records expires |
+| Tache | Qui | Details |
+|-------|-----|---------|
+| Table `push_notification_token` + RLS | Moi | Migration SQL |
+| Edge Function `send-push-notification` | Moi | Code Deno complet |
+| Trigger sur table `notification` | Moi | SQL avec pg_net |
+| Config `supabase/config.toml` | Moi | Ajout de la fonction |
+| Creer projet Firebase + configurer APNs | Vous | Console Firebase |
+| Fournir le JSON du compte de service | Vous | Je le stocke en secret |
+| Code React Native (token + listeners) | Vous | Copier le code ci-dessus dans l'app |
+| Config iOS (capabilities Push) | Vous | Xcode > Signing & Capabilities |
+| Config Android (google-services.json) | Vous | Ajouter au projet Android |
 
 ---
 
-## Resume des fichiers
+## Prochaine etape
 
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/process-refund-request/index.ts` | Mise a jour Stripe version + ajout notifications |
-| `src/pages/PaymentSuccess.tsx` | Remplacer faux succes par etat intermediaire |
-| `supabase/functions/create-event-checkout-session/index.ts` | Verifier que l'evenement n'est pas passe |
-| `src/components/EventPaymentButton.tsx` | Construction URL propre |
+Des que vous aurez configure Firebase et que vous me fournirez le JSON du compte de service, je pourrai implementer toute la partie Supabase (table, Edge Function, trigger).
 
