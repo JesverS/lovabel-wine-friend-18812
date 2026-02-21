@@ -119,3 +119,6 @@ verify_jwt = true
 
 [functions.redeem-invite-key]
 verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = false
