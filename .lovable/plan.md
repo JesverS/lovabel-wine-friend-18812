@@ -1,20 +1,14 @@
 
 
-# Correction du trigger de notifications push
+# Correction du trigger push notification + guide Firebase
 
-## Probleme identifie
+## Probleme 1 : Migration non appliquee
 
-Le trigger `trigger_push_on_notification_insert` appelle `extensions.http_post()`, une fonction de l'extension PostgreSQL `http`. Or, **cette extension n'est pas installee** sur votre projet Supabase -- seule `pg_net` l'est.
+Le trigger `trigger_send_push_notification()` utilise toujours `extensions.http_post()` qui n'est pas installe. La migration approuvee precedemment n'a pas ete executee.
 
-Le trigger echoue donc a chaque insertion, mais l'erreur est avalee silencieusement par le bloc `EXCEPTION WHEN OTHERS THEN RETURN NEW`, ce qui fait que l'insertion dans `notification` reussit mais aucun appel HTTP n'est jamais envoye.
+### Action requise
 
-## Solution
-
-Remplacer la fonction trigger pour utiliser `net.http_post()` de `pg_net` au lieu de `extensions.http_post()`.
-
-## Details techniques
-
-La migration SQL suivante sera appliquee :
+Appliquer la migration SQL suivante pour remplacer la fonction trigger :
 
 ```sql
 CREATE OR REPLACE FUNCTION public.trigger_send_push_notification()
@@ -56,14 +50,27 @@ $function$;
 
 ### Changements cles
 
-1. **`net.http_post()` remplace `extensions.http_post()`** -- utilise pg_net qui est bien installe
-2. **Le parametre `body` est passe en `jsonb`** directement (pg_net l'accepte nativement, pas besoin de `::text`)
-3. **L'URL est en dur** pour eviter la dependance a `app.settings.supabase_url` qui peut etre null
-4. **Le `service_role_key`** est recupere via `current_setting('supabase.service_role_key', true)` qui est disponible nativement dans les triggers Supabase
+- `net.http_post()` remplace `extensions.http_post()` (pg_net est installe, http ne l'est pas)
+- Le body est passe en `jsonb` directement (pg_net l'accepte nativement)
+- L'URL est en dur pour eviter la dependance a `app.settings.supabase_url`
+- Le `service_role_key` est recupere via `current_setting('supabase.service_role_key', true)`
 
-### Verification apres correction
+## Probleme 2 : Format du secret FIREBASE_SERVICE_ACCOUNT_KEY
 
-Apres la migration, vous pourrez tester avec :
+Le secret doit etre le contenu brut du fichier JSON telecharge depuis Firebase Console :
+
+1. Firebase Console -> Parametres du projet -> Comptes de service -> Generer une nouvelle cle privee
+2. Copier le contenu entier du fichier JSON telecharge
+3. Le coller tel quel dans Supabase -> Settings -> Edge Functions -> Secrets sous le nom `FIREBASE_SERVICE_ACCOUNT_KEY`
+
+### Regles importantes
+
+- La valeur doit commencer par `{` et finir par `}`
+- Les `\n` dans le champ `private_key` doivent etre conserves (le code les retire avant decodage)
+- Les marqueurs `-----BEGIN PRIVATE KEY-----` et `-----END PRIVATE KEY-----` doivent etre presents
+- Coller tout en une seule ligne continue (pas de retours a la ligne reels dans le champ du secret)
+
+## Verification apres les deux corrections
 
 ```sql
 INSERT INTO notification (user_id, type, title, message, data)
@@ -76,5 +83,5 @@ VALUES (
 );
 ```
 
-Puis verifier les logs de l'Edge Function `send-push-notification` -- cette fois, des logs devraient apparaitre.
+Puis verifier les logs de l'Edge Function `send-push-notification` pour confirmer que l'appel est bien recu et traite.
 
