@@ -10,18 +10,12 @@ const corsHeaders = {
 let cachedAccessToken: string | null = null;
 let tokenExpiresAt = 0;
 
-/**
- * Génère un JWT signé pour l'API Google OAuth2
- * à partir du compte de service Firebase
- */
 async function getAccessToken(serviceAccount: {
   client_email: string;
   private_key: string;
   token_uri: string;
 }): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-
-  // Utiliser le cache si le token est encore valide
   if (cachedAccessToken && now < tokenExpiresAt - 60) {
     return cachedAccessToken;
   }
@@ -35,7 +29,6 @@ async function getAccessToken(serviceAccount: {
     exp: now + 3600,
   };
 
-  // Encoder en base64url
   const encode = (obj: unknown) =>
     btoa(JSON.stringify(obj))
       .replace(/\+/g, "-")
@@ -44,7 +37,6 @@ async function getAccessToken(serviceAccount: {
 
   const unsignedToken = `${encode(header)}.${encode(payload)}`;
 
-  // Importer la clé privée RSA
   const pemContents = serviceAccount.private_key
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
@@ -60,7 +52,6 @@ async function getAccessToken(serviceAccount: {
     ["sign"]
   );
 
-  // Signer le JWT
   const signature = await crypto.subtle.sign(
     "RSASSA-PKCS1-v1_5",
     cryptoKey,
@@ -74,7 +65,6 @@ async function getAccessToken(serviceAccount: {
     .replace(/\//g, "_")
     .replace(/=+$/, "")}`;
 
-  // Échanger le JWT contre un access token
   const tokenResponse = await fetch(serviceAccount.token_uri, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -93,9 +83,6 @@ async function getAccessToken(serviceAccount: {
   return cachedAccessToken!;
 }
 
-/**
- * Envoie une notification push via FCM HTTP v1
- */
 async function sendToFCM(
   accessToken: string,
   projectId: string,
@@ -106,7 +93,6 @@ async function sendToFCM(
 ): Promise<{ success: boolean; error?: string; unregistered?: boolean }> {
   const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
 
-  // Convertir toutes les valeurs data en string (FCM l'exige)
   const stringData: Record<string, string> = {};
   for (const [key, value] of Object.entries(data)) {
     stringData[key] =
@@ -151,7 +137,6 @@ async function sendToFCM(
     const errorBody = await response.json();
     const errorCode = errorBody?.error?.details?.[0]?.errorCode;
 
-    // Token invalide ou expiré → à nettoyer
     if (
       errorCode === "UNREGISTERED" ||
       errorCode === "INVALID_ARGUMENT" ||
@@ -169,6 +154,32 @@ async function sendToFCM(
   }
 }
 
+// Types de notifications configurables
+const CONFIGURABLE_TYPES = [
+  "post_like", "post_comment", "mention", "follow_request",
+  "new_follower", "follow_accepted", "event_join",
+  "event_access_request", "event_invitation",
+  "cellar_invitation", "refund_request",
+];
+
+/**
+ * Vérifie si un type de notification est activé pour un token donné.
+ * Fallback : préférences globales (token_id IS NULL), puis true par défaut.
+ */
+function isTypeEnabled(
+  type: string,
+  devicePrefs: Record<string, boolean> | null,
+  globalPrefs: Record<string, boolean> | null
+): boolean {
+  if (!CONFIGURABLE_TYPES.includes(type)) return true;
+
+  // Priorité : prefs device > prefs globales > true
+  const prefs = devicePrefs ?? globalPrefs;
+  if (!prefs) return true;
+
+  return prefs[type] !== false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -184,7 +195,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Charger le service account Firebase
+    const notificationType = data?.type || "";
+
     const serviceAccountJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_KEY");
     if (!serviceAccountJson) {
       console.error("FIREBASE_SERVICE_ACCOUNT_KEY non configuré");
@@ -197,7 +209,6 @@ Deno.serve(async (req) => {
     const serviceAccount = JSON.parse(serviceAccountJson);
     const projectId = serviceAccount.project_id;
 
-    // Client Supabase admin pour lire les tokens
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -218,21 +229,52 @@ Deno.serve(async (req) => {
     }
 
     if (!tokens || tokens.length === 0) {
-      // Pas de tokens = l'utilisateur n'a pas l'app installée, pas une erreur
       return new Response(
         JSON.stringify({ success: true, sent: 0, message: "Aucun token enregistré" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Obtenir l'access token OAuth2
+    // Récupérer les préférences de notification (globales + par device)
+    const tokenIds = tokens.map((t) => t.id);
+    const { data: allPrefs } = await supabaseAdmin
+      .from("notification_preferences")
+      .select("token_id, post_like, post_comment, mention, follow_request, new_follower, follow_accepted, event_join, event_access_request, event_invitation, cellar_invitation, refund_request")
+      .eq("user_id", user_id);
+
+    // Séparer prefs globales et par device
+    let globalPrefs: Record<string, boolean> | null = null;
+    const devicePrefsMap = new Map<string, Record<string, boolean>>();
+
+    if (allPrefs) {
+      for (const pref of allPrefs) {
+        const prefObj: Record<string, boolean> = {};
+        for (const key of CONFIGURABLE_TYPES) {
+          if (key in pref) {
+            prefObj[key] = (pref as any)[key];
+          }
+        }
+        if (pref.token_id === null) {
+          globalPrefs = prefObj;
+        } else {
+          devicePrefsMap.set(pref.token_id, prefObj);
+        }
+      }
+    }
+
     const accessToken = await getAccessToken(serviceAccount);
 
-    // Envoyer à chaque token
     const results = [];
     const tokensToDelete: string[] = [];
 
     for (const token of tokens) {
+      // Vérifier les préférences pour ce device
+      const devicePrefs = devicePrefsMap.get(token.id) || null;
+      if (!isTypeEnabled(notificationType, devicePrefs, globalPrefs)) {
+        results.push({ token_id: token.id, platform: token.platform, success: false, skipped: true, reason: "disabled_by_preferences" });
+        continue;
+      }
+
       const result = await sendToFCM(
         accessToken,
         projectId,
@@ -244,7 +286,6 @@ Deno.serve(async (req) => {
 
       results.push({ token_id: token.id, platform: token.platform, ...result });
 
-      // Marquer les tokens invalides pour suppression
       if (result.unregistered) {
         tokensToDelete.push(token.id);
       }
@@ -265,12 +306,13 @@ Deno.serve(async (req) => {
     }
 
     const sent = results.filter((r) => r.success).length;
+    const skipped = results.filter((r) => (r as any).skipped).length;
     console.log(
-      `Push envoyé à ${sent}/${tokens.length} appareil(s) pour user ${user_id}`
+      `Push envoyé à ${sent}/${tokens.length} appareil(s) pour user ${user_id} (${skipped} ignoré(s) par préférences)`
     );
 
     return new Response(
-      JSON.stringify({ success: true, sent, total: tokens.length, results }),
+      JSON.stringify({ success: true, sent, skipped, total: tokens.length, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
