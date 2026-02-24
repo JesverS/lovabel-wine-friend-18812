@@ -29,6 +29,7 @@ import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTa
 import { FollowDialogs } from '@/components/FollowDialogs';
 import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 import { PrivacySettings } from '@/components/PrivacySettings';
+import { NotificationPreferences } from '@/components/NotificationPreferences';
 import { InviteKeyRedemption } from '@/components/InviteKeyRedemption';
 import { OpenInAppBanner } from '@/components/OpenInAppBanner';
 import { getProfileDeepLink } from '@/lib/mobileAppUtils';
@@ -305,14 +306,18 @@ export default function UserProfile() {
                             <DialogTitle>Paramètres du compte</DialogTitle>
                           </DialogHeader>
                           <InnerTabs defaultValue="privacy" className="mt-4">
-                            <InnerTabsList className="grid w-full grid-cols-4">
+                            <InnerTabsList className="grid w-full grid-cols-5">
                               <InnerTabsTrigger value="privacy">Confidentialité</InnerTabsTrigger>
+                              <InnerTabsTrigger value="notifications">Notifications</InnerTabsTrigger>
                               <InnerTabsTrigger value="stripe">Compte Stripe</InnerTabsTrigger>
                               <InnerTabsTrigger value="revenue">Mes revenus</InnerTabsTrigger>
                               <InnerTabsTrigger value="premium">Premium</InnerTabsTrigger>
                             </InnerTabsList>
                             <InnerTabsContent value="privacy" className="mt-4">
                               <PrivacySettings />
+                            </InnerTabsContent>
+                            <InnerTabsContent value="notifications" className="mt-4">
+                              <NotificationPreferences />
                             </InnerTabsContent>
                             <InnerTabsContent value="stripe" className="mt-4">
                               <OrganizerStripeSetup />

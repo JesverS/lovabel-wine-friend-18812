@@ -1770,6 +1770,71 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          cellar_invitation: boolean
+          created_at: string
+          event_access_request: boolean
+          event_invitation: boolean
+          event_join: boolean
+          follow_accepted: boolean
+          follow_request: boolean
+          id: string
+          mention: boolean
+          new_follower: boolean
+          post_comment: boolean
+          post_like: boolean
+          refund_request: boolean
+          token_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cellar_invitation?: boolean
+          created_at?: string
+          event_access_request?: boolean
+          event_invitation?: boolean
+          event_join?: boolean
+          follow_accepted?: boolean
+          follow_request?: boolean
+          id?: string
+          mention?: boolean
+          new_follower?: boolean
+          post_comment?: boolean
+          post_like?: boolean
+          refund_request?: boolean
+          token_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cellar_invitation?: boolean
+          created_at?: string
+          event_access_request?: boolean
+          event_invitation?: boolean
+          event_join?: boolean
+          follow_accepted?: boolean
+          follow_request?: boolean
+          id?: string
+          mention?: boolean
+          new_follower?: boolean
+          post_comment?: boolean
+          post_like?: boolean
+          refund_request?: boolean
+          token_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "push_notification_token"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizer_stripe_account: {
         Row: {
           account_status: string
