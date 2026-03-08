@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Wine, User, Heart, Menu, LogOut, Search } from "lucide-react";
+import { Wine, User, Heart, Menu, LogOut, Search, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +22,7 @@ export const Header = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userSlug = useUserSlug();
+  const { theme, setTheme } = useTheme();
 
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(path + '/');
@@ -113,6 +115,15 @@ export const Header = () => {
               <NotificationCenter />
             </div>
           )}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hidden md:inline-flex"
+            aria-label="Changer de thème"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 

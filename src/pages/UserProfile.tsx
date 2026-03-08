@@ -28,6 +28,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTabsList, TabsTrigger as InnerTabsTrigger } from '@/components/ui/tabs';
 import { FollowDialogs } from '@/components/FollowDialogs';
 import { TastingDashboard } from '@/components/TastingDashboard';
+import { TastingComparison } from '@/components/TastingComparison';
 import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 import { PrivacySettings } from '@/components/PrivacySettings';
 import { NotificationPreferences } from '@/components/NotificationPreferences';
@@ -57,6 +58,7 @@ export default function UserProfile() {
   const [requestsDialogOpen, setRequestsDialogOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
+  const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -605,20 +607,35 @@ export default function UserProfile() {
                         </div>
                       </button>
                     )}
+
+                    {!isOwnProfile && canViewContent && (
+                      <button
+                        onClick={() => { setActiveTab('palais'); setDrawerOpen(false); }}
+                        className={`w-full flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                          activeTab === 'palais' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                        }`}
+                      >
+                        <BarChart3 className="w-6 h-6" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Palais</div>
+                          <div className="text-sm opacity-80">Statistiques de dégustation</div>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </DrawerContent>
               </Drawer>
             </>
           ) : (
             /* Tabs desktop */
-            <TabsList className={`grid w-full gap-1 ${isOwnProfile ? 'grid-cols-7' : 'grid-cols-6'}`}>
+            <TabsList className={`grid w-full gap-1 grid-cols-7`}>
               <TabsTrigger value="posts">Posts</TabsTrigger>
               <TabsTrigger value="cellars">{isOwnProfile ? 'Mes caves' : 'Caves'}</TabsTrigger>
               <TabsTrigger value="domains">{isOwnProfile ? 'Mes domaines' : 'Domaines'}</TabsTrigger>
               <TabsTrigger value="events">{isOwnProfile ? 'Mes événements' : 'Événements'}</TabsTrigger>
               <TabsTrigger value="tastings">{isOwnProfile ? 'Mes dégustations' : 'Dégustations'}</TabsTrigger>
               <TabsTrigger value="favorites">{isOwnProfile ? 'Mes favoris' : 'Favoris'}</TabsTrigger>
-              {isOwnProfile && <TabsTrigger value="palais">Mon Palais</TabsTrigger>}
+              {(isOwnProfile || canViewContent) && <TabsTrigger value="palais">{isOwnProfile ? 'Mon Palais' : 'Palais'}</TabsTrigger>}
             </TabsList>
           )}
 
@@ -880,9 +897,33 @@ export default function UserProfile() {
             )}
           </TabsContent>
 
-          {isOwnProfile && (
+          {(isOwnProfile || canViewContent) && (
             <TabsContent value="palais" className="mt-6">
               <TastingDashboard userId={profile.id} userName={profile.full_name} />
+              {!isOwnProfile && user && (
+                <div className="mt-6">
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => setCompareOpen(!compareOpen)}
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    {compareOpen ? 'Masquer la comparaison' : 'Comparer nos palais'}
+                  </Button>
+                  {compareOpen && (
+                    <Card className="mt-4">
+                      <CardContent className="p-4">
+                        <TastingComparison
+                          myUserId={user.id}
+                          myName="Moi"
+                          friendUserId={profile.id}
+                          friendName={profile.full_name || 'Utilisateur'}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
             </TabsContent>
           )}
         </Tabs>

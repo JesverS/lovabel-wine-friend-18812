@@ -2,6 +2,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SocialFeed } from "@/components/SocialFeed";
 import { CreatePost } from "@/components/CreatePost";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -60,7 +61,9 @@ export default function Feed() {
         )}
 
         {/* Social Feed */}
-        <SocialFeed />
+        <PullToRefresh onRefresh={async () => { await queryClient.invalidateQueries({ queryKey: ['social-feed'] }); }}>
+          <SocialFeed />
+        </PullToRefresh>
       </main>
 
       <Footer />
