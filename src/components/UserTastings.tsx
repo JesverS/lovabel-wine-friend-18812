@@ -1027,7 +1027,41 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
                 className="hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => setSelectedWine(tasting.wine)}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-4 space-y-3">
+                  {/* Action bar */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      {isOwnProfile && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 gap-1 text-xs text-destructive hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); setDeletingTasting(tasting); }}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 gap-1 text-xs"
+                            onClick={(e) => { e.stopPropagation(); setShareStoryTasting(tasting); }}
+                          >
+                            <Instagram className="w-3 h-3" />
+                            Story
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    {tasting.rating && (
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                        <span className="text-sm font-semibold">{tasting.rating}/5</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
                   <div className="flex gap-4">
                     {tasting.wine.label_url && (
                       <img
@@ -1042,15 +1076,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
                       {tasting.wine.year && (
                         <p className="text-sm text-muted-foreground">Année: {tasting.wine.year}</p>
                       )}
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-lg">{getLikedIcon(tasting.liked)}</span>
-                        {tasting.rating && (
-                          <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                            <span className="text-sm font-medium">{tasting.rating}/5</span>
-                          </div>
-                        )}
-                      </div>
+                      <span className="text-lg">{getLikedIcon(tasting.liked)}</span>
                       {tasting.comment && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                           {tasting.comment}
@@ -1060,17 +1086,6 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
                         <Calendar className="w-3 h-3 inline mr-1" />
                         Dégusté le {new Date(tasting.created_at).toLocaleDateString('fr-FR')}
                       </p>
-                      {isOwnProfile && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-1 h-7 px-2 gap-1 text-xs"
-                          onClick={(e) => { e.stopPropagation(); setShareStoryTasting(tasting); }}
-                        >
-                          <Instagram className="w-3 h-3" />
-                          Story
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>
