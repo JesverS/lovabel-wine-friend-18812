@@ -206,7 +206,7 @@ const EventDetails = () => {
           .select("role")
           .eq("event_id", eventData.id)
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
         const role = userEventData?.role;
         const canManageContent = role && ['organizer', 'co_organizer', 'admin'].includes(role);
