@@ -1,140 +1,60 @@
 
 
-# Preferences de notifications par device
+# Plan : Gestion des marqueurs co-localisés + qualité d'image + lien vers page vin
 
-## Reponse a ta question : faisabilite
+## Probleme
 
-Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
-- Lire les preferences associees a ce token precis
-- Modifier les preferences pour ce token precis
+Quand deux degustations partagent les memes coordonnees (meme evenement, meme cave), les marqueurs se superposent exactement et un seul est cliquable. De plus, le popup actuel n'offre pas de lien vers la page du vin, et la qualite des marqueurs photo pourrait etre amelioree.
 
-L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
+## Solution
 
-## Architecture base de donnees
+### 1. Grouper les degustations co-localisees
 
-### Nouvelle table `notification_preferences`
+Avant de construire le GeoJSON, grouper les tastings par coordonnees identiques (cle `lat,lng`). Pour chaque groupe :
+- **1 seul tasting** : comportement actuel (marqueur simple)
+- **2+ tastings** : creer un marqueur composite (pastille avec badge compteur) qui, au clic, affiche un popup listant tous les vins du groupe
 
-```text
-notification_preferences
-  id              uuid        PK, default gen_random_uuid()
-  user_id         uuid        NOT NULL, FK -> auth.users
-  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
-  post_like       boolean     DEFAULT true
-  post_comment    boolean     DEFAULT true
-  mention         boolean     DEFAULT true
-  follow_request  boolean     DEFAULT true
-  new_follower    boolean     DEFAULT true
-  follow_accepted boolean     DEFAULT true
-  event_join      boolean     DEFAULT true
-  event_access_request boolean DEFAULT true
-  event_invitation boolean    DEFAULT true
-  cellar_invitation boolean   DEFAULT true
-  refund_request  boolean     DEFAULT true
-  created_at      timestamptz DEFAULT now()
-  updated_at      timestamptz DEFAULT now()
+### 2. Marqueur composite pour les groupes
 
-  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
+Creer une fonction `createGroupMarker(images[], colors[], count)` qui dessine sur canvas :
+- Les 2 premieres photos de bouteille qui se chevauchent legerement (decalage de 12px)
+- Un petit badge rond en bas a droite avec le nombre total (ex: "3")
+- Bordure coloree selon le source_type dominant
+
+### 3. Popup multi-vins
+
+Quand on clique sur un marqueur groupe, le popup HTML affiche une liste scrollable de tous les vins :
+```
+┌─────────────────────────────┐
+│  Vin A 2019                 │
+│  Domaine X · Evenement Y    │
+│  12/01/2025                 │
+│  [Voir le vin] [📸 Story]  │
+├─────────────────────────────┤
+│  Vin B 2020                 │
+│  Domaine Z · Cave W         │
+│  12/01/2025                 │
+│  [Voir le vin] [📸 Story]  │
+└─────────────────────────────┘
 ```
 
-### Logique de `token_id`
+### 4. Lien "Voir le vin" sur tous les popups
 
-- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
-- `token_id = uuid` : preferences specifiques a ce device
+Ajouter `wine_id` dans les properties GeoJSON. Dans le popup (simple et multi), ajouter un lien `<a href="/wine/${wine_id}">Voir le vin →</a>` style comme un bouton discret.
 
-Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
+### 5. Amelioration qualite des images
 
-### Types NON configurables
+- Augmenter la taille du canvas de `48` a `64` pixels (et le `scale` reste a 2, donc 128px effectifs)
+- Augmenter la bordure de 3 a 4px pour plus de nettete visuelle
+- Augmenter `icon-size` max de 1.0 a 1.1 au zoom 12+
 
-Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
-- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
-- `refund_processed` (reponse a sa demande)
-- `level_up` (visible directement dans l'app)
-- `badge_unlocked` (idem)
+## Fichier modifie
 
-## Modifications SQL
-
-### 1. Creer la table `notification_preferences`
-
-Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
-
-### 2. Modifier `create_notification()` pour les notifications web
-
-Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
-
-Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
-
-- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
-- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
-- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
-
-### 3. Modifier l'Edge Function `send-push-notification`
-
-Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
-
-```text
-Pour chaque token de l'utilisateur :
-  1. Chercher notification_preferences WHERE token_id = token.id
-  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
-  3. Si pas de prefs du tout -> tout est actif (defaut)
-  4. Verifier si le type est desactive -> si oui, skip
-  5. Sinon, envoyer via FCM
-```
-
-### 4. Modifier `notify_mentioned_user()`
-
-Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
-
-## Frontend
-
-### Nouveau composant `NotificationPreferences.tsx`
-
-Affiche les preferences groupees par categorie avec des Switch :
-
-**Social**
-- Likes sur mes posts (`post_like`)
-- Commentaires sur mes posts (`post_comment`)
-- Mentions (`mention`)
-- Demandes d'abonnement (`follow_request`)
-- Nouveaux abonnes (`new_follower`)
-- Abonnement accepte (`follow_accepted`)
-
-**Evenements**
-- Nouveau participant (`event_join`)
-- Demandes d'acces (`event_access_request`)
-- Invitations (`event_invitation`)
-- Demandes de remboursement (`refund_request`)
-
-**Caves**
-- Invitations a une cave (`cellar_invitation`)
-
-### Comportement depuis le site web
-
-Comme il n'y a pas de push web pour l'instant :
-- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
-- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
-
-### Comportement futur depuis l'app React Native
-
-L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
-
-### Integration dans UserProfile.tsx
-
-Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
-
-## Etapes d'implementation
-
-1. **Migration SQL** : creer la table `notification_preferences` avec RLS
-2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
-3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
-4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
-5. **Composant** : creer `NotificationPreferences.tsx`
-6. **UserProfile.tsx** : ajouter l'onglet Notifications
-
-## Avantages de cette approche
-
-- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
-- **Performante** : un seul SELECT sur une petite table indexee
-- **Granulaire** : preferences par device possibles
-- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
-- **Nettoyage automatique** : CASCADE sur la suppression de token
+**`src/components/TastingsMap.tsx`** uniquement :
+- Fonction utilitaire `groupByLocation(tastings)` → `Map<string, TastingLocation[]>`
+- Fonction `createGroupMarker(images, color, count)` pour le canvas composite
+- Construction du GeoJSON adaptee (1 feature par groupe au lieu de 1 par tasting)
+- Handler de clic adapte : si le feature a `is_group=true`, afficher le popup multi-vins
+- Tous les popups incluent le lien `/wine/${wine_id}`
+- Taille canvas passee de 48 a 64
 
