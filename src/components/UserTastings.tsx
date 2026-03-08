@@ -183,12 +183,12 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
     if (!error && data && data.length > 0) {
       // Batch fetch wines
       const wineIds = [...new Set((data as any[]).map(t => t.wine_id))];
-      const { data: wines } = await supabase.from('wine').select('*').in('id', wineIds);
-      const winesMap = new Map((wines || []).map(w => [w.id, w]));
+      const wines = await batchIn('wine', 'id', wineIds);
+      const winesMap = new Map(wines.map(w => [w.id, w]));
 
       // Get domain IDs from wines
-      const domainIds = [...new Set((wines || []).map(w => w.domain_id).filter(Boolean))];
-      const { data: domains } = await supabase.from('domain').select('id, name, logo_url').in('id', domainIds);
+      const domainIds = [...new Set(wines.map(w => w.domain_id).filter(Boolean))];
+      const domains = await batchIn('domain', 'id', domainIds, 'id, name, logo_url');
       const domainsMap = new Map((domains || []).map(d => [d.id, d]));
 
       const enrichedData = (data as any[])
