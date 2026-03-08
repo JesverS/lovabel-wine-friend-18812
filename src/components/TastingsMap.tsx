@@ -189,22 +189,29 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
 
       // Load photo markers for tastings with label_url
       const defaultLabelUrl = "https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png";
+      const loadedImages = new Set<string>();
+
       for (const tasting of tastings) {
         if (tasting.label_url && tasting.label_url !== defaultLabelUrl) {
           try {
-            const canvas = await createPhotoMarker(
-              tasting.label_url,
-              SOURCE_COLORS[tasting.source_type] || "#888",
-              48
-            );
+            const canvas = await Promise.race([
+              createPhotoMarker(
+                tasting.label_url,
+                SOURCE_COLORS[tasting.source_type] || "#888",
+                48
+              ),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+            ]);
             const ctx = canvas.getContext("2d")!;
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             if (map.current) {
-              map.current.addImage(`wine-${tasting.id}`, {
+              const imageId = `wine-${tasting.id}`;
+              map.current.addImage(imageId, {
                 width: canvas.width,
                 height: canvas.height,
                 data: new Uint8Array(imageData.data.buffer),
               });
+              loadedImages.add(imageId);
             }
           } catch (err) {
             logger.error(`[TastingsMap] Failed to load photo for ${tasting.id}`, err);
@@ -215,7 +222,7 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
       const geojson: GeoJSON.FeatureCollection = {
         type: "FeatureCollection",
         features: tastings.map((tasting) => {
-          const hasPhoto = tasting.label_url && tasting.label_url !== defaultLabelUrl;
+          const imageId = `wine-${tasting.id}`;
           return {
             type: "Feature",
             geometry: {
@@ -230,7 +237,7 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
               source_type: tasting.source_type,
               source_name: tasting.source_name,
               created_at: new Date(tasting.created_at).toLocaleDateString("fr-FR"),
-              icon: hasPhoto ? `wine-${tasting.id}` : `pin-${tasting.source_type}`,
+              icon: loadedImages.has(imageId) ? imageId : `pin-${tasting.source_type}`,
             },
           };
         }),
