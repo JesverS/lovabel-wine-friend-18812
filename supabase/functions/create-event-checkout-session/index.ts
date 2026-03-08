@@ -109,7 +109,7 @@ serve(async (req) => {
       .select("user_id")
       .eq("event_id", eventId)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (existingMember) {
       return new Response(JSON.stringify({ error: "Vous avez déjà accès à cet événement" }), {
