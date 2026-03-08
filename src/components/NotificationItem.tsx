@@ -13,7 +13,8 @@ import {
   Store,
   Check,
   X,
-  Bell
+  Bell,
+  Newspaper
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
