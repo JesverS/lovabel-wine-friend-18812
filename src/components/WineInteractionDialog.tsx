@@ -108,7 +108,7 @@ export const WineInteractionDialog = ({
         .from("domain")
         .select("name")
         .eq("id", wine.domain_id)
-        .single();
+        .maybeSingle();
 
       setDomain(domainData);
     };

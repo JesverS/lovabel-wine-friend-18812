@@ -110,7 +110,7 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
         .from("domain")
         .select("name, logo_url")
         .eq("id", wine.domain_id)
-        .single();
+        .maybeSingle();
 
       setDomain(domainData);
 

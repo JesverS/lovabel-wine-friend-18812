@@ -52,7 +52,7 @@ export function EventAccessRequestsManagement({ eventId }: EventAccessRequestsMa
             .from('user_profiles_public')
             .select('full_name, email, logo_adress')
             .eq('id', request.user_id)
-            .single();
+            .maybeSingle();
           
           return {
             ...request,

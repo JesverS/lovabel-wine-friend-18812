@@ -206,7 +206,7 @@ const EventDetails = () => {
           .select("role")
           .eq("event_id", eventData.id)
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
         const role = userEventData?.role;
         const canManageContent = role && ['organizer', 'co_organizer', 'admin'].includes(role);
@@ -225,7 +225,7 @@ const EventDetails = () => {
             .select('id, status')
             .eq('event_id', eventData.id)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
           setHasAccessRequest(requestData?.status === 'pending');
         }
@@ -237,7 +237,7 @@ const EventDetails = () => {
             .select('user_id')
             .eq('event_id', eventData.id)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
           setHasAccess(!!memberData || !!role);
 
@@ -249,7 +249,7 @@ const EventDetails = () => {
               .eq('event_id', eventData.id)
               .eq('user_id', user.id)
               .eq('status', 'pending')
-              .single();
+              .maybeSingle();
 
             setHasPendingPayment(!!paymentData);
 
@@ -260,7 +260,7 @@ const EventDetails = () => {
               .eq('event_id', eventData.id)
               .eq('user_id', user.id)
               .eq('status', 'completed')
-              .single();
+              .maybeSingle();
 
             if (completedPayment) {
               setUserPaymentAmount(Number(completedPayment.amount));
@@ -272,7 +272,7 @@ const EventDetails = () => {
                 .eq('event_id', eventData.id)
                 .eq('user_id', user.id)
                 .eq('status', 'pending')
-                .single();
+                .maybeSingle();
 
               setHasPendingRefundRequest(!!refundRequest);
             }
@@ -284,7 +284,7 @@ const EventDetails = () => {
             .select('user_id')
             .eq('event_id', eventData.id)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
           // L'utilisateur a accès s'il est organisateur/admin OU s'il a rejoint l'événement
           setHasAccess(!!memberData || !!role);

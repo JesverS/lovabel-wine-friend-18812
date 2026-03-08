@@ -51,7 +51,7 @@ export default function DomainDetails() {
           .from("user_profiles_public" as any)
           .select("slug")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
         setUserSlug((data as any)?.slug || null);
       }
     };
@@ -59,7 +59,7 @@ export default function DomainDetails() {
   }, [user]);
 
   const fetchDomainDetails = async () => {
-    const { data, error } = await supabase.from("domain").select("*").eq("id", id).single();
+    const { data, error } = await supabase.from("domain").select("*").eq("id", id).maybeSingle();
 
     if (error) {
       console.error("Error fetching domain:", error);
@@ -91,7 +91,7 @@ export default function DomainDetails() {
       .select("role")
       .eq("user_id", user.id)
       .eq("domain_id", id)
-      .single();
+      .maybeSingle();
 
     // Si data existe, l'utilisateur est dans la table, on set le rôle.
     setUserRole(data?.role ?? null);

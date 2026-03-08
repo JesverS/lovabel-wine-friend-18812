@@ -3696,6 +3696,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_hashtag_usage: { Args: { p_tag: string }; Returns: string }
       is_accepted_follower: {
         Args: { _follower_id: string; _following_id: string }
         Returns: boolean

@@ -1,8 +1,7 @@
 import { Home, Search, MessageSquare, Heart, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useUserSlug } from "@/hooks/useUserSlug";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -15,17 +14,7 @@ const navItems = [
 export const MobileBottomNav = () => {
   const { pathname } = useLocation();
   const { user } = useAuth();
-  const [slug, setSlug] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) { setSlug(null); return; }
-    supabase
-      .from("user_profiles_public" as any)
-      .select("slug")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => { if ((data as any)?.slug) setSlug((data as any).slug); });
-  }, [user]);
+  const slug = useUserSlug();
 
   const profilePath = user && slug ? `/user/${slug}` : "/auth";
 
