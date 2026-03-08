@@ -225,7 +225,7 @@ const EventDetails = () => {
             .select('id, status')
             .eq('event_id', eventData.id)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
           setHasAccessRequest(requestData?.status === 'pending');
         }
