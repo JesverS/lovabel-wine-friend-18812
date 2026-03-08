@@ -628,14 +628,14 @@ export default function UserProfile() {
             </>
           ) : (
             /* Tabs desktop */
-            <TabsList className={`grid w-full gap-1 ${isOwnProfile ? 'grid-cols-7' : 'grid-cols-6'}`}>
+            <TabsList className={`grid w-full gap-1 grid-cols-7`}>
               <TabsTrigger value="posts">Posts</TabsTrigger>
               <TabsTrigger value="cellars">{isOwnProfile ? 'Mes caves' : 'Caves'}</TabsTrigger>
               <TabsTrigger value="domains">{isOwnProfile ? 'Mes domaines' : 'Domaines'}</TabsTrigger>
               <TabsTrigger value="events">{isOwnProfile ? 'Mes événements' : 'Événements'}</TabsTrigger>
               <TabsTrigger value="tastings">{isOwnProfile ? 'Mes dégustations' : 'Dégustations'}</TabsTrigger>
               <TabsTrigger value="favorites">{isOwnProfile ? 'Mes favoris' : 'Favoris'}</TabsTrigger>
-              {isOwnProfile && <TabsTrigger value="palais">Mon Palais</TabsTrigger>}
+              {(isOwnProfile || canViewContent) && <TabsTrigger value="palais">{isOwnProfile ? 'Mon Palais' : 'Palais'}</TabsTrigger>}
             </TabsList>
           )}
 
