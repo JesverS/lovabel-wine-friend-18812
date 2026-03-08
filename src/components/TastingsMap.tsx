@@ -278,7 +278,12 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
         filter: ["!", ["has", "point_count"]],
         layout: {
           "icon-image": ["get", "icon"],
-          "icon-size": 1,
+          "icon-size": [
+            "interpolate", ["linear"], ["zoom"],
+            4, 0.4,
+            8, 0.65,
+            12, 1.0,
+          ],
           "icon-anchor": "bottom",
           "icon-allow-overlap": true,
         },
