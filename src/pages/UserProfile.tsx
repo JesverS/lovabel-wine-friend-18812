@@ -499,6 +499,7 @@ export default function UserProfile() {
                       {activeTab === 'events' && (isOwnProfile ? 'Mes événements' : 'Événements')}
                       {activeTab === 'tastings' && (isOwnProfile ? 'Mes dégustations' : 'Dégustations')}
                       {activeTab === 'favorites' && (isOwnProfile ? 'Mes favoris' : 'Favoris')}
+                      {activeTab === 'palais' && 'Mon Palais'}
                     </span>
                   </span>
                   <span className="text-muted-foreground text-sm">Changer</span>
