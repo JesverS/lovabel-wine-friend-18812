@@ -836,15 +836,18 @@ const EventDetails = () => {
                   <h1 className="text-3xl md:text-5xl font-serif font-bold break-words">
                     {event.name}
                   </h1>
-                  {getAccessTypeBadge() && (
-                    <Badge 
-                      variant="outline" 
-                      className={`${getAccessTypeBadge()?.className} flex items-center gap-1.5 text-xs font-medium`}
-                    >
-                      {getAccessTypeBadge()?.icon}
-                      {getAccessTypeBadge()?.label}
-                    </Badge>
-                  )}
+                  {(() => {
+                    const accessBadge = getAccessTypeBadge();
+                    return accessBadge ? (
+                      <Badge 
+                        variant="outline" 
+                        className={`${accessBadge.className} flex items-center gap-1.5 text-xs font-medium`}
+                      >
+                        {accessBadge.icon}
+                        {accessBadge.label}
+                      </Badge>
+                    ) : null;
+                  })()}
                 </div>
               </div>
               {canEdit && (
