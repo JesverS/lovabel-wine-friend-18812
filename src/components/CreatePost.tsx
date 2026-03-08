@@ -17,6 +17,7 @@ import { toast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { CreateWineForPostDialog } from './CreateWineForPostDialog';
 import { extractMentionsAndHashtags } from '@/lib/contentParser';
+import { getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
 interface CreatePostProps {
   onPostCreated?: () => void;
