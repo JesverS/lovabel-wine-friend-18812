@@ -272,7 +272,7 @@ const EventDetails = () => {
                 .eq('event_id', eventData.id)
                 .eq('user_id', user.id)
                 .eq('status', 'pending')
-                .single();
+                .maybeSingle();
 
               setHasPendingRefundRequest(!!refundRequest);
             }
