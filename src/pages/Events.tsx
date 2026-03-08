@@ -400,8 +400,7 @@ const Events = () => {
                     Réinitialiser les filtres
                   </Button>
                 )}
-              </div>
-            )}
+            </div>
 
             {loading ? (
               <div className="grid gap-6">

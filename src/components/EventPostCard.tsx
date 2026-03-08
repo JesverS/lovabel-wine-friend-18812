@@ -6,6 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Heart, MessageCircle, Globe, Lock, Send, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -59,16 +69,26 @@ export const EventPostCard = ({ post, onDeleted }: EventPostCardProps) => {
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
   const [postingComment, setPostingComment] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const requireAuth = () => {
+    if (!user) {
+      toast({ title: 'Connexion requise', description: 'Connectez-vous pour interagir', variant: 'destructive' });
+      navigate('/auth');
+      return true;
+    }
+    return false;
+  };
 
   const handleToggleLike = async () => {
-    if (!user) return;
+    if (requireAuth()) return;
 
     if (isLiked) {
       const { error } = await supabase
         .from('event_post_like' as any)
         .delete()
         .eq('event_post_id', post.id)
-        .eq('user_id', user.id);
+        .eq('user_id', user!.id);
       if (!error) {
         setIsLiked(false);
         setLikesCount(prev => Math.max(0, prev - 1));
@@ -76,7 +96,7 @@ export const EventPostCard = ({ post, onDeleted }: EventPostCardProps) => {
     } else {
       const { error } = await supabase
         .from('event_post_like' as any)
-        .insert({ event_post_id: post.id, user_id: user.id } as any);
+        .insert({ event_post_id: post.id, user_id: user!.id } as any);
       if (!error) {
         setIsLiked(true);
         setLikesCount(prev => prev + 1);
@@ -101,13 +121,11 @@ export const EventPostCard = ({ post, onDeleted }: EventPostCardProps) => {
       .limit(50);
 
     if (data && !error) {
-      // Fetch authors
       const userIds = [...new Set((data as any[]).map((c: any) => c.user_id))];
       const { data: profiles } = userIds.length > 0
         ? await supabase.from('user_profiles_public' as any).select('id, full_name, logo_adress, slug').in('id', userIds)
         : { data: [] };
 
-      // Fetch user's likes
       let userLikes: string[] = [];
       if (user) {
         const commentIds = (data as any[]).map((c: any) => c.id);
@@ -132,12 +150,13 @@ export const EventPostCard = ({ post, onDeleted }: EventPostCardProps) => {
   };
 
   const handlePostComment = async () => {
-    if (!user || !newComment.trim()) return;
+    if (requireAuth()) return;
+    if (!newComment.trim()) return;
     setPostingComment(true);
 
     const { error } = await supabase
       .from('event_post_comment' as any)
-      .insert({ event_post_id: post.id, user_id: user.id, content: newComment.trim() } as any);
+      .insert({ event_post_id: post.id, user_id: user!.id, content: newComment.trim() } as any);
 
     if (!error) {
       setNewComment('');
@@ -150,12 +169,12 @@ export const EventPostCard = ({ post, onDeleted }: EventPostCardProps) => {
   };
 
   const handleToggleCommentLike = async (commentId: string, currentlyLiked: boolean) => {
-    if (!user) return;
+    if (requireAuth()) return;
 
     if (currentlyLiked) {
-      await supabase.from('event_post_comment_like' as any).delete().eq('comment_id', commentId).eq('user_id', user.id);
+      await supabase.from('event_post_comment_like' as any).delete().eq('comment_id', commentId).eq('user_id', user!.id);
     } else {
-      await supabase.from('event_post_comment_like' as any).insert({ comment_id: commentId, user_id: user.id } as any);
+      await supabase.from('event_post_comment_like' as any).insert({ comment_id: commentId, user_id: user!.id } as any);
     }
     await fetchComments();
   };
@@ -178,145 +197,168 @@ export const EventPostCard = ({ post, onDeleted }: EventPostCardProps) => {
   };
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-4 space-y-3">
-        {/* Author header */}
-        <div className="flex items-center justify-between">
-          <div
-            className="flex items-center gap-3 cursor-pointer"
-            onClick={() => post.author?.slug && navigate(`/user/${post.author.slug}`)}
-          >
-            <Avatar className="w-10 h-10">
-              <AvatarImage src={post.author?.logo_adress || undefined} />
-              <AvatarFallback>{post.author?.full_name?.[0] || '?'}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium text-sm">{post.author?.full_name || 'Organisateur'}</p>
-              <p className="text-xs text-muted-foreground">
-                {format(new Date(post.created_at), 'dd MMM yyyy · HH:mm', { locale: fr })}
-              </p>
+    <>
+      <Card className="overflow-hidden">
+        <CardContent className="p-4 space-y-3">
+          {/* Author header */}
+          <div className="flex items-center justify-between">
+            <div
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => post.author?.slug && navigate(`/user/${post.author.slug}`)}
+            >
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={post.author?.logo_adress || undefined} />
+                <AvatarFallback>{post.author?.full_name?.[0] || '?'}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium text-sm">{post.author?.full_name || 'Organisateur'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(post.created_at), 'dd MMM yyyy · HH:mm', { locale: fr })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs gap-1">
+                {post.visibility === 'public' ? (
+                  <><Globe className="w-3 h-3" /> Public</>
+                ) : (
+                  <><Lock className="w-3 h-3" /> Inscrits</>
+                )}
+              </Badge>
+              {user?.id === post.author_id && (
+                <Button variant="ghost" size="icon" onClick={() => setShowDeleteDialog(true)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs gap-1">
-              {post.visibility === 'public' ? (
-                <><Globe className="w-3 h-3" /> Public</>
-              ) : (
-                <><Lock className="w-3 h-3" /> Inscrits</>
-              )}
-            </Badge>
-            {user?.id === post.author_id && (
-              <Button variant="ghost" size="icon" onClick={handleDeletePost}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            )}
+
+          {/* Content */}
+          <p className="text-sm whitespace-pre-wrap">{post.content}</p>
+
+          {/* Image */}
+          {post.image_url && (
+            <img
+              src={post.image_url}
+              alt="Post"
+              className="w-full rounded-lg object-cover max-h-96"
+            />
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-4 pt-2 border-t">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleLike}
+              className={`gap-2 ${isLiked ? 'text-primary' : ''}`}
+            >
+              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+              {likesCount > 0 && likesCount}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleComments}
+              className="gap-2"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {commentCount > 0 && commentCount}
+            </Button>
           </div>
-        </div>
 
-        {/* Content */}
-        <p className="text-sm whitespace-pre-wrap">{post.content}</p>
-
-        {/* Image */}
-        {post.image_url && (
-          <img
-            src={post.image_url}
-            alt="Post"
-            className="w-full rounded-lg object-cover max-h-96"
-          />
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center gap-4 pt-2 border-t">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleToggleLike}
-            className={`gap-2 ${isLiked ? 'text-primary' : ''}`}
-          >
-            <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-            {likesCount > 0 && likesCount}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleToggleComments}
-            className="gap-2"
-          >
-            <MessageCircle className="h-4 w-4" />
-            {commentCount > 0 && commentCount}
-          </Button>
-        </div>
-
-        {/* Comments section */}
-        {showComments && (
-          <div className="space-y-3 pt-2 border-t">
-            {loadingComments ? (
-              <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
-              </div>
-            ) : (
-              <>
-                {comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-2">
-                    <Avatar
-                      className="w-7 h-7 cursor-pointer shrink-0"
-                      onClick={() => comment.author?.slug && navigate(`/user/${comment.author.slug}`)}
-                    >
-                      <AvatarImage src={comment.author?.logo_adress || undefined} />
-                      <AvatarFallback className="text-[10px]">{comment.author?.full_name?.[0] || '?'}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="bg-muted rounded-lg px-3 py-2">
-                        <p className="text-xs font-medium">{comment.author?.full_name || 'Utilisateur'}</p>
-                        <p className="text-sm">{comment.content}</p>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(comment.created_at), 'dd MMM · HH:mm', { locale: fr })}
-                        </span>
-                        <button
-                          onClick={() => handleToggleCommentLike(comment.id, !!comment.isLiked)}
-                          className={`text-xs hover:text-primary ${comment.isLiked ? 'text-primary font-medium' : 'text-muted-foreground'}`}
-                        >
-                          ❤️ {comment.likes_count > 0 && comment.likes_count}
-                        </button>
-                        {user?.id === comment.user_id && (
+          {/* Comments section */}
+          {showComments && (
+            <div className="space-y-3 pt-2 border-t">
+              {loadingComments ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                </div>
+              ) : (
+                <>
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="flex gap-2">
+                      <Avatar
+                        className="w-7 h-7 cursor-pointer shrink-0"
+                        onClick={() => comment.author?.slug && navigate(`/user/${comment.author.slug}`)}
+                      >
+                        <AvatarImage src={comment.author?.logo_adress || undefined} />
+                        <AvatarFallback className="text-[10px]">{comment.author?.full_name?.[0] || '?'}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="bg-muted rounded-lg px-3 py-2">
+                          <p className="text-xs font-medium">{comment.author?.full_name || 'Utilisateur'}</p>
+                          <p className="text-sm">{comment.content}</p>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(comment.created_at), 'dd MMM · HH:mm', { locale: fr })}
+                          </span>
                           <button
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-xs text-destructive hover:underline"
+                            onClick={() => handleToggleCommentLike(comment.id, !!comment.isLiked)}
+                            className={`text-xs hover:text-primary ${comment.isLiked ? 'text-primary font-medium' : 'text-muted-foreground'}`}
                           >
-                            Supprimer
+                            ❤️ {comment.likes_count > 0 && comment.likes_count}
                           </button>
-                        )}
+                          {user?.id === comment.user_id && (
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-xs text-destructive hover:underline"
+                            >
+                              Supprimer
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </>
-            )}
+                  ))}
+                </>
+              )}
 
-            {/* New comment input */}
-            {user && (
-              <div className="flex gap-2">
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Écrire un commentaire..."
-                  className="min-h-[40px] text-sm resize-none"
-                  rows={1}
-                />
-                <Button
-                  size="icon"
-                  onClick={handlePostComment}
-                  disabled={postingComment || !newComment.trim()}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              {/* New comment input */}
+              {user && (
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Écrire un commentaire..."
+                    className="min-h-[40px] text-sm resize-none"
+                    rows={1}
+                  />
+                  <Button
+                    size="icon"
+                    onClick={handlePostComment}
+                    disabled={postingComment || !newComment.trim()}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce post ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le post et tous ses commentaires seront définitivement supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
