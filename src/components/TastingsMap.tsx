@@ -77,7 +77,13 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
   }, [targetUserId, sourceFilter]);
 
   useEffect(() => {
-    if (!mapContainer.current || !MAPBOX_TOKEN || tastings.length === 0) return;
+    if (!mapContainer.current || tastings.length === 0) return;
+
+    if (!MAPBOX_TOKEN) {
+      logger.error("[TastingsMap] Token Mapbox manquant (VITE_MAPBOX_TOKEN)");
+      setError("Configuration carte manquante. Contactez l'administrateur.");
+      return;
+    }
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
@@ -85,8 +91,12 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [2.3522, 48.8566], // Paris par défaut
+      center: [2.3522, 48.8566],
       zoom: 5,
+    });
+
+    map.current.on("error", (e) => {
+      logger.error("[TastingsMap] Mapbox runtime error:", e.error);
     });
 
     // Ajouter les contrôles de navigation
