@@ -878,6 +878,8 @@ export default function UserProfile() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
           {isOwnProfile && (
             <TabsContent value="palais" className="mt-6">
               <TastingDashboard userId={profile.id} userName={profile.full_name} />
