@@ -44,23 +44,30 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
   const map = useRef<mapboxgl.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [tastings, setTastings] = useState<TastingLocation[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!targetUserId) return;
 
     const fetchTastings = async () => {
       try {
-        const { data, error } = await supabase.rpc("get_user_tastings_with_location", {
+        setError(null);
+        const { data, error: rpcError } = await supabase.rpc("get_user_tastings_with_location", {
           p_user_id: targetUserId,
           p_source_filter: sourceFilter,
         });
 
-        if (error) throw error;
+        if (rpcError) {
+          logger.error("[TastingsMap] RPC error:", rpcError);
+          setError(`Erreur de chargement des données: ${rpcError.message}`);
+          return;
+        }
 
         setTastings(data || []);
-      } catch (error) {
-        console.error("Error fetching tastings:", error);
-        toast.error("Erreur lors du chargement des dégustations");
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        logger.error("[TastingsMap] Unexpected error:", err);
+        setError(`Erreur inattendue: ${msg}`);
       } finally {
         setIsLoading(false);
       }
