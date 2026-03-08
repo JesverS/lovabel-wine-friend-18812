@@ -95,6 +95,23 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
   const [showDisliked, setShowDisliked] = useState(false);
   const [showSpontaneousDialog, setShowSpontaneousDialog] = useState(false);
   const [shareStoryTasting, setShareStoryTasting] = useState<TastingNote | null>(null);
+  const [deletingTasting, setDeletingTasting] = useState<TastingNote | null>(null);
+
+  const handleDeleteTasting = async (tasting: TastingNote) => {
+    try {
+      const { error } = await supabase
+        .from('user_wine_notice')
+        .delete()
+        .eq('id', tasting.id);
+      if (error) throw error;
+      setTastings(prev => prev.filter(t => t.id !== tasting.id));
+      toast.success('Dégustation supprimée');
+    } catch (error) {
+      console.error('Error deleting tasting:', error);
+      toast.error('Erreur lors de la suppression');
+    }
+    setDeletingTasting(null);
+  };
 
   useEffect(() => {
     if (targetUserId) {
