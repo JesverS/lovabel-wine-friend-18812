@@ -3505,9 +3505,11 @@ export type Database = {
           experience: number | null
           full_name: string | null
           id: string | null
+          last_name: string | null
           level: number | null
           logo_adress: string | null
           phone_number: string | null
+          slug: string | null
         }
         Insert: {
           address?: never
@@ -3517,9 +3519,11 @@ export type Database = {
           experience?: never
           full_name?: string | null
           id?: string | null
+          last_name?: string | null
           level?: number | null
           logo_adress?: string | null
           phone_number?: never
+          slug?: string | null
         }
         Update: {
           address?: never
@@ -3529,9 +3533,11 @@ export type Database = {
           experience?: never
           full_name?: string | null
           id?: string | null
+          last_name?: string | null
           level?: number | null
           logo_adress?: string | null
           phone_number?: never
+          slug?: string | null
         }
         Relationships: []
       }
