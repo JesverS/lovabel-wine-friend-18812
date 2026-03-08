@@ -61,34 +61,34 @@ function svgToImage(svg: string, size: number): Promise<HTMLImageElement> {
 }
 
 // Create a rounded square thumbnail with colored border from a photo URL
-function createPhotoMarker(imageUrl: string, borderColor: string, size: number = 48): Promise<HTMLCanvasElement> {
+function createPhotoMarker(imageUrl: string, borderColor: string, size: number = 36): Promise<HTMLCanvasElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const scale = 2; // retina
+      const scale = 2;
       canvas.width = size * scale;
       canvas.height = size * scale;
       const ctx = canvas.getContext("2d")!;
       ctx.scale(scale, scale);
 
       const borderWidth = 3;
-      const radius = 8;
-      const inner = size - borderWidth * 2;
+      const half = size / 2;
+      const innerRadius = half - borderWidth;
 
-      // Draw colored border (rounded rect)
+      // Draw colored border circle
       ctx.fillStyle = borderColor;
       ctx.beginPath();
-      ctx.roundRect(0, 0, size, size, radius);
+      ctx.arc(half, half, half, 0, Math.PI * 2);
       ctx.fill();
 
-      // Clip inner rounded rect for photo
+      // Clip inner circle for photo
       ctx.beginPath();
-      ctx.roundRect(borderWidth, borderWidth, inner, inner, radius - 2);
+      ctx.arc(half, half, innerRadius, 0, Math.PI * 2);
       ctx.clip();
 
-      // Draw photo
+      // Draw photo (center-crop)
       const imgAspect = img.width / img.height;
       let sx = 0, sy = 0, sw = img.width, sh = img.height;
       if (imgAspect > 1) {
@@ -98,7 +98,7 @@ function createPhotoMarker(imageUrl: string, borderColor: string, size: number =
         sy = (img.height - img.width) / 2;
         sh = img.width;
       }
-      ctx.drawImage(img, sx, sy, sw, sh, borderWidth, borderWidth, inner, inner);
+      ctx.drawImage(img, sx, sy, sw, sh, borderWidth, borderWidth, innerRadius * 2, innerRadius * 2);
 
       resolve(canvas);
     };
