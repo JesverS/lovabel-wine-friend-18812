@@ -62,7 +62,7 @@ serve(async (req) => {
       .from("organizer_stripe_account")
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     // Récupérer le slug de l'utilisateur pour l'URL du profil
     const { data: userProfile } = await supabaseAdmin
