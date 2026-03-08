@@ -11,6 +11,7 @@ import { Helmet } from "react-helmet-async";
 
 export default function Feed() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
