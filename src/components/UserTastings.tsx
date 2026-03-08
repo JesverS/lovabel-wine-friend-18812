@@ -21,6 +21,7 @@ interface TastingNote {
   liked: number;
   rating: number | null;
   comment: string | null;
+  details: any;
   wine: {
     id: string;
     name: string;
@@ -32,6 +33,7 @@ interface TastingNote {
     volume_ml: number | null;
     alcohol_percentage: number | null;
     characteristics: any;
+    type: number | null;
   };
   domain: {
     name: string;
