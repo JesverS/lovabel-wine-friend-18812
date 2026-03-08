@@ -246,7 +246,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
     if (!error && data && data.length > 0) {
       // Batch fetch wines to get domain IDs
       const wineIds = [...new Set((data as any[]).map(item => item.wine_id))];
-      const { data: wines } = await supabase.from('wine').select('id, domain_id').in('id', wineIds);
+      const wines = await batchIn('wine', 'id', wineIds, 'id, domain_id');
 
       const domainCounts = (wines || []).reduce((acc: Record<string, number>, wine) => {
         if (wine.domain_id) {
