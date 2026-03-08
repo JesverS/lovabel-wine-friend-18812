@@ -41,7 +41,8 @@ const getNotificationConfig = (type: string) => {
     event_invitation: { icon: Mail, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
     refund_request: { icon: CreditCard, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
     refund_processed: { icon: CreditCard, color: 'text-green-500', bgColor: 'bg-green-500/10' },
-    cellar_invitation: { icon: Store, color: 'text-purple-500', bgColor: 'bg-purple-500/10' }
+    cellar_invitation: { icon: Store, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
+    event_post: { icon: Newspaper, color: 'text-blue-500', bgColor: 'bg-blue-500/10' }
   };
   return configs[type] || { icon: Bell, color: 'text-muted-foreground', bgColor: 'bg-muted' };
 };
