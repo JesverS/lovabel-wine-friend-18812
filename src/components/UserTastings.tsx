@@ -166,6 +166,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             liked: tasting.liked,
             rating: tasting.rating,
             comment: tasting.comment,
+            details: tasting.details,
             wine,
             domain: domain || { name: '', logo_url: null }
           };
