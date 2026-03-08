@@ -84,82 +84,95 @@ export default function UserProfile() {
     }
 
     const userId = (profileData as any).id;
-
-    // Fetch posts
-    const { data: postsData } = await supabase
-      .from('post')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    setPosts(postsData || []);
-
-    // Fetch cellars
     const isOwnProfile = user?.id === userId;
-    const { data: userCellars } = await supabase
-      .from('user_cellar' as any)
-      .select('user_cellar_id, cellar(*)')
-      .eq('user_id', userId);
 
-    if (userCellars) {
-      // Filter cellars: show all if own profile, only public if not
-      const filteredCellars = (userCellars as any[])
+    // Parallelize all independent queries
+    const [
+      postsResult,
+      cellarsResult,
+      followCountsResult,
+      userEventsResult,
+      followStatusResult,
+      pendingCountResult,
+    ] = await Promise.all([
+      // Fetch posts
+      supabase
+        .from('post')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false }),
+      // Fetch cellars
+      supabase
+        .from('user_cellar' as any)
+        .select('user_cellar_id, cellar(*)')
+        .eq('user_id', userId),
+      // Fetch follow counts
+      supabase
+        .from('user_follow_counts')
+        .select('followers_count, following_count')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      // Fetch events
+      supabase
+        .from('user_event')
+        .select('event_id, role')
+        .eq('user_id', userId),
+      // Follow status (only if viewing someone else's profile)
+      user && user.id !== userId
+        ? supabase
+            .from('user_follow')
+            .select('status')
+            .eq('follower_id', user.id)
+            .eq('following_id', userId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      // Pending requests count (only for own profile)
+      user && user.id === userId
+        ? supabase
+            .from('user_follow')
+            .select('*', { count: 'exact', head: true })
+            .eq('following_id', userId)
+            .eq('status', 'pending')
+        : Promise.resolve({ count: null }),
+    ]);
+
+    setPosts(postsResult.data || []);
+
+    if (cellarsResult.data) {
+      const filteredCellars = (cellarsResult.data as any[])
         .filter((uc: any) => isOwnProfile || uc.cellar?.is_public)
         .map((uc: any) => uc.cellar);
       setCellars(filteredCellars);
     }
 
-    // Fetch follow counts from optimized table (peut ne pas exister pour nouveau user)
-    const { data: followCounts } = await supabase
-      .from('user_follow_counts')
-      .select('followers_count, following_count')
-      .eq('user_id', userId)
-      .maybeSingle();
-    setFollowersCount(followCounts?.followers_count || 0);
-    setFollowingCount(followCounts?.following_count || 0);
+    setFollowersCount(followCountsResult.data?.followers_count || 0);
+    setFollowingCount(followCountsResult.data?.following_count || 0);
 
-    // Fetch pending requests count (only for own profile)
-    if (user && user.id === userId) {
-      const { count: pendingCount } = await supabase
-        .from('user_follow')
-        .select('*', { count: 'exact', head: true })
-        .eq('following_id', userId)
-        .eq('status', 'pending');
-      setPendingRequestsCount(pendingCount || 0);
-    }
+    setPendingRequestsCount((pendingCountResult as any).count || 0);
 
-    // Fetch events (created or participating) WITH roles
-    const { data: userEvents } = await supabase
-      .from('user_event')
-      .select('event_id, role')
-      .eq('user_id', userId);
-
-    if (userEvents) {
-      const eventIds = userEvents.map((ue: any) => ue.event_id);
+    if (userEventsResult.data) {
+      const eventIds = userEventsResult.data.map((ue: any) => ue.event_id);
       const rolesMap: Record<string, string> = {};
-      userEvents.forEach((ue: any) => {
+      userEventsResult.data.forEach((ue: any) => {
         rolesMap[ue.event_id] = ue.role;
       });
       setEventRoles(rolesMap);
       
-      const { data: eventsData } = await supabase
-        .from('event')
-        .select('id, name, slug, banner_url, start_date, city, description, is_public, private_token')
-        .in('id', eventIds)
-        .order('start_date', { ascending: false });
-      setEvents(eventsData || []);
+      if (eventIds.length > 0) {
+        const { data: eventsData } = await supabase
+          .from('event')
+          .select('id, name, slug, banner_url, start_date, city, description, is_public, private_token')
+          .in('id', eventIds)
+          .order('start_date', { ascending: false });
+        setEvents(eventsData || []);
+      } else {
+        setEvents([]);
+      }
     }
 
-    // Check if following and get status
     if (user && user.id !== userId) {
-      const { data } = await supabase
-        .from('user_follow')
-        .select('status')
-        .eq('follower_id', user.id)
-        .eq('following_id', userId)
-        .maybeSingle();
-      
-      if (data) {
-        setFollowStatus(data.status as 'pending' | 'accepted');
+      if (followStatusResult.data) {
+        setFollowStatus((followStatusResult.data as any).status as 'pending' | 'accepted');
       } else {
         setFollowStatus('none');
       }
