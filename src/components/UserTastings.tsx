@@ -282,7 +282,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
       const tastingWineIds = [...new Set((data as any[]).map(t => t.wine_id))];
       const [winesRes, domainRes] = await Promise.all([
         supabase.from('wine').select('*').in('id', tastingWineIds),
-        supabase.from('domain').select('id, name, logo_url').eq('id', domainId).single()
+        supabase.from('domain').select('id, name, logo_url').eq('id', domainId).maybeSingle()
       ]);
 
       const winesMap = new Map((winesRes.data || []).map(w => [w.id, w]));
