@@ -175,13 +175,32 @@ const Events = () => {
   const hasActiveFilters = searchName || searchCity || searchDate;
 
   const getFilteredUserEvents = () => {
+    let filtered = userEvents;
     if (activeTab === 'organizing') {
-      return userEvents.filter(e => ['organizer', 'co_organizer', 'admin'].includes(e.role));
+      filtered = filtered.filter(e => ['organizer', 'co_organizer', 'admin'].includes(e.role));
     }
     if (activeTab === 'registered') {
-      return userEvents.filter(e => e.role === 'participant');
+      filtered = filtered.filter(e => e.role === 'participant');
     }
-    return userEvents;
+    // Apply search filters
+    if (searchName.trim()) {
+      filtered = filtered.filter(e => e.name.toLowerCase().includes(searchName.toLowerCase()));
+    }
+    if (searchCity.trim()) {
+      filtered = filtered.filter(e => e.city?.toLowerCase().includes(searchCity.toLowerCase()));
+    }
+    if (searchDate) {
+      const startOfDay = new Date(searchDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(searchDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(e => {
+        const eventStart = new Date(e.start_date);
+        const eventEnd = e.end_date ? new Date(e.end_date) : eventStart;
+        return eventStart <= endOfDay && eventEnd >= startOfDay;
+      });
+    }
+    return filtered;
   };
 
   const renderEventCard = (event: Event | UserEvent, showRole = false) => {
@@ -328,9 +347,8 @@ const Events = () => {
               </TabsList>
             </Tabs>
 
-            {/* Search filters - only for public events */}
-            {activeTab === 'public' && (
-              <div className="mb-12 space-y-4">
+            {/* Search filters */}
+            <div className="mb-12 space-y-4">
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -382,8 +400,7 @@ const Events = () => {
                     Réinitialiser les filtres
                   </Button>
                 )}
-              </div>
-            )}
+            </div>
 
             {loading ? (
               <div className="grid gap-6">

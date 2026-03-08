@@ -836,15 +836,18 @@ const EventDetails = () => {
                   <h1 className="text-3xl md:text-5xl font-serif font-bold break-words">
                     {event.name}
                   </h1>
-                  {getAccessTypeBadge() && (
-                    <Badge 
-                      variant="outline" 
-                      className={`${getAccessTypeBadge()?.className} flex items-center gap-1.5 text-xs font-medium`}
-                    >
-                      {getAccessTypeBadge()?.icon}
-                      {getAccessTypeBadge()?.label}
-                    </Badge>
-                  )}
+                  {(() => {
+                    const accessBadge = getAccessTypeBadge();
+                    return accessBadge ? (
+                      <Badge 
+                        variant="outline" 
+                        className={`${accessBadge.className} flex items-center gap-1.5 text-xs font-medium`}
+                      >
+                        {accessBadge.icon}
+                        {accessBadge.label}
+                      </Badge>
+                    ) : null;
+                  })()}
                 </div>
               </div>
               {canEdit && (
@@ -1110,13 +1113,13 @@ const EventDetails = () => {
                 )}
 
                 {canEdit && !event.is_public && event.private_token && (
-                  <Card className="p-6 bg-amber-50 border-amber-200">
+                  <Card className="p-6 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
                     <div className="space-y-4">
                       <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <h3 className="font-semibold text-amber-900">Lien privé de l'événement</h3>
-                          <p className="text-sm text-amber-700 mt-1">
+                          <h3 className="font-semibold text-amber-900 dark:text-amber-100">Lien privé de l'événement</h3>
+                          <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
                             ⚠️ Ne partagez ce lien qu'avec des personnes de confiance
                           </p>
                         </div>
@@ -1126,7 +1129,7 @@ const EventDetails = () => {
                         <Input
                           value={`${window.location.origin}/event/${event.slug}?token=${event.private_token}`}
                           readOnly
-                          className="flex-1 bg-white"
+                          className="flex-1 bg-white dark:bg-background"
                         />
                         <Button
                           variant="outline"
