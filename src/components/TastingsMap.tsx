@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, MapPin, Wine } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/errorHandler";
+import { Button } from "@/components/ui/button";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || "";
 
@@ -35,6 +37,12 @@ const SOURCE_COLORS: Record<string, string> = {
   event: "#3b82f6",
   cellar: "#a855f7",
   spontaneous: "#ef4444",
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  event: "Événements",
+  cellar: "Caves",
+  spontaneous: "Spontanées",
 };
 
 const DEFAULT_LABEL_URL = "https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png";
@@ -129,7 +137,7 @@ function createGroupMarker(
     try {
       const canvas = document.createElement("canvas");
       const scale = 2;
-      const totalWidth = size + 16; // extra room for overlap + badge
+      const totalWidth = size + 16;
       canvas.width = totalWidth * scale;
       canvas.height = size * scale;
       const ctx = canvas.getContext("2d")!;
@@ -142,13 +150,11 @@ function createGroupMarker(
         const borderWidth = 4;
         const innerRadius = radius - borderWidth;
 
-        // White background behind for overlap clarity
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
         ctx.arc(cx, cy, radius + 1, 0, Math.PI * 2);
         ctx.fill();
 
-        // Border
         ctx.fillStyle = borderColor;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -168,7 +174,6 @@ function createGroupMarker(
             ctx.drawImage(img, sx, sy, sw, sh, cx - innerRadius, cy - innerRadius, innerRadius * 2, innerRadius * 2);
             ctx.restore();
           } catch {
-            // Draw wine emoji as fallback
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
@@ -197,14 +202,11 @@ function createGroupMarker(
       };
 
       const smallR = size / 2 - 4;
-      // Draw second circle (behind, offset right)
       if (images.length >= 2) {
         await drawCirclePhoto(size / 2 + 14, size / 2, smallR, images[1], colors[1] || colors[0]);
       }
-      // Draw first circle (front)
       await drawCirclePhoto(size / 2, size / 2, smallR, images[0], colors[0]);
 
-      // Badge with count
       const badgeR = 11;
       const badgeX = size + 6;
       const badgeY = size - badgeR - 2;
@@ -235,30 +237,65 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+// ── Dark-mode-aware popup HTML builders ──
+
+function getPopupStyles(): string {
+  return `
+    <style>
+      .map-popup { padding: 4px 0; color: hsl(var(--foreground)); }
+      .map-popup h3, .map-popup h4 { margin: 0 0 4px 0; font-weight: 600; font-family: inherit; }
+      .map-popup h3 { font-size: 14px; }
+      .map-popup h4 { font-size: 13px; }
+      .map-popup .meta { margin: 2px 0; font-size: 12px; color: hsl(var(--muted-foreground)); }
+      .map-popup .meta-sm { margin: 1px 0; font-size: 11px; color: hsl(var(--muted-foreground)); }
+      .map-popup .actions { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+      .map-popup .wine-link-btn {
+        padding: 4px 10px; font-size: 11px; border-radius: 6px;
+        background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
+        text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+        border: none; font-weight: 500;
+      }
+      .map-popup .wine-link-btn:hover { opacity: 0.9; }
+      .map-popup .tasting-story-btn {
+        padding: 4px 10px; font-size: 11px; border: 1px solid hsl(var(--border));
+        border-radius: 6px; background: hsl(var(--background)); color: hsl(var(--foreground));
+        cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      }
+      .map-popup .tasting-story-btn:hover { background: hsl(var(--accent)); }
+      .map-popup .divider { border-top: 1px solid hsl(var(--border)); margin: 6px 0; }
+      .map-popup .group-header { margin: 0 0 6px 0; font-size: 11px; color: hsl(var(--muted-foreground)); font-weight: 600; }
+      .mapboxgl-popup-content {
+        background: hsl(var(--card)) !important;
+        color: hsl(var(--card-foreground)) !important;
+        border: 1px solid hsl(var(--border)) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+        padding: 12px !important;
+      }
+      .mapboxgl-popup-tip {
+        border-top-color: hsl(var(--card)) !important;
+      }
+    </style>
+  `;
+}
+
 function buildSinglePopupHTML(
   props: Record<string, any>,
   onShareStory?: (id: string) => void
 ): string {
   const storyButton = onShareStory
-    ? `<button data-tasting-id="${props.id}" class="tasting-story-btn" style="padding:4px 10px;font-size:11px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">📸 Story</button>`
+    ? `<button data-tasting-id="${props.id}" class="tasting-story-btn">📸 Story</button>`
     : "";
 
   return `
-    <div style="padding:4px 0;">
-      <h3 style="margin:0 0 4px 0;font-weight:600;font-size:14px;">
-        ${props.wine_name} ${props.wine_year || ""}
-      </h3>
-      <p style="margin:2px 0;font-size:12px;color:#666;">
-        <strong>Domaine:</strong> ${props.domain_name}
-      </p>
-      <p style="margin:2px 0;font-size:12px;color:#666;">
-        <strong>Source:</strong> ${props.source_name}
-      </p>
-      <p style="margin:2px 0;font-size:12px;color:#666;">
-        <strong>Date:</strong> ${props.created_at}
-      </p>
-      <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
-        <a href="/wine/${props.wine_id}" class="wine-link-btn" style="padding:4px 10px;font-size:11px;border:1px solid #8b5cf6;border-radius:6px;background:#f5f3ff;color:#7c3aed;text-decoration:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">🍷 Voir le vin</a>
+    ${getPopupStyles()}
+    <div class="map-popup">
+      <h3>${props.wine_name} ${props.wine_year || ""}</h3>
+      <p class="meta"><strong>Domaine:</strong> ${props.domain_name}</p>
+      <p class="meta"><strong>Source:</strong> ${props.source_name}</p>
+      <p class="meta"><strong>Date:</strong> ${props.created_at}</p>
+      <div class="actions">
+        <a href="/wine/${props.wine_id}" class="wine-link-btn">🍷 Voir le vin</a>
         ${storyButton}
       </div>
     </div>
@@ -271,26 +308,18 @@ function buildGroupPopupHTML(
 ): string {
   const items = tastings.map((t, i) => {
     const storyButton = onShareStory
-      ? `<button data-tasting-id="${t.id}" class="tasting-story-btn" style="padding:3px 8px;font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;cursor:pointer;">📸</button>`
+      ? `<button data-tasting-id="${t.id}" class="tasting-story-btn">📸</button>`
       : "";
 
-    const separator = i < tastings.length - 1
-      ? `<div style="border-top:1px solid #eee;margin:6px 0;"></div>`
-      : "";
+    const separator = i < tastings.length - 1 ? `<div class="divider"></div>` : "";
 
     return `
       <div>
-        <h4 style="margin:0 0 2px 0;font-weight:600;font-size:13px;">
-          ${t.wine_name} ${t.wine_year || ""}
-        </h4>
-        <p style="margin:1px 0;font-size:11px;color:#888;">
-          ${t.domain_name} · ${t.source_name}
-        </p>
-        <p style="margin:1px 0;font-size:11px;color:#888;">
-          ${t.created_at}
-        </p>
-        <div style="display:flex;gap:4px;margin-top:4px;">
-          <a href="/wine/${t.wine_id}" class="wine-link-btn" style="padding:3px 8px;font-size:10px;border:1px solid #8b5cf6;border-radius:5px;background:#f5f3ff;color:#7c3aed;text-decoration:none;cursor:pointer;">🍷 Voir</a>
+        <h4>${t.wine_name} ${t.wine_year || ""}</h4>
+        <p class="meta-sm">${t.domain_name} · ${t.source_name}</p>
+        <p class="meta-sm">${t.created_at}</p>
+        <div class="actions">
+          <a href="/wine/${t.wine_id}" class="wine-link-btn">🍷 Voir</a>
           ${storyButton}
         </div>
       </div>
@@ -299,8 +328,9 @@ function buildGroupPopupHTML(
   }).join("");
 
   return `
-    <div style="padding:4px 0;max-height:250px;overflow-y:auto;min-width:220px;">
-      <p style="margin:0 0 6px 0;font-size:11px;color:#999;font-weight:600;">${tastings.length} dégustations ici</p>
+    ${getPopupStyles()}
+    <div class="map-popup" style="max-height:250px;overflow-y:auto;min-width:220px;">
+      <p class="group-header">${tastings.length} dégustations ici</p>
       ${items}
     </div>
   `;
@@ -308,12 +338,27 @@ function buildGroupPopupHTML(
 
 export default function TastingsMap({ sourceFilter, userId, onShareStory }: TastingsMapProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const targetUserId = userId || user?.id;
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [tastings, setTastings] = useState<TastingLocation[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [hiddenSources, setHiddenSources] = useState<Set<string>>(new Set());
+
+  // SPA navigation handler for wine links inside popups
+  const handlePopupNavigation = useCallback((e: Event) => {
+    const detail = (e as CustomEvent).detail;
+    if (detail?.href) {
+      navigate(detail.href);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    window.addEventListener("map-navigate", handlePopupNavigation);
+    return () => window.removeEventListener("map-navigate", handlePopupNavigation);
+  }, [handlePopupNavigation]);
 
   useEffect(() => {
     if (!targetUserId) return;
@@ -344,6 +389,36 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
 
     fetchTastings();
   }, [targetUserId, sourceFilter]);
+
+  // Toggle source filter on the map layer
+  const toggleSource = useCallback((sourceType: string) => {
+    setHiddenSources(prev => {
+      const next = new Set(prev);
+      if (next.has(sourceType)) {
+        next.delete(sourceType);
+      } else {
+        next.add(sourceType);
+      }
+      return next;
+    });
+  }, []);
+
+  // Apply filter to map when hiddenSources changes
+  useEffect(() => {
+    if (!map.current || !map.current.getLayer("unclustered-point")) return;
+
+    if (hiddenSources.size === 0) {
+      // No filter — show all
+      map.current.setFilter("unclustered-point", ["!", ["has", "point_count"]]);
+    } else {
+      const visibleTypes = Object.keys(SOURCE_COLORS).filter(t => !hiddenSources.has(t));
+      map.current.setFilter("unclustered-point", [
+        "all",
+        ["!", ["has", "point_count"]],
+        ["in", ["get", "filter_source"], ["literal", visibleTypes]],
+      ]);
+    }
+  }, [hiddenSources]);
 
   useEffect(() => {
     if (!mapContainer.current || tastings.length === 0) return;
@@ -390,57 +465,62 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
       const locationGroups = groupByLocation(tastings);
       const loadedImages = new Set<string>();
 
-      // Process each group
+      // ── PARALLEL image loading ──
+      const imageLoadTasks: Array<{
+        key: string;
+        promise: Promise<HTMLCanvasElement>;
+      }> = [];
+
       for (const [, group] of locationGroups) {
         if (group.length === 1) {
-          // Single tasting — load individual photo marker
           const tasting = group[0];
           if (tasting.label_url && tasting.label_url !== DEFAULT_LABEL_URL) {
-            try {
-              const canvas = await Promise.race([
+            const imageId = `wine-${tasting.id}`;
+            imageLoadTasks.push({
+              key: imageId,
+              promise: Promise.race([
                 createPhotoMarker(tasting.label_url, SOURCE_COLORS[tasting.source_type] || "#888", 64),
                 new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
-              ]);
-              const ctx = canvas.getContext("2d")!;
-              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              if (map.current) {
-                const imageId = `wine-${tasting.id}`;
-                map.current.addImage(imageId, {
-                  width: canvas.width,
-                  height: canvas.height,
-                  data: new Uint8Array(imageData.data.buffer),
-                });
-                loadedImages.add(imageId);
-              }
-            } catch (err) {
-              logger.error(`[TastingsMap] Failed to load photo for ${tasting.id}`, err);
-            }
+              ]),
+            });
           }
         } else {
-          // Group — create composite marker
           const groupKey = `group-${group[0].latitude}-${group[0].longitude}`;
-          try {
-            const images = group.slice(0, 2).map(t => t.label_url);
-            const colors = group.slice(0, 2).map(t => SOURCE_COLORS[t.source_type] || "#888");
-            const canvas = await Promise.race([
+          const images = group.slice(0, 2).map(t => t.label_url);
+          const colors = group.slice(0, 2).map(t => SOURCE_COLORS[t.source_type] || "#888");
+          imageLoadTasks.push({
+            key: groupKey,
+            promise: Promise.race([
               createGroupMarker(images, colors, group.length, 64),
               new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 4000)),
-            ]);
-            const ctx = canvas.getContext("2d")!;
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            if (map.current) {
-              map.current.addImage(groupKey, {
-                width: canvas.width,
-                height: canvas.height,
-                data: new Uint8Array(imageData.data.buffer),
-              });
-              loadedImages.add(groupKey);
-            }
-          } catch (err) {
-            logger.error(`[TastingsMap] Failed to create group marker`, err);
-          }
+            ]),
+          });
         }
       }
+
+      // Await all in parallel
+      const results = await Promise.allSettled(imageLoadTasks.map(t => t.promise));
+
+      results.forEach((result, i) => {
+        if (result.status === "fulfilled" && map.current) {
+          const canvas = result.value;
+          const ctx = canvas.getContext("2d")!;
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const key = imageLoadTasks[i].key;
+          try {
+            map.current.addImage(key, {
+              width: canvas.width,
+              height: canvas.height,
+              data: new Uint8Array(imageData.data.buffer),
+            });
+            loadedImages.add(key);
+          } catch (err) {
+            logger.error(`[TastingsMap] Failed to add image ${key}`, err);
+          }
+        } else if (result.status === "rejected") {
+          logger.error(`[TastingsMap] Failed to load marker image: ${imageLoadTasks[i].key}`, result.reason);
+        }
+      });
 
       // Build GeoJSON features — one per location group
       const features: GeoJSON.Feature[] = [];
@@ -459,6 +539,7 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
               wine_year: first.wine_year,
               domain_name: first.domain_name,
               source_type: first.source_type,
+              filter_source: first.source_type,
               source_name: first.source_name,
               created_at: new Date(first.created_at).toLocaleDateString("fr-FR"),
               icon: loadedImages.has(imageId) ? imageId : `pin-${first.source_type}`,
@@ -468,6 +549,11 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
           });
         } else {
           const groupKey = `group-${first.latitude}-${first.longitude}`;
+          // Use dominant source type for filtering
+          const sourceCounts: Record<string, number> = {};
+          group.forEach(t => { sourceCounts[t.source_type] = (sourceCounts[t.source_type] || 0) + 1; });
+          const dominantSource = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])[0][0];
+
           const groupData = group.map(t => ({
             id: t.id,
             wine_id: t.wine_id,
@@ -483,6 +569,7 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
             properties: {
               id: groupKey,
               is_group: true,
+              filter_source: dominantSource,
               group_count: group.length,
               group_data: JSON.stringify(groupData),
               icon: loadedImages.has(groupKey) ? groupKey : `pin-${first.source_type}`,
@@ -572,7 +659,6 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
         let popupContent: string;
 
         if (props?.is_group === true || props?.is_group === "true") {
-          // Group popup
           try {
             const groupData = JSON.parse(props.group_data);
             popupContent = buildGroupPopupHTML(groupData, onShareStory);
@@ -580,8 +666,7 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
             popupContent = `<p>Erreur d'affichage</p>`;
           }
         } else {
-          // Single popup
-          popupContent = `<div style="padding:8px;min-width:200px;">${buildSinglePopupHTML(props as any, onShareStory)}</div>`;
+          popupContent = buildSinglePopupHTML(props as any, onShareStory);
         }
 
         new mapboxgl.Popup({ offset: [0, -10], maxWidth: "280px" })
@@ -590,31 +675,31 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
           .addTo(map.current!);
       });
 
-      // Listen for story button clicks & wine link navigation
-      if (onShareStory || true) {
-        storyClickHandler = (e: MouseEvent) => {
-          const target = e.target as HTMLElement;
-          
-          // Story button
-          if (onShareStory) {
-            const btn = target.closest(".tasting-story-btn") as HTMLElement | null;
-            if (btn) {
-              const tastingId = btn.getAttribute("data-tasting-id");
-              if (tastingId) onShareStory(tastingId);
-              return;
-            }
-          }
+      // Listen for story button clicks & wine link SPA navigation
+      storyClickHandler = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
 
-          // Wine link — intercept to use SPA navigation
-          const link = target.closest(".wine-link-btn") as HTMLAnchorElement | null;
-          if (link) {
-            e.preventDefault();
-            const href = link.getAttribute("href");
-            if (href) window.location.href = href;
+        // Story button
+        if (onShareStory) {
+          const btn = target.closest(".tasting-story-btn") as HTMLElement | null;
+          if (btn) {
+            const tastingId = btn.getAttribute("data-tasting-id");
+            if (tastingId) onShareStory(tastingId);
+            return;
           }
-        };
-        mapContainer.current?.addEventListener("click", storyClickHandler);
-      }
+        }
+
+        // Wine link — SPA navigation via custom event
+        const link = target.closest(".wine-link-btn") as HTMLAnchorElement | null;
+        if (link) {
+          e.preventDefault();
+          const href = link.getAttribute("href");
+          if (href) {
+            window.dispatchEvent(new CustomEvent("map-navigate", { detail: { href } }));
+          }
+        }
+      };
+      mapContainer.current?.addEventListener("click", storyClickHandler);
 
       // Cursor changes
       map.current!.on("mouseenter", "clusters", () => {
@@ -674,9 +759,18 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
   if (tastings.length === 0) {
     return (
       <div className="flex items-center justify-center h-[600px] bg-muted rounded-lg">
-        <div className="text-center space-y-2">
-          <p className="text-lg font-medium">Aucune dégustation géolocalisée</p>
-          <p className="text-sm text-muted-foreground">Ajoutez des dégustations avec localisation pour voir la carte</p>
+        <div className="text-center space-y-4">
+          <MapPin className="h-10 w-10 mx-auto text-muted-foreground" />
+          <div className="space-y-1">
+            <p className="text-lg font-medium">Aucune dégustation géolocalisée</p>
+            <p className="text-sm text-muted-foreground">Dégustez un vin lors d'un événement ou ajoutez une dégustation spontanée</p>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => navigate("/events")}>
+              <Wine className="h-4 w-4 mr-1" />
+              Voir les événements
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -686,20 +780,28 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
     <div className="space-y-4">
       <div ref={mapContainer} className="h-[600px] rounded-lg overflow-hidden shadow-lg" />
 
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-6 p-4 bg-muted rounded-lg">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: SOURCE_COLORS.event }} />
-          <span className="text-sm">Événements</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: SOURCE_COLORS.cellar }} />
-          <span className="text-sm">Caves</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: SOURCE_COLORS.spontaneous }} />
-          <span className="text-sm">Spontanées</span>
-        </div>
+      {/* Interactive filterable legend */}
+      <div className="flex items-center justify-center gap-4 p-3 bg-muted rounded-lg flex-wrap">
+        {Object.entries(SOURCE_COLORS).map(([key, color]) => {
+          const isHidden = hiddenSources.has(key);
+          return (
+            <button
+              key={key}
+              onClick={() => toggleSource(key)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer border ${
+                isHidden
+                  ? "opacity-40 border-border bg-background line-through"
+                  : "opacity-100 border-transparent bg-background/50 hover:bg-background"
+              }`}
+            >
+              <div
+                className="w-3.5 h-3.5 rounded-full shrink-0 transition-transform"
+                style={{ backgroundColor: color, transform: isHidden ? "scale(0.7)" : "scale(1)" }}
+              />
+              <span className="text-foreground">{SOURCE_LABELS[key]}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
