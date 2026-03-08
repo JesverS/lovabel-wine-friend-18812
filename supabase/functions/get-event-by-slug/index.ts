@@ -121,8 +121,8 @@ Deno.serve(async (req) => {
     // ÉTAPE 2 : L'événement est public
     if (eventData.is_public) {
       // Si l'utilisateur est membre → accès complet (pas de masquage)
-      // Sinon → masquer selon les flags confidential_*
-      return buildResponse(!hasConfidentialAccess);
+      // Sinon → masquer selon les flags confidential_*, inclure posts publics
+      return buildResponse(!hasConfidentialAccess, !hasConfidentialAccess);
     }
 
     // ÉTAPE 3 : L'événement est privé - vérifier le TOKEN
