@@ -920,74 +920,14 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
         {viewMode === 'date' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {tastings.map((tasting) => (
-              <Card 
-                key={tasting.id} 
-                className="hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => setSelectedWine(tasting.wine)}
-              >
-                <CardContent className="p-4 space-y-3">
-                  {/* Action bar */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      {isOwnProfile && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 gap-1 text-xs text-destructive hover:text-destructive"
-                            onClick={(e) => { e.stopPropagation(); setDeletingTasting(tasting); }}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 gap-1 text-xs"
-                            onClick={(e) => { e.stopPropagation(); setShareStoryTasting(tasting); }}
-                          >
-                            <Instagram className="w-3 h-3" />
-                            Story
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                    {tasting.rating && (
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                        <span className="text-sm font-semibold">{tasting.rating}/5</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex gap-4">
-                    {tasting.wine.label_url && (
-                      <img
-                        src={tasting.wine.label_url}
-                        alt={tasting.wine.name}
-                        className="w-20 h-20 object-cover rounded"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate">{tasting.wine.name}</h3>
-                      <p className="text-sm text-muted-foreground">{tasting.domain.name}</p>
-                      {tasting.wine.year && (
-                        <p className="text-sm text-muted-foreground">Année: {tasting.wine.year}</p>
-                      )}
-                      <span className="text-lg">{getLikedIcon(tasting.liked)}</span>
-                      {tasting.comment && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {tasting.comment}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        <Calendar className="w-3 h-3 inline mr-1" />
-                        Dégusté le {new Date(tasting.created_at).toLocaleDateString('fr-FR')}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <TastingCard
+                key={tasting.id}
+                tasting={tasting}
+                isOwnProfile={isOwnProfile}
+                onSelect={() => setSelectedWine(tasting.wine)}
+                onDelete={() => setDeletingTasting(tasting)}
+                onShareStory={() => setShareStoryTasting(tasting)}
+              />
             ))}
           </div>
         ) : viewMode === 'domain' ? (
