@@ -58,6 +58,7 @@ export default function UserProfile() {
   const [requestsDialogOpen, setRequestsDialogOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
+  const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => {
     if (slug) {
