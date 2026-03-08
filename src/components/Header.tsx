@@ -119,6 +119,15 @@ export const Header = () => {
             variant="ghost" 
             size="icon" 
             className="hidden md:inline-flex"
+            aria-label="Changer de thème"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hidden md:inline-flex"
             aria-label="Mes favoris"
             onClick={() => user ? navigate('/favorites') : navigate('/auth')}
           >
