@@ -126,7 +126,7 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString())
-      .single();
+      .maybeSingle();
 
     // If there's a pending payment, try to return the existing Stripe session URL
     if (pendingPayment) {
