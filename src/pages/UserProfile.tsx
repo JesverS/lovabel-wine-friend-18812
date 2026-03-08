@@ -628,7 +628,7 @@ export default function UserProfile() {
                   {posts.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">Aucun post pour le moment</p>
                   ) : (
-                    posts.map((post) => <PostCard key={post.id} post={post} />)
+                    posts.map((post) => <PostCard key={post.id} post={post} preloadedData={true} />)
                   )}
                 </div>
               </>
