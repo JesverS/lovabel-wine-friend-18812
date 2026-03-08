@@ -681,10 +681,9 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
     }
   };
 
-  const getLikedIcon = (liked: number) => {
-    if (liked === 1) return '👍';
-    if (liked === -1) return '👎';
-    return '🤷';
+  const handleMapShareStory = (tastingId: string) => {
+    const tasting = tastings.find(t => t.id === tastingId);
+    if (tasting) setShareStoryTasting(tasting);
   };
 
   if (viewMode === 'event' && selectedEvent) {
