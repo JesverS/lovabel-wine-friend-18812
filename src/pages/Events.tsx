@@ -266,6 +266,10 @@ const Events = () => {
 
       <Header />
       <main className="pt-20 flex-grow">
+        <PullToRefresh onRefresh={async () => {
+          if (activeTab === 'public') await fetchPublicEvents(0, false);
+          else if (user) await fetchUserEvents();
+        }}>
         <section className="container mx-auto px-4 py-16 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
             {/* Breadcrumb */}
