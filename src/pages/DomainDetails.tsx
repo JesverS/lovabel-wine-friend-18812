@@ -91,7 +91,7 @@ export default function DomainDetails() {
       .select("role")
       .eq("user_id", user.id)
       .eq("domain_id", id)
-      .single();
+      .maybeSingle();
 
     // Si data existe, l'utilisateur est dans la table, on set le rôle.
     setUserRole(data?.role ?? null);
