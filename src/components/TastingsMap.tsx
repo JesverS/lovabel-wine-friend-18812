@@ -340,14 +340,15 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
 
       // Listen for story button clicks in popups
       if (onShareStory) {
-        map.current!.getContainer().addEventListener("click", (e) => {
+        storyClickHandler = (e: MouseEvent) => {
           const target = e.target as HTMLElement;
           const btn = target.closest(".tasting-story-btn") as HTMLElement | null;
           if (btn) {
             const tastingId = btn.getAttribute("data-tasting-id");
             if (tastingId) onShareStory(tastingId);
           }
-        });
+        };
+        mapContainer.current?.addEventListener("click", storyClickHandler);
       }
 
       // Cursor changes
