@@ -23,7 +23,6 @@ export const MobileBottomNav = () => {
       .from("user_profiles_public" as any)
       .select("slug")
       .eq("id", user.id)
-      .single()
       .maybeSingle()
       .then(({ data }) => { if ((data as any)?.slug) setSlug((data as any).slug); });
   }, [user]);

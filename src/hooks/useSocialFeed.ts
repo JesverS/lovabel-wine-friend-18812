@@ -292,7 +292,8 @@ async function fetchHybridPage(
     ? discoveryResult.posts[discoveryResult.posts.length - 1].created_at
     : cursor.discoveryCursor;
 
-  const newSeenPostIds = [...cursor.seenPostIds, ...allPosts.map(p => p.id)];
+  const MAX_SEEN = 200;
+  const newSeenPostIds = [...cursor.seenPostIds, ...allPosts.map(p => p.id)].slice(-MAX_SEEN);
 
   const friendsExhausted = cursor.friendsExhausted || !friendsResult.hasMore;
   const discoveryExhausted = cursor.discoveryExhausted || !discoveryResult.hasMore;

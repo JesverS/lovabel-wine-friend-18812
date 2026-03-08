@@ -51,7 +51,7 @@ export default function DomainDetails() {
           .from("user_profiles_public" as any)
           .select("slug")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
         setUserSlug((data as any)?.slug || null);
       }
     };

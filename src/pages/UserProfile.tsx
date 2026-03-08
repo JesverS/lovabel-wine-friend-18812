@@ -74,7 +74,7 @@ export default function UserProfile() {
       .from('user_profiles_public' as any)
       .select('id, slug, full_name, last_name, logo_adress, description, city, address, level, phone_number, email, is_public')
       .eq('slug', slug)
-      .single();
+      .maybeSingle();
     setProfile(profileData);
     setIsProfilePublic((profileData as any)?.is_public !== false);
 

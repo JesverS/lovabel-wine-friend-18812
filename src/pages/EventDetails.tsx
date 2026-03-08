@@ -284,7 +284,7 @@ const EventDetails = () => {
             .select('user_id')
             .eq('event_id', eventData.id)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
           // L'utilisateur a accès s'il est organisateur/admin OU s'il a rejoint l'événement
           setHasAccess(!!memberData || !!role);
