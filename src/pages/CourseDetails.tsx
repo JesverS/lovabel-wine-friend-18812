@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +53,7 @@ const CourseDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", id],
@@ -61,7 +62,7 @@ const CourseDetails = () => {
         .from("courses")
         .select("*")
         .eq("id", parseInt(id || "0"))
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as Course;
@@ -126,7 +127,7 @@ const CourseDetails = () => {
 
       toast.success("Leçon déverrouillée avec succès !");
       refetchWeeklySlots();
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ["lessons-with-status", id] });
     } catch (error: any) {
       toast.error(error.message || "Erreur lors du déverrouillage");
     }

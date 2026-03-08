@@ -65,7 +65,7 @@ export default function Learning() {
     queryKey: ["user-profile", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase.from("user_profiles").select("xp, level").eq("id", user.id).single();
+      const { data, error } = await supabase.from("user_profiles").select("xp, level").eq("id", user.id).maybeSingle();
       if (error) throw error;
       return data;
     },

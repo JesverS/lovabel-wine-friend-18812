@@ -2838,7 +2838,7 @@ export type Database = {
           level: number | null
           logo_adress: string | null
           longitude: number | null
-          phone_number: number | null
+          phone_number: string | null
           slug: string | null
           updated_at: string | null
           xp: number
@@ -2861,7 +2861,7 @@ export type Database = {
           level?: number | null
           logo_adress?: string | null
           longitude?: number | null
-          phone_number?: number | null
+          phone_number?: string | null
           slug?: string | null
           updated_at?: string | null
           xp?: number
@@ -2884,7 +2884,7 @@ export type Database = {
           level?: number | null
           logo_adress?: string | null
           longitude?: number | null
-          phone_number?: number | null
+          phone_number?: string | null
           slug?: string | null
           updated_at?: string | null
           xp?: number
@@ -3503,16 +3503,41 @@ export type Database = {
           description: string | null
           email: string | null
           experience: number | null
-          followers_count: number | null
-          following_count: number | null
           full_name: string | null
           id: string | null
-          is_public: boolean | null
           last_name: string | null
           level: number | null
           logo_adress: string | null
-          phone_number: number | null
+          phone_number: string | null
           slug: string | null
+        }
+        Insert: {
+          address?: never
+          city?: string | null
+          description?: string | null
+          email?: never
+          experience?: never
+          full_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          level?: number | null
+          logo_adress?: string | null
+          phone_number?: never
+          slug?: string | null
+        }
+        Update: {
+          address?: never
+          city?: string | null
+          description?: string | null
+          email?: never
+          experience?: never
+          full_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          level?: number | null
+          logo_adress?: string | null
+          phone_number?: never
+          slug?: string | null
         }
         Relationships: []
       }

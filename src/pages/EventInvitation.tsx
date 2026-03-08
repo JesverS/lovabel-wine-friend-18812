@@ -51,7 +51,7 @@ export default function EventInvitation() {
         .select('*, event(id, slug, name, start_date, end_date, city, banner_url)')
         .eq('token', token)
         .eq('status', 'pending')
-        .single();
+        .maybeSingle();
 
       if (error || !inv) {
         setInvitationNotFound(true);

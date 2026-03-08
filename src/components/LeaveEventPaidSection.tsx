@@ -24,6 +24,7 @@ interface LeaveEventPaidSectionProps {
   paidAmount: number;
   currency: string;
   hasPendingRefundRequest?: boolean;
+  onRefundRequested?: () => void;
 }
 
 const PLATFORM_FEE_PERCENT = 10;
@@ -33,7 +34,8 @@ export function LeaveEventPaidSection({
   eventName, 
   paidAmount, 
   currency,
-  hasPendingRefundRequest = false
+  hasPendingRefundRequest = false,
+  onRefundRequested
 }: LeaveEventPaidSectionProps) {
   const [loading, setLoading] = useState(false);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
@@ -64,8 +66,7 @@ export function LeaveEventPaidSection({
       toast.success("Demande de remboursement envoyée");
       setRefundDialogOpen(false);
       setMessage("");
-      // Reload to update the UI
-      window.location.reload();
+      onRefundRequested?.();
     } catch (error: any) {
       console.error("Erreur:", error);
       toast.error(error.message || "Erreur lors de la demande");

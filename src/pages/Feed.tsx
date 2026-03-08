@@ -5,11 +5,13 @@ import { CreatePost } from "@/components/CreatePost";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { LogIn, MessageSquare } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 
 export default function Feed() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -41,7 +43,7 @@ export default function Feed() {
         {/* Create Post Section */}
         {user ? (
           <div className="mb-8">
-            <CreatePost onPostCreated={() => window.location.reload()} />
+            <CreatePost onPostCreated={() => queryClient.invalidateQueries({ queryKey: ['social-feed'] })} />
           </div>
         ) : (
           <div className="mb-8 p-6 rounded-lg bg-primary/5 border border-primary/20 text-center">

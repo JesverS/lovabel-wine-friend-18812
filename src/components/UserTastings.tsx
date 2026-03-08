@@ -282,7 +282,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
       const tastingWineIds = [...new Set((data as any[]).map(t => t.wine_id))];
       const [winesRes, domainRes] = await Promise.all([
         supabase.from('wine').select('*').in('id', tastingWineIds),
-        supabase.from('domain').select('id, name, logo_url').eq('id', domainId).single()
+        supabase.from('domain').select('id, name, logo_url').eq('id', domainId).maybeSingle()
       ]);
 
       const winesMap = new Map((winesRes.data || []).map(w => [w.id, w]));
@@ -507,7 +507,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             .from('wine')
             .select('*')
             .eq('id', tasting.wine_id)
-            .single();
+            .maybeSingle();
 
           if (!wine) return null;
 
@@ -515,7 +515,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             .from('domain')
             .select('name, logo_url')
             .eq('id', wine.domain_id)
-            .single();
+            .maybeSingle();
           
           return {
             id: tasting.id,
@@ -583,7 +583,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             .from('wine')
             .select('*')
             .eq('id', tasting.wine_id)
-            .single();
+            .maybeSingle();
 
           if (!wine) return null;
 
@@ -591,7 +591,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             .from('domain')
             .select('name, logo_url')
             .eq('id', wine.domain_id)
-            .single();
+            .maybeSingle();
           
           return {
             id: tasting.id,

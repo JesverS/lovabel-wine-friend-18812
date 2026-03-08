@@ -231,7 +231,7 @@ export default function CompleteProfile() {
           slug,
           city: formData.city,
           address: formData.address || null,
-          phone_number: formData.phone_number ? Number(formData.phone_number) : null,
+          phone_number: formData.phone_number ? formData.phone_number.trim() : null,
           latitude: coordinates?.latitude || null,
           longitude: coordinates?.longitude || null,
         })

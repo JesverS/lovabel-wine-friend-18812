@@ -49,7 +49,7 @@ export default function CellarInvitation() {
         .select('*, cellar(*)')
         .eq('token', token)
         .eq('status', 'pending')
-        .single();
+        .maybeSingle();
 
       if (error || !inv) {
         setInvitationNotFound(true);

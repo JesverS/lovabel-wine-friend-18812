@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Récupérer le token Mapbox depuis les variables d'environnement
-const MAPBOX_TOKEN = "pk.eyJ1IjoiamdzZWciLCJhIjoiY21pbTRiazJuMXVsajNjcXhhNWhwMHBwcCJ9.yebyDLxBq2raTeGrpTsLDg";
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || "";
 
 interface TastingsMapProps {
   sourceFilter?: string | null;
