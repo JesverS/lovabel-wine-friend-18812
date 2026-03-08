@@ -67,6 +67,8 @@ const getNotificationLink = (notification: Notification): string | null => {
       return data.token ? `/event-invitation/${data.token}` : null;
     case 'cellar_invitation':
       return data.token ? `/cellar-invitation/${data.token}` : null;
+    case 'event_post':
+      return data.event_slug ? `/event/${data.event_slug}` : null;
     default:
       return null;
   }
