@@ -176,7 +176,7 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
 
       setOpen(false);
       onProfileUpdated();
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         toast({
           variant: 'destructive',
@@ -184,10 +184,11 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
           description: error.errors[0].message,
         });
       } else {
+        const { getUserFriendlyErrorMessage } = await import('@/lib/errorHandler');
         toast({
           variant: 'destructive',
           title: 'Erreur',
-          description: error.message || 'Erreur lors de la mise à jour',
+          description: getUserFriendlyErrorMessage(error),
         });
       }
     } finally {
