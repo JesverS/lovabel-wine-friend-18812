@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { CreateEventDialog } from "@/components/CreateEventDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
