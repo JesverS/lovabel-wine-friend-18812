@@ -28,6 +28,7 @@ interface TastingLocation {
   source_name: string;
   source_id: string | null;
   liked: number;
+  label_url: string | null;
 }
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -56,6 +57,53 @@ function svgToImage(svg: string, size: number): Promise<HTMLImageElement> {
     img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+}
+
+// Create a rounded square thumbnail with colored border from a photo URL
+function createPhotoMarker(imageUrl: string, borderColor: string, size: number = 48): Promise<HTMLCanvasElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const scale = 2; // retina
+      canvas.width = size * scale;
+      canvas.height = size * scale;
+      const ctx = canvas.getContext("2d")!;
+      ctx.scale(scale, scale);
+
+      const borderWidth = 3;
+      const radius = 8;
+      const inner = size - borderWidth * 2;
+
+      // Draw colored border (rounded rect)
+      ctx.fillStyle = borderColor;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, radius);
+      ctx.fill();
+
+      // Clip inner rounded rect for photo
+      ctx.beginPath();
+      ctx.roundRect(borderWidth, borderWidth, inner, inner, radius - 2);
+      ctx.clip();
+
+      // Draw photo
+      const imgAspect = img.width / img.height;
+      let sx = 0, sy = 0, sw = img.width, sh = img.height;
+      if (imgAspect > 1) {
+        sx = (img.width - img.height) / 2;
+        sw = img.height;
+      } else {
+        sy = (img.height - img.width) / 2;
+        sh = img.width;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, borderWidth, borderWidth, inner, inner);
+
+      resolve(canvas);
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = imageUrl;
   });
 }
 
@@ -125,7 +173,7 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
     map.current.on("load", async () => {
       if (!map.current) return;
 
-      // Add custom pin images for each source type
+      // Add fallback pin images for each source type
       for (const [sourceType, color] of Object.entries(SOURCE_COLORS)) {
         try {
           const img = await svgToImage(createPinSVG(color), 56);
@@ -137,25 +185,53 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
         }
       }
 
+      // Load photo markers for tastings with label_url
+      const defaultLabelUrl = "https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png";
+      for (const tasting of tastings) {
+        if (tasting.label_url && tasting.label_url !== defaultLabelUrl) {
+          try {
+            const canvas = await createPhotoMarker(
+              tasting.label_url,
+              SOURCE_COLORS[tasting.source_type] || "#888",
+              48
+            );
+            const ctx = canvas.getContext("2d")!;
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            if (map.current) {
+              map.current.addImage(`wine-${tasting.id}`, {
+                width: canvas.width,
+                height: canvas.height,
+                data: new Uint8Array(imageData.data.buffer),
+              });
+            }
+          } catch (err) {
+            logger.error(`[TastingsMap] Failed to load photo for ${tasting.id}`, err);
+          }
+        }
+      }
+
       const geojson: GeoJSON.FeatureCollection = {
         type: "FeatureCollection",
-        features: tastings.map((tasting) => ({
-          type: "Feature",
-          geometry: {
-            type: "Point",
-            coordinates: [tasting.longitude, tasting.latitude],
-          },
-          properties: {
-            id: tasting.id,
-            wine_name: tasting.wine_name,
-            wine_year: tasting.wine_year,
-            domain_name: tasting.domain_name,
-            source_type: tasting.source_type,
-            source_name: tasting.source_name,
-            created_at: new Date(tasting.created_at).toLocaleDateString("fr-FR"),
-            icon: `pin-${tasting.source_type}`,
-          },
-        })),
+        features: tastings.map((tasting) => {
+          const hasPhoto = tasting.label_url && tasting.label_url !== defaultLabelUrl;
+          return {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [tasting.longitude, tasting.latitude],
+            },
+            properties: {
+              id: tasting.id,
+              wine_name: tasting.wine_name,
+              wine_year: tasting.wine_year,
+              domain_name: tasting.domain_name,
+              source_type: tasting.source_type,
+              source_name: tasting.source_name,
+              created_at: new Date(tasting.created_at).toLocaleDateString("fr-FR"),
+              icon: hasPhoto ? `wine-${tasting.id}` : `pin-${tasting.source_type}`,
+            },
+          };
+        }),
       };
 
       map.current!.addSource("tastings", {
