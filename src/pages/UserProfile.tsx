@@ -590,6 +590,21 @@ export default function UserProfile() {
                         <div className="text-sm opacity-80">Vins sauvegardés</div>
                       </div>
                     </button>
+
+                    {isOwnProfile && (
+                      <button
+                        onClick={() => { setActiveTab('palais'); setDrawerOpen(false); }}
+                        className={`w-full flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                          activeTab === 'palais' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                        }`}
+                      >
+                        <BarChart3 className="w-6 h-6" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Mon Palais</div>
+                          <div className="text-sm opacity-80">Statistiques de dégustation</div>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </DrawerContent>
               </Drawer>
