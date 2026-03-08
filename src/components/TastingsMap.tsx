@@ -270,6 +270,18 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[600px] bg-muted rounded-lg">
+        <div className="text-center space-y-2">
+          <AlertTriangle className="h-8 w-8 mx-auto text-destructive" />
+          <p className="text-lg font-medium">Erreur</p>
+          <p className="text-sm text-muted-foreground max-w-md">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (tastings.length === 0) {
     return (
       <div className="flex items-center justify-center h-[600px] bg-muted rounded-lg">
