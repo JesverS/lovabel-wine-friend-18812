@@ -300,7 +300,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
         title: 'Succès',
         description: 'Commentaire ajouté',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         toast({
           variant: 'destructive',
@@ -311,7 +311,7 @@ export const PostCard = ({ post, preloadedData = false }: PostCardProps) => {
         toast({
           variant: 'destructive',
           title: 'Erreur',
-          description: error.message || 'Erreur lors de l\'ajout du commentaire',
+          description: getUserFriendlyErrorMessage(error),
         });
       }
     } finally {
