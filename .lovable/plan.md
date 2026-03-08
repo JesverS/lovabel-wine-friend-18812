@@ -1,140 +1,44 @@
 
 
-# Preferences de notifications par device
+# Plan de correction — 9 bugs
 
-## Reponse a ta question : faisabilite
+## Bug 1 — AlertDialog avant suppression d'un event post
+**`EventPostCard.tsx`** : Ajouter un state `showDeleteDialog`, remplacer le clic direct sur Trash2 par l'ouverture d'un `AlertDialog` de confirmation ("Supprimer ce post ?", "Cette action est irreversible"), qui appelle `handleDeletePost` sur confirmation.
 
-Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
-- Lire les preferences associees a ce token precis
-- Modifier les preferences pour ce token precis
+## Bug 2 — getAccessTypeBadge() appele 3 fois
+**`EventDetails.tsx`** : Stocker le resultat dans une variable `const accessBadge = getAccessTypeBadge()` avant le JSX, puis utiliser `accessBadge?.className`, `accessBadge?.icon`, `accessBadge?.label`.
 
-L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
+## Bug 3 — Couleurs non dark-mode sur lien prive
+**`EventDetails.tsx`** : Remplacer `bg-amber-50 border-amber-200` par `bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800`, `text-amber-900` par `text-amber-900 dark:text-amber-100`, `text-amber-700` par `text-amber-700 dark:text-amber-300`, `text-amber-600` par `text-amber-600 dark:text-amber-400`, `bg-white` par `bg-white dark:bg-background`.
 
-## Architecture base de donnees
+## Bug 4 — Boutons like/comment silencieux si non connecte
+**`EventPostCard.tsx`** : Dans `handleToggleLike` et `handlePostComment`, si `!user`, appeler `navigate('/auth')` au lieu de `return`. Ajouter aussi un toast "Connectez-vous pour interagir".
 
-### Nouvelle table `notification_preferences`
+## Bug 7 — Filtres non appliques sur onglets inscrits/organise
+**`Events.tsx`** : Dans `getFilteredUserEvents()`, appliquer les filtres `searchName`, `searchCity` et `searchDate` sur les resultats filtres par role. Filtrer cote client avec `.filter()` sur `name.toLowerCase().includes()`, `city?.toLowerCase().includes()` et comparaison de dates.
 
-```text
-notification_preferences
-  id              uuid        PK, default gen_random_uuid()
-  user_id         uuid        NOT NULL, FK -> auth.users
-  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
-  post_like       boolean     DEFAULT true
-  post_comment    boolean     DEFAULT true
-  mention         boolean     DEFAULT true
-  follow_request  boolean     DEFAULT true
-  new_follower    boolean     DEFAULT true
-  follow_accepted boolean     DEFAULT true
-  event_join      boolean     DEFAULT true
-  event_access_request boolean DEFAULT true
-  event_invitation boolean    DEFAULT true
-  cellar_invitation boolean   DEFAULT true
-  refund_request  boolean     DEFAULT true
-  created_at      timestamptz DEFAULT now()
-  updated_at      timestamptz DEFAULT now()
+## Bug 9 — Description dupliquee dans CellarDetails
+**`CellarDetails.tsx`** : Supprimer le bloc `{cellar.description && ...}` du header (lignes 291-293). La description reste uniquement dans l'onglet "A propos".
 
-  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
-```
+## Bug 10 — Onglet "Gestion" separe pour la cave
+**`CellarDetails.tsx`** : Ajouter un onglet "Gestion" (visible uniquement si `userRole` existe) contenant `CellarMembers`, la zone "Quitter la cave" et la zone "Danger / Supprimer". L'onglet "A propos" ne garde que description + adresse.
 
-### Logique de `token_id`
+## Bug 11 — Caves communautaires publiques
+**`Cellars.tsx`** : Ajouter une section "Caves communautaires" sous la liste des cavistes. Nouveau fetch `fetchCommunityCellars` qui requete `is_public = true` ET `is_seller = false`, avec les memes filtres nom/adresse. Afficher dans une grille separee avec un titre "Caves communautaires".
 
-- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
-- `token_id = uuid` : preferences specifiques a ce device
+## Bug 12 — Image event post non croppee
+**`CreateEventPost.tsx`** : Integrer `ImageCropDialog` (aspect 16/9, cropShape rect). Au lieu de stocker le fichier brut, ouvrir le dialog de crop quand un fichier est selectionne, puis stocker le blob croppe comme `imageFile`. Meme pattern que `CreatePost`.
 
-Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
+---
 
-### Types NON configurables
+## Resume des fichiers
 
-Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
-- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
-- `refund_processed` (reponse a sa demande)
-- `level_up` (visible directement dans l'app)
-- `badge_unlocked` (idem)
-
-## Modifications SQL
-
-### 1. Creer la table `notification_preferences`
-
-Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
-
-### 2. Modifier `create_notification()` pour les notifications web
-
-Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
-
-Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
-
-- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
-- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
-- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
-
-### 3. Modifier l'Edge Function `send-push-notification`
-
-Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
-
-```text
-Pour chaque token de l'utilisateur :
-  1. Chercher notification_preferences WHERE token_id = token.id
-  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
-  3. Si pas de prefs du tout -> tout est actif (defaut)
-  4. Verifier si le type est desactive -> si oui, skip
-  5. Sinon, envoyer via FCM
-```
-
-### 4. Modifier `notify_mentioned_user()`
-
-Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
-
-## Frontend
-
-### Nouveau composant `NotificationPreferences.tsx`
-
-Affiche les preferences groupees par categorie avec des Switch :
-
-**Social**
-- Likes sur mes posts (`post_like`)
-- Commentaires sur mes posts (`post_comment`)
-- Mentions (`mention`)
-- Demandes d'abonnement (`follow_request`)
-- Nouveaux abonnes (`new_follower`)
-- Abonnement accepte (`follow_accepted`)
-
-**Evenements**
-- Nouveau participant (`event_join`)
-- Demandes d'acces (`event_access_request`)
-- Invitations (`event_invitation`)
-- Demandes de remboursement (`refund_request`)
-
-**Caves**
-- Invitations a une cave (`cellar_invitation`)
-
-### Comportement depuis le site web
-
-Comme il n'y a pas de push web pour l'instant :
-- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
-- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
-
-### Comportement futur depuis l'app React Native
-
-L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
-
-### Integration dans UserProfile.tsx
-
-Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
-
-## Etapes d'implementation
-
-1. **Migration SQL** : creer la table `notification_preferences` avec RLS
-2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
-3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
-4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
-5. **Composant** : creer `NotificationPreferences.tsx`
-6. **UserProfile.tsx** : ajouter l'onglet Notifications
-
-## Avantages de cette approche
-
-- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
-- **Performante** : un seul SELECT sur une petite table indexee
-- **Granulaire** : preferences par device possibles
-- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
-- **Nettoyage automatique** : CASCADE sur la suppression de token
+| Fichier | Bugs corriges |
+|---------|---------------|
+| `EventPostCard.tsx` | 1, 4 |
+| `EventDetails.tsx` | 2, 3 |
+| `Events.tsx` | 7 |
+| `CellarDetails.tsx` | 9, 10 |
+| `Cellars.tsx` | 11 |
+| `CreateEventPost.tsx` | 12 |
 
