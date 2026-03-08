@@ -28,6 +28,7 @@ interface TastingLocation {
   source_name: string;
   source_id: string | null;
   liked: number;
+  label_url: string | null;
 }
 
 const SOURCE_COLORS: Record<string, string> = {
