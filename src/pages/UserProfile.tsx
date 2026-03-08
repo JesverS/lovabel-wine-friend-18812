@@ -27,6 +27,7 @@ import { OrganizerRevenueDashboard } from '@/components/OrganizerRevenueDashboar
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTabsList, TabsTrigger as InnerTabsTrigger } from '@/components/ui/tabs';
 import { FollowDialogs } from '@/components/FollowDialogs';
+import { TastingDashboard } from '@/components/TastingDashboard';
 import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 import { PrivacySettings } from '@/components/PrivacySettings';
 import { NotificationPreferences } from '@/components/NotificationPreferences';
