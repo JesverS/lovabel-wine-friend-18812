@@ -69,7 +69,7 @@ serve(async (req) => {
       .from("user_profiles")
       .select("slug")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const siteUrl = Deno.env.get("SITE_URL") || "https://winenote.me";
     const userProfileUrl = `${siteUrl}/user/${userProfile?.slug || user.id}`;

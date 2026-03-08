@@ -171,7 +171,7 @@ serve(async (req) => {
       .from("organizer_stripe_account")
       .select("stripe_account_id, charges_enabled")
       .eq("user_id", event.organizer_id)
-      .single();
+      .maybeSingle();
 
     const amountInCents = Math.round(event.price * 100);
     const applicationFeeAmount = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));

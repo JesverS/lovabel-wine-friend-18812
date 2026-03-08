@@ -69,7 +69,7 @@ serve(async (req) => {
         .from("event_payment")
         .select("id, status")
         .eq("stripe_session_id", session.id)
-        .single();
+        .maybeSingle();
 
       if (existingPayment?.status === "completed") {
         console.log(`Session ${session.id} already processed, skipping`);

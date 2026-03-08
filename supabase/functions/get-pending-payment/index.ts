@@ -67,7 +67,7 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString())
-      .single();
+      .maybeSingle();
 
     if (paymentError || !pendingPayment) {
       logStep("No pending payment found");

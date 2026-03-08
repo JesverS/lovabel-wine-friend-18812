@@ -56,7 +56,7 @@ serve(async (req) => {
       .select("role, access_origin")
       .eq("event_id", eventId)
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (memberError || !membership) {
       throw new Error("Vous n'êtes pas inscrit à cet événement");

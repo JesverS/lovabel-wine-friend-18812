@@ -51,7 +51,7 @@ serve(async (req) => {
       .from('organizer_stripe_account')
       .select('stripe_account_id, charges_enabled, payouts_enabled')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (accountError || !stripeAccount) {
       throw new Error("No Stripe account configured for this user");

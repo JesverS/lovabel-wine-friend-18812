@@ -102,7 +102,7 @@ export default function PaymentGateway() {
         .select("user_id")
         .eq("event_id", eventData.id)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (membership) {
         setPageState("already_member");

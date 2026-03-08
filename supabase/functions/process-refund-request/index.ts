@@ -95,7 +95,7 @@ serve(async (req) => {
       .select("role")
       .eq("event_id", refundRequest.event_id)
       .eq("user_id", processorId)
-      .single();
+      .maybeSingle();
 
     if (memberError || !membership || !["organizer", "co_organizer"].includes(membership.role)) {
       throw new Error("Vous n'avez pas les droits pour traiter cette demande");

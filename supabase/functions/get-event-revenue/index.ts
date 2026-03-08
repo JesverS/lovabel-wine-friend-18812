@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       .select('role')
       .eq('event_id', event_id)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!userRole || !['organizer', 'co_organizer', 'admin'].includes(userRole.role)) {
       return new Response(

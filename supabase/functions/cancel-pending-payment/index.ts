@@ -64,7 +64,7 @@ serve(async (req) => {
       .from("event_payment")
       .select("id, stripe_session_id, user_id, status")
       .eq("id", paymentId)
-      .single();
+      .maybeSingle();
 
     if (paymentError || !payment) {
       logStep("Payment not found", { paymentId });

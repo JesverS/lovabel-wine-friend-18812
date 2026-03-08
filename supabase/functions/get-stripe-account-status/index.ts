@@ -54,7 +54,7 @@ serve(async (req) => {
       .from("organizer_stripe_account")
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (dbError || !accountData) {
       logStep("No Stripe account found");
