@@ -288,9 +288,6 @@ export default function CellarDetails() {
                 {cellar.location}
               </p>
             )}
-            {cellar.description && (
-              <p className="text-muted-foreground mt-4 break-words text-sm md:text-base">{cellar.description}</p>
-            )}
           </div>
         </div>
 
@@ -299,6 +296,7 @@ export default function CellarDetails() {
           <TabsList>
             <TabsTrigger value="catalog">Catalogue</TabsTrigger>
             <TabsTrigger value="about">À propos</TabsTrigger>
+            {userRole && <TabsTrigger value="management">Gestion</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="catalog" className="mt-6">
