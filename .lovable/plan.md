@@ -1,140 +1,110 @@
 
 
-# Preferences de notifications par device
+# Plan de correction des bugs et problemes identifies
 
-## Reponse a ta question : faisabilite
+## Phase 1 — Corrections critiques (`.single()` → `.maybeSingle()`)
 
-Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
-- Lire les preferences associees a ce token precis
-- Modifier les preferences pour ce token precis
+**Fichiers concernes :**
 
-L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
+- **`src/pages/EventDetails.tsx`** — Lignes 209, 228, 240, 252, 263, 275, 287 : remplacer les 7 appels `.single()` par `.maybeSingle()`. Tous ces appels concernent des donnees conditionnelles (role utilisateur, demande d'acces, paiement, remboursement, membership).
 
-## Architecture base de donnees
+- **`src/components/Header.tsx`** ligne 34 et **`src/components/MobileBottomNav.tsx`** ligne 27 : remplacer `.single()` par `.maybeSingle()` pour le fetch du slug utilisateur (crash pour les nouveaux users sans profil).
 
-### Nouvelle table `notification_preferences`
+- **`src/pages/UserProfile.tsx`** ligne 77 : remplacer `.single()` par `.maybeSingle()` pour le profil par slug.
 
-```text
-notification_preferences
-  id              uuid        PK, default gen_random_uuid()
-  user_id         uuid        NOT NULL, FK -> auth.users
-  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
-  post_like       boolean     DEFAULT true
-  post_comment    boolean     DEFAULT true
-  mention         boolean     DEFAULT true
-  follow_request  boolean     DEFAULT true
-  new_follower    boolean     DEFAULT true
-  follow_accepted boolean     DEFAULT true
-  event_join      boolean     DEFAULT true
-  event_access_request boolean DEFAULT true
-  event_invitation boolean    DEFAULT true
-  cellar_invitation boolean   DEFAULT true
-  refund_request  boolean     DEFAULT true
-  created_at      timestamptz DEFAULT now()
-  updated_at      timestamptz DEFAULT now()
+- **`src/components/EventAccessRequestsManagement.tsx`** ligne 55 : idem.
 
-  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
-```
+- **`src/components/WineDetailsDialog.tsx`** et **`src/components/WineInteractionDialog.tsx`** : verifier et corriger les `.single()` sur les domaines.
 
-### Logique de `token_id`
+- **`src/pages/DomainDetails.tsx`** ligne 62 : idem.
 
-- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
-- `token_id = uuid` : preferences specifiques a ce device
+---
 
-Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
+## Phase 2 — Performance du feed social
 
-### Types NON configurables
+**Fichier : `src/hooks/useSocialFeed.ts`**
 
-Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
-- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
-- `refund_processed` (reponse a sa demande)
-- `level_up` (visible directement dans l'app)
-- `badge_unlocked` (idem)
-
-## Modifications SQL
-
-### 1. Creer la table `notification_preferences`
-
-Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
-
-### 2. Modifier `create_notification()` pour les notifications web
-
-Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
-
-Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
-
-- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
-- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
-- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
-
-### 3. Modifier l'Edge Function `send-push-notification`
-
-Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
+- Limiter `seenPostIds` aux 200 derniers IDs maximum. Quand le tableau depasse ce seuil, tronquer les plus anciens. Le cursor `created_at` suffit deja a eviter les doublons chronologiques, donc le tableau sert uniquement de filet de securite.
 
 ```text
-Pour chaque token de l'utilisateur :
-  1. Chercher notification_preferences WHERE token_id = token.id
-  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
-  3. Si pas de prefs du tout -> tout est actif (defaut)
-  4. Verifier si le type est desactive -> si oui, skip
-  5. Sinon, envoyer via FCM
+const MAX_SEEN = 200;
+const newSeenPostIds = [...cursor.seenPostIds, ...allPosts.map(p => p.id)].slice(-MAX_SEEN);
 ```
 
-### 4. Modifier `notify_mentioned_user()`
+---
 
-Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
+## Phase 3 — Parallelisation des requetes UserProfile
 
-## Frontend
+**Fichier : `src/pages/UserProfile.tsx`**
 
-### Nouveau composant `NotificationPreferences.tsx`
+Apres le fetch initial du profil (qui fournit `userId`), regrouper les requetes independantes dans un `Promise.all` :
 
-Affiche les preferences groupees par categorie avec des Switch :
+```text
+const [postsData, userCellars, followCounts, userEvents, followStatus] = await Promise.all([
+  fetchPosts(userId),
+  fetchCellars(userId),
+  fetchFollowCounts(userId),
+  fetchEvents(userId),
+  fetchFollowStatus(userId),  // si applicable
+]);
+```
 
-**Social**
-- Likes sur mes posts (`post_like`)
-- Commentaires sur mes posts (`post_comment`)
-- Mentions (`mention`)
-- Demandes d'abonnement (`follow_request`)
-- Nouveaux abonnes (`new_follower`)
-- Abonnement accepte (`follow_accepted`)
+Le fetch `pendingRequestsCount` (propre profil uniquement) peut etre inclus conditionnellement.
 
-**Evenements**
-- Nouveau participant (`event_join`)
-- Demandes d'acces (`event_access_request`)
-- Invitations (`event_invitation`)
-- Demandes de remboursement (`refund_request`)
+---
 
-**Caves**
-- Invitations a une cave (`cellar_invitation`)
+## Phase 4 — Race condition hashtags
 
-### Comportement depuis le site web
+**Fichier : `src/components/CreatePost.tsx`** lignes 198-229
 
-Comme il n'y a pas de push web pour l'instant :
-- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
-- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
+Remplacer la lecture + ecriture non-atomique par un appel RPC SQL atomique ou un upsert avec increment :
 
-### Comportement futur depuis l'app React Native
+- **Option retenue** : creer une fonction SQL `increment_hashtag_usage(p_tag text)` qui fait un `INSERT ... ON CONFLICT (tag) DO UPDATE SET usage_count = hashtag.usage_count + 1 RETURNING id`. Cela rend l'operation atomique.
+- Cote frontend, remplacer la logique existante par un seul appel `supabase.rpc('increment_hashtag_usage', { p_tag: tag })`.
 
-L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
+**Migration SQL necessaire** pour creer cette fonction.
 
-### Integration dans UserProfile.tsx
+---
 
-Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
+## Phase 5 — Cache du slug utilisateur
 
-## Etapes d'implementation
+**Fichiers : `src/components/Header.tsx` et `src/components/MobileBottomNav.tsx`**
 
-1. **Migration SQL** : creer la table `notification_preferences` avec RLS
-2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
-3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
-4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
-5. **Composant** : creer `NotificationPreferences.tsx`
-6. **UserProfile.tsx** : ajouter l'onglet Notifications
+Extraire le fetch du slug dans un hook partage `useUserSlug()` qui utilise `useQuery` avec un `staleTime` de 5 minutes. Les deux composants consomment ce hook au lieu de refaire un fetch a chaque mount.
 
-## Avantages de cette approche
+---
 
-- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
-- **Performante** : un seul SELECT sur une petite table indexee
-- **Granulaire** : preferences par device possibles
-- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
-- **Nettoyage automatique** : CASCADE sur la suppression de token
+## Phase 6 — Utilisation de `errorHandler.ts`
+
+Remplacer les `catch (error: any)` les plus critiques (dans les composants utilisateur-facing) par `getErrorMessage()` et `getUserFriendlyErrorMessage()` :
+
+- `CreatePost.tsx` — soumission de post
+- `PostCard.tsx` — like, commentaire, suppression
+- `EventDetails.tsx` — chargement de l'evenement
+- `UserProfile.tsx` — chargement du profil
+- `EditProfileDialog.tsx` — mise a jour du profil
+
+Cela ne couvre pas les 385 occurrences mais cible les chemins les plus visibles par les utilisateurs.
+
+---
+
+## Phase 7 — PostCard sans pre-chargement
+
+**Fichier : `src/pages/UserProfile.tsx`**
+
+Passer `preloadedData={true}` aux PostCard du profil en pre-chargeant les donnees (auteur, vin, like status) dans `fetchProfileData` via un `enrichPosts` similaire a celui de `useSocialFeed.ts`. Cela elimine le probleme N*4 requetes.
+
+---
+
+## Resume de l'ordre d'execution
+
+| Etape | Impact | Fichiers |
+|-------|--------|----------|
+| Phase 1 | Elimine les crashs | 7+ fichiers |
+| Phase 2 | Corrige degradation perf feed | useSocialFeed.ts |
+| Phase 3 | Accelere page profil | UserProfile.tsx |
+| Phase 4 | Corrige donnees incorrectes | CreatePost.tsx + migration SQL |
+| Phase 5 | Elimine requetes inutiles | Header, MobileBottomNav, nouveau hook |
+| Phase 6 | Messages d'erreur propres | 5 fichiers prioritaires |
+| Phase 7 | Elimine N*4 requetes profil | UserProfile.tsx |
 
