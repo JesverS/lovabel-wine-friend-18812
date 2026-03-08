@@ -1392,6 +1392,7 @@ const EventDetails = () => {
                       paidAmount={userPaymentAmount}
                       currency={event.currency || 'EUR'}
                       hasPendingRefundRequest={hasPendingRefundRequest}
+                      onRefundRequested={() => setHasPendingRefundRequest(true)}
                     />
                   </div>
                 )}
