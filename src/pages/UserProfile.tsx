@@ -897,9 +897,33 @@ export default function UserProfile() {
             )}
           </TabsContent>
 
-          {isOwnProfile && (
+          {(isOwnProfile || canViewContent) && (
             <TabsContent value="palais" className="mt-6">
               <TastingDashboard userId={profile.id} userName={profile.full_name} />
+              {!isOwnProfile && user && (
+                <div className="mt-6">
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => setCompareOpen(!compareOpen)}
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    {compareOpen ? 'Masquer la comparaison' : 'Comparer nos palais'}
+                  </Button>
+                  {compareOpen && (
+                    <Card className="mt-4">
+                      <CardContent className="p-4">
+                        <TastingComparison
+                          myUserId={user.id}
+                          myName="Moi"
+                          friendUserId={profile.id}
+                          friendName={profile.full_name || 'Utilisateur'}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
             </TabsContent>
           )}
         </Tabs>
