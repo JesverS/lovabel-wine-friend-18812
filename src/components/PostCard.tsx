@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
