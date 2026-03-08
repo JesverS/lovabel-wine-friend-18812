@@ -136,7 +136,49 @@ export default function UserProfile() {
         : Promise.resolve({ count: null }),
     ]);
 
-    setPosts(postsResult.data || []);
+    const rawPosts = postsResult.data || [];
+
+    // Enrich posts with author, wine, and like data to avoid N+4 queries in PostCard
+    if (rawPosts.length > 0) {
+      const wineIds = [...new Set(rawPosts.filter((p: any) => p.wine_id).map((p: any) => p.wine_id))];
+      const postIds = rawPosts.map((p: any) => p.id);
+
+      const [winesResult, likesResult] = await Promise.all([
+        wineIds.length > 0
+          ? supabase
+              .from('wine' as any)
+              .select('id, name, label_url, type, domain:domain!wine_domain_id_fkey(id, name)')
+              .in('id', wineIds)
+          : Promise.resolve({ data: [] }),
+        user
+          ? supabase
+              .from('post_like')
+              .select('post_id')
+              .eq('user_id', user.id)
+              .in('post_id', postIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const winesMap = new Map((winesResult.data || []).map((w: any) => [w.id, w]));
+      const likedPostIds = new Set((likesResult.data || []).map((l: any) => l.post_id));
+
+      const enrichedPosts = rawPosts.map((post: any) => ({
+        ...post,
+        author: {
+          id: userId,
+          slug: (profileData as any).slug,
+          full_name: (profileData as any).full_name,
+          logo_adress: (profileData as any).logo_adress,
+          is_public: (profileData as any).is_public,
+        },
+        wine: post.wine_id ? winesMap.get(post.wine_id) || null : null,
+        isLiked: likedPostIds.has(post.id),
+      }));
+
+      setPosts(enrichedPosts);
+    } else {
+      setPosts([]);
+    }
 
     if (cellarsResult.data) {
       const filteredCellars = (cellarsResult.data as any[])
