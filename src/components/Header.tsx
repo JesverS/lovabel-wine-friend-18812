@@ -22,6 +22,7 @@ export const Header = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userSlug = useUserSlug();
+  const { theme, setTheme } = useTheme();
 
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(path + '/');
