@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Platform fee percentage (includes Stripe fees ~2.9% + platform commission)
@@ -109,7 +109,7 @@ serve(async (req) => {
       .select("user_id")
       .eq("event_id", eventId)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (existingMember) {
       return new Response(JSON.stringify({ error: "Vous avez déjà accès à cet événement" }), {
@@ -126,7 +126,7 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString())
-      .single();
+      .maybeSingle();
 
     // If there's a pending payment, try to return the existing Stripe session URL
     if (pendingPayment) {
@@ -171,7 +171,7 @@ serve(async (req) => {
       .from("organizer_stripe_account")
       .select("stripe_account_id, charges_enabled")
       .eq("user_id", event.organizer_id)
-      .single();
+      .maybeSingle();
 
     const amountInCents = Math.round(event.price * 100);
     const applicationFeeAmount = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));

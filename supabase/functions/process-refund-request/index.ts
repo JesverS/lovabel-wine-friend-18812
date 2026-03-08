@@ -4,7 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -73,7 +73,7 @@ serve(async (req) => {
         )
       `)
       .eq("id", requestId)
-      .single();
+      .maybeSingle();
 
     if (requestError || !refundRequest) {
       throw new Error("Demande de remboursement introuvable");
@@ -95,7 +95,7 @@ serve(async (req) => {
       .select("role")
       .eq("event_id", refundRequest.event_id)
       .eq("user_id", processorId)
-      .single();
+      .maybeSingle();
 
     if (memberError || !membership || !["organizer", "co_organizer"].includes(membership.role)) {
       throw new Error("Vous n'avez pas les droits pour traiter cette demande");

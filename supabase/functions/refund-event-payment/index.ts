@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         .from('event_payment')
         .select('id, stripe_payment_intent_id, amount, currency, user_id, event_id, status')
         .eq('id', payment_id)
-        .single();
+        .maybeSingle();
 
       if (paymentError || !data) {
         return new Response(
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       .select('role')
       .eq('event_id', targetEventId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!userRole || !['organizer', 'co_organizer'].includes(userRole.role)) {
       return new Response(

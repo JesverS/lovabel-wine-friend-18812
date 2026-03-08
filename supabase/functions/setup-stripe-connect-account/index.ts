@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const logStep = (step: string, details?: any) => {
@@ -62,14 +62,14 @@ serve(async (req) => {
       .from("organizer_stripe_account")
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     // Récupérer le slug de l'utilisateur pour l'URL du profil
     const { data: userProfile } = await supabaseAdmin
       .from("user_profiles")
       .select("slug")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const siteUrl = Deno.env.get("SITE_URL") || "https://winenote.me";
     const userProfileUrl = `${siteUrl}/user/${userProfile?.slug || user.id}`;
