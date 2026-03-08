@@ -173,7 +173,7 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
     map.current.on("load", async () => {
       if (!map.current) return;
 
-      // Add custom pin images for each source type
+      // Add fallback pin images for each source type
       for (const [sourceType, color] of Object.entries(SOURCE_COLORS)) {
         try {
           const img = await svgToImage(createPinSVG(color), 56);
@@ -185,25 +185,47 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
         }
       }
 
+      // Load photo markers for tastings with label_url
+      const defaultLabelUrl = "https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png";
+      for (const tasting of tastings) {
+        if (tasting.label_url && tasting.label_url !== defaultLabelUrl) {
+          try {
+            const canvas = await createPhotoMarker(
+              tasting.label_url,
+              SOURCE_COLORS[tasting.source_type] || "#888",
+              48
+            );
+            if (map.current) {
+              map.current.addImage(`wine-${tasting.id}`, canvas, { pixelRatio: 2 });
+            }
+          } catch (err) {
+            logger.error(`[TastingsMap] Failed to load photo for ${tasting.id}`, err);
+          }
+        }
+      }
+
       const geojson: GeoJSON.FeatureCollection = {
         type: "FeatureCollection",
-        features: tastings.map((tasting) => ({
-          type: "Feature",
-          geometry: {
-            type: "Point",
-            coordinates: [tasting.longitude, tasting.latitude],
-          },
-          properties: {
-            id: tasting.id,
-            wine_name: tasting.wine_name,
-            wine_year: tasting.wine_year,
-            domain_name: tasting.domain_name,
-            source_type: tasting.source_type,
-            source_name: tasting.source_name,
-            created_at: new Date(tasting.created_at).toLocaleDateString("fr-FR"),
-            icon: `pin-${tasting.source_type}`,
-          },
-        })),
+        features: tastings.map((tasting) => {
+          const hasPhoto = tasting.label_url && tasting.label_url !== defaultLabelUrl;
+          return {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [tasting.longitude, tasting.latitude],
+            },
+            properties: {
+              id: tasting.id,
+              wine_name: tasting.wine_name,
+              wine_year: tasting.wine_year,
+              domain_name: tasting.domain_name,
+              source_type: tasting.source_type,
+              source_name: tasting.source_name,
+              created_at: new Date(tasting.created_at).toLocaleDateString("fr-FR"),
+              icon: hasPhoto ? `wine-${tasting.id}` : `pin-${tasting.source_type}`,
+            },
+          };
+        }),
       };
 
       map.current!.addSource("tastings", {
