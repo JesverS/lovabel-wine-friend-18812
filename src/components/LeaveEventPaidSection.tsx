@@ -24,6 +24,7 @@ interface LeaveEventPaidSectionProps {
   paidAmount: number;
   currency: string;
   hasPendingRefundRequest?: boolean;
+  onRefundRequested?: () => void;
 }
 
 const PLATFORM_FEE_PERCENT = 10;
