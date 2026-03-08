@@ -1261,6 +1261,153 @@ export type Database = {
           },
         ]
       }
+      event_post: {
+        Row: {
+          author_id: string
+          comment_count: number | null
+          content: string
+          created_at: string | null
+          event_id: string
+          id: string
+          image_url: string | null
+          likes_count: number | null
+          updated_at: string | null
+          visibility: string
+        }
+        Insert: {
+          author_id: string
+          comment_count?: number | null
+          content: string
+          created_at?: string | null
+          event_id: string
+          id?: string
+          image_url?: string | null
+          likes_count?: number | null
+          updated_at?: string | null
+          visibility?: string
+        }
+        Update: {
+          author_id?: string
+          comment_count?: number | null
+          content?: string
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          image_url?: string | null
+          likes_count?: number | null
+          updated_at?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_post_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_post_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_public_list"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_post_comment: {
+        Row: {
+          content: string
+          created_at: string | null
+          event_post_id: string
+          id: string
+          likes_count: number | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          event_post_id: string
+          id?: string
+          likes_count?: number | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          event_post_id?: string
+          id?: string
+          likes_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_post_comment_event_post_id_fkey"
+            columns: ["event_post_id"]
+            isOneToOne: false
+            referencedRelation: "event_post"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_post_comment_like: {
+        Row: {
+          comment_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_post_comment_like_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "event_post_comment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_post_like: {
+        Row: {
+          created_at: string | null
+          event_post_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_post_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_post_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_post_like_event_post_id_fkey"
+            columns: ["event_post_id"]
+            isOneToOne: false
+            referencedRelation: "event_post"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_refund_request: {
         Row: {
           created_at: string | null
@@ -3381,6 +3528,35 @@ export type Database = {
         }
         Relationships: []
       }
+      wine_wishlist: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id: string
+          wine_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id: string
+          wine_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id?: string
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wine_wishlist_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wine"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       xp_history: {
         Row: {
           created_at: string
@@ -3576,7 +3752,15 @@ export type Database = {
       }
     }
     Functions: {
+      can_create_event_post: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_user_unlock_lesson: { Args: { p_user_id: string }; Returns: boolean }
+      can_view_event_post: {
+        Args: { _event_id: string; _user_id: string; _visibility: string }
+        Returns: boolean
+      }
       can_view_profile_content: {
         Args: { _profile_id: string; _viewer_id: string }
         Returns: boolean
