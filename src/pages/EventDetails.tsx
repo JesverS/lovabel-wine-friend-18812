@@ -926,6 +926,10 @@ const EventDetails = () => {
             <Tabs defaultValue="presentation" className="mt-8">
               <TabsList className="mb-6">
                 <TabsTrigger value="presentation">Présentation</TabsTrigger>
+                <TabsTrigger value="actualites" className="gap-1.5">
+                  <Newspaper className="h-4 w-4" />
+                  Actualités
+                </TabsTrigger>
                 <TabsTrigger value="organisateurs">Organisateurs</TabsTrigger>
               </TabsList>
 
