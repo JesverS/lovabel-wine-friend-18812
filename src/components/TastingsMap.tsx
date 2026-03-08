@@ -4,16 +4,15 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/errorHandler";
 
-// Récupérer le token Mapbox depuis les variables d'environnement
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || "";
 
 interface TastingsMapProps {
   sourceFilter?: string | null;
   userId?: string;
+  onShareStory?: (tastingId: string) => void;
 }
 
 interface TastingLocation {
@@ -31,13 +30,36 @@ interface TastingLocation {
   liked: number;
 }
 
-const SOURCE_COLORS = {
-  event: "#3b82f6", // Bleu
-  cellar: "#a855f7", // Violet
-  spontaneous: "#ef4444", // Rouge
+const SOURCE_COLORS: Record<string, string> = {
+  event: "#3b82f6",
+  cellar: "#a855f7",
+  spontaneous: "#ef4444",
 };
 
-export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) {
+// Create a pin SVG for a given color
+function createPinSVG(color: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">
+    <defs>
+      <filter id="shadow" x="-20%" y="-10%" width="140%" height="130%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.25"/>
+      </filter>
+    </defs>
+    <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.268 21.732 0 14 0z" fill="${color}" filter="url(#shadow)"/>
+    <circle cx="14" cy="13" r="6" fill="white" opacity="0.9"/>
+    <text x="14" y="17" text-anchor="middle" font-size="12" fill="${color}">🍷</text>
+  </svg>`;
+}
+
+function svgToImage(svg: string, size: number): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image(size, size);
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+}
+
+export default function TastingsMap({ sourceFilter, userId, onShareStory }: TastingsMapProps) {
   const { user } = useAuth();
   const targetUserId = userId || user?.id;
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -87,10 +109,9 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
-    // Initialiser la carte
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "mapbox://styles/mapbox/light-v11",
       center: [2.3522, 48.8566],
       zoom: 5,
     });
@@ -99,13 +120,23 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
       logger.error("[TastingsMap] Mapbox runtime error:", e.error);
     });
 
-    // Ajouter les contrôles de navigation
     map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
 
-    map.current.on("load", () => {
+    map.current.on("load", async () => {
       if (!map.current) return;
 
-      // Créer le GeoJSON pour les points
+      // Add custom pin images for each source type
+      for (const [sourceType, color] of Object.entries(SOURCE_COLORS)) {
+        try {
+          const img = await svgToImage(createPinSVG(color), 56);
+          if (map.current) {
+            map.current.addImage(`pin-${sourceType}`, img, { pixelRatio: 2 });
+          }
+        } catch (err) {
+          logger.error(`[TastingsMap] Failed to load pin image for ${sourceType}`, err);
+        }
+      }
+
       const geojson: GeoJSON.FeatureCollection = {
         type: "FeatureCollection",
         features: tastings.map((tasting) => ({
@@ -122,13 +153,11 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
             source_type: tasting.source_type,
             source_name: tasting.source_name,
             created_at: new Date(tasting.created_at).toLocaleDateString("fr-FR"),
-            color: SOURCE_COLORS[tasting.source_type],
-            liked: tasting.liked,
+            icon: `pin-${tasting.source_type}`,
           },
         })),
       };
 
-      // Ajouter la source
       map.current!.addSource("tastings", {
         type: "geojson",
         data: geojson,
@@ -137,7 +166,7 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
         clusterRadius: 50,
       });
 
-      // Layer pour les clusters
+      // Cluster circles
       map.current!.addLayer({
         id: "clusters",
         type: "circle",
@@ -149,7 +178,7 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
         },
       });
 
-      // Layer pour le nombre dans les clusters
+      // Cluster count
       map.current!.addLayer({
         id: "cluster-count",
         type: "symbol",
@@ -165,72 +194,82 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
         },
       });
 
-      // Layer pour les points individuels
+      // Individual pins using symbol layer
       map.current!.addLayer({
         id: "unclustered-point",
-        type: "circle",
+        type: "symbol",
         source: "tastings",
         filter: ["!", ["has", "point_count"]],
-        paint: {
-          "circle-color": ["get", "color"],
-          "circle-radius": 8,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff",
+        layout: {
+          "icon-image": ["get", "icon"],
+          "icon-size": 1,
+          "icon-anchor": "bottom",
+          "icon-allow-overlap": true,
         },
       });
 
-      // Clic sur un cluster pour zoomer
+      // Click cluster to zoom
       map.current!.on("click", "clusters", (e) => {
         if (!map.current) return;
-        const features = map.current.queryRenderedFeatures(e.point, {
-          layers: ["clusters"],
-        });
+        const features = map.current.queryRenderedFeatures(e.point, { layers: ["clusters"] });
         const clusterId = features[0].properties?.cluster_id;
         const source = map.current.getSource("tastings") as mapboxgl.GeoJSONSource;
 
         source.getClusterExpansionZoom(clusterId, (err, zoom) => {
           if (err || !map.current) return;
           const coordinates = (features[0].geometry as GeoJSON.Point).coordinates;
-          map.current.easeTo({
-            center: [coordinates[0], coordinates[1]],
-            zoom: zoom,
-          });
+          map.current.easeTo({ center: [coordinates[0], coordinates[1]], zoom });
         });
       });
 
-      // Popup sur les points individuels
+      // Popup on individual points
       map.current!.on("click", "unclustered-point", (e) => {
         if (!e.features || !e.features[0]) return;
 
         const coordinates = (e.features[0].geometry as GeoJSON.Point).coordinates.slice();
         const props = e.features[0].properties;
 
-        const likedEmoji = props.liked === 1 ? "👍" : props.liked === -1 ? "👎" : "😐";
+        const storyButton = onShareStory
+          ? `<button data-tasting-id="${props?.id}" class="tasting-story-btn" style="margin-top:8px;padding:4px 10px;font-size:11px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">📸 Story</button>`
+          : "";
 
         const popupContent = `
           <div style="padding: 8px; min-width: 200px;">
-            <h3 style="margin: 0 0 8px 0; font-weight: 600; font-size: 14px;">
-              ${props.wine_name} ${props.wine_year || ""}
+            <h3 style="margin: 0 0 6px 0; font-weight: 600; font-size: 14px;">
+              ${props?.wine_name} ${props?.wine_year || ""}
             </h3>
-            <p style="margin: 4px 0; font-size: 12px; color: #666;">
-              <strong>Domaine:</strong> ${props.domain_name}
+            <p style="margin: 3px 0; font-size: 12px; color: #666;">
+              <strong>Domaine:</strong> ${props?.domain_name}
             </p>
-            <p style="margin: 4px 0; font-size: 12px; color: #666;">
-              <strong>Source:</strong> ${props.source_name}
+            <p style="margin: 3px 0; font-size: 12px; color: #666;">
+              <strong>Source:</strong> ${props?.source_name}
             </p>
-            <p style="margin: 4px 0; font-size: 12px; color: #666;">
-              <strong>Date:</strong> ${props.created_at}
+            <p style="margin: 3px 0; font-size: 12px; color: #666;">
+              <strong>Date:</strong> ${props?.created_at}
             </p>
-            <p style="margin: 4px 0; font-size: 12px;">
-              ${likedEmoji}
-            </p>
+            ${storyButton}
           </div>
         `;
 
-        new mapboxgl.Popup().setLngLat([coordinates[0], coordinates[1]]).setHTML(popupContent).addTo(map.current!);
+        new mapboxgl.Popup({ offset: [0, -30] })
+          .setLngLat([coordinates[0], coordinates[1]])
+          .setHTML(popupContent)
+          .addTo(map.current!);
       });
 
-      // Changer le curseur au survol
+      // Listen for story button clicks in popups
+      if (onShareStory) {
+        map.current!.getContainer().addEventListener("click", (e) => {
+          const target = e.target as HTMLElement;
+          const btn = target.closest(".tasting-story-btn") as HTMLElement | null;
+          if (btn) {
+            const tastingId = btn.getAttribute("data-tasting-id");
+            if (tastingId) onShareStory(tastingId);
+          }
+        });
+      }
+
+      // Cursor changes
       map.current!.on("mouseenter", "clusters", () => {
         if (map.current) map.current.getCanvas().style.cursor = "pointer";
       });
@@ -244,7 +283,7 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
         if (map.current) map.current.getCanvas().style.cursor = "";
       });
 
-      // Ajuster la vue pour afficher tous les points
+      // Fit bounds
       if (tastings.length > 0) {
         const bounds = new mapboxgl.LngLatBounds();
         tastings.forEach((tasting) => {
@@ -257,7 +296,7 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
     return () => {
       map.current?.remove();
     };
-  }, [tastings]);
+  }, [tastings, onShareStory]);
 
   if (isLoading) {
     return (
@@ -297,7 +336,7 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
     <div className="space-y-4">
       <div ref={mapContainer} className="h-[600px] rounded-lg overflow-hidden shadow-lg" />
 
-      {/* Légende */}
+      {/* Legend */}
       <div className="flex items-center justify-center gap-6 p-4 bg-muted rounded-lg">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full" style={{ backgroundColor: SOURCE_COLORS.event }} />
