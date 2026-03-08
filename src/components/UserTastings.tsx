@@ -4,13 +4,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays, Map as MapIcon, Plus, Instagram } from 'lucide-react';
+import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays, Map as MapIcon, Plus, Instagram, Trash2 } from 'lucide-react';
 import { WineDetailsDialog } from './WineDetailsDialog';
 import { ShareStoryDialog } from './ShareStoryDialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import TastingsMap from './TastingsMap';
 import SpontaneousTastingDialog from './SpontaneousTastingDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 type ViewMode = 'date' | 'domain' | 'event' | 'cellar' | 'map';
 
