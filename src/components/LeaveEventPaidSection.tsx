@@ -34,7 +34,8 @@ export function LeaveEventPaidSection({
   eventName, 
   paidAmount, 
   currency,
-  hasPendingRefundRequest = false
+  hasPendingRefundRequest = false,
+  onRefundRequested
 }: LeaveEventPaidSectionProps) {
   const [loading, setLoading] = useState(false);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
