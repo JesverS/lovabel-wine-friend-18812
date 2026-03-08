@@ -162,7 +162,7 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
           description: validated.description || null,
           address: validated.address || null,
           city: validated.city || null,
-          phone_number: validated.téléphone && validated.téléphone.trim() ? validated.téléphone.trim() : null,
+          phone_number: validated.téléphone && validated.téléphone.trim() ? parseInt(validated.téléphone) : null,
           logo_adress: avatarPreview || null,
         })
         .eq('id', user.id);

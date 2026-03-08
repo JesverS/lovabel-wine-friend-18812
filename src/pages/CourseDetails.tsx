@@ -53,6 +53,7 @@ const CourseDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", id],
