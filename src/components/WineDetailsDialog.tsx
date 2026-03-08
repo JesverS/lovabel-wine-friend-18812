@@ -688,15 +688,25 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
             <div className="flex items-start justify-between gap-2 md:gap-4">
               <h2 className="text-xl md:text-3xl font-serif break-words flex-1 min-w-0">{wine.name}</h2>
               {user && (
-                <Button
-                  variant={isFavorite ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleToggleFavorite}
-                  className="flex items-center gap-2"
-                >
-                  <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
-                  {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={isInWishlist ? "default" : "outline"}
+                    size="icon"
+                    onClick={handleToggleWishlist}
+                    title={isInWishlist ? "Retirer de la liste À goûter" : "Ajouter à la liste À goûter"}
+                  >
+                    {isInWishlist ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant={isFavorite ? "default" : "outline"}
+                    size="sm"
+                    onClick={handleToggleFavorite}
+                    className="flex items-center gap-2"
+                  >
+                    <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                    {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                  </Button>
+                </div>
               )}
             </div>
             <Button
