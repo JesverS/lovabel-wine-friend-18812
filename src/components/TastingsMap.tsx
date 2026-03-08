@@ -37,6 +37,20 @@ const SOURCE_COLORS: Record<string, string> = {
   spontaneous: "#ef4444",
 };
 
+const DEFAULT_LABEL_URL = "https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png";
+
+// Group tastings by identical coordinates
+function groupByLocation(tastings: TastingLocation[]): Map<string, TastingLocation[]> {
+  const groups = new Map<string, TastingLocation[]>();
+  for (const t of tastings) {
+    const key = `${t.latitude},${t.longitude}`;
+    const arr = groups.get(key) || [];
+    arr.push(t);
+    groups.set(key, arr);
+  }
+  return groups;
+}
+
 // Create a pin SVG for a given color
 function createPinSVG(color: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">
@@ -60,8 +74,8 @@ function svgToImage(svg: string, size: number): Promise<HTMLImageElement> {
   });
 }
 
-// Create a rounded square thumbnail with colored border from a photo URL
-function createPhotoMarker(imageUrl: string, borderColor: string, size: number = 36): Promise<HTMLCanvasElement> {
+// Create a rounded photo marker with colored border
+function createPhotoMarker(imageUrl: string, borderColor: string, size: number = 64): Promise<HTMLCanvasElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -73,22 +87,19 @@ function createPhotoMarker(imageUrl: string, borderColor: string, size: number =
       const ctx = canvas.getContext("2d")!;
       ctx.scale(scale, scale);
 
-      const borderWidth = 3;
+      const borderWidth = 4;
       const half = size / 2;
       const innerRadius = half - borderWidth;
 
-      // Draw colored border circle
       ctx.fillStyle = borderColor;
       ctx.beginPath();
       ctx.arc(half, half, half, 0, Math.PI * 2);
       ctx.fill();
 
-      // Clip inner circle for photo
       ctx.beginPath();
       ctx.arc(half, half, innerRadius, 0, Math.PI * 2);
       ctx.clip();
 
-      // Draw photo (center-crop)
       const imgAspect = img.width / img.height;
       let sx = 0, sy = 0, sw = img.width, sh = img.height;
       if (imgAspect > 1) {
@@ -105,6 +116,194 @@ function createPhotoMarker(imageUrl: string, borderColor: string, size: number =
     img.onerror = () => reject(new Error("Failed to load image"));
     img.src = imageUrl;
   });
+}
+
+// Create a composite marker for groups of co-located tastings
+function createGroupMarker(
+  images: (string | null)[],
+  colors: string[],
+  count: number,
+  size: number = 64
+): Promise<HTMLCanvasElement> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const canvas = document.createElement("canvas");
+      const scale = 2;
+      const totalWidth = size + 16; // extra room for overlap + badge
+      canvas.width = totalWidth * scale;
+      canvas.height = size * scale;
+      const ctx = canvas.getContext("2d")!;
+      ctx.scale(scale, scale);
+
+      const drawCirclePhoto = async (
+        cx: number, cy: number, radius: number,
+        imageUrl: string | null, borderColor: string
+      ) => {
+        const borderWidth = 4;
+        const innerRadius = radius - borderWidth;
+
+        // White background behind for overlap clarity
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius + 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Border
+        ctx.fillStyle = borderColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (imageUrl && imageUrl !== DEFAULT_LABEL_URL) {
+          try {
+            const img = await loadImage(imageUrl);
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
+            ctx.clip();
+            const imgAspect = img.width / img.height;
+            let sx = 0, sy = 0, sw = img.width, sh = img.height;
+            if (imgAspect > 1) { sx = (img.width - img.height) / 2; sw = img.height; }
+            else { sy = (img.height - img.width) / 2; sh = img.width; }
+            ctx.drawImage(img, sx, sy, sw, sh, cx - innerRadius, cy - innerRadius, innerRadius * 2, innerRadius * 2);
+            ctx.restore();
+          } catch {
+            // Draw wine emoji as fallback
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.fillStyle = "#f5f5f5";
+            ctx.fill();
+            ctx.restore();
+            ctx.font = `${innerRadius}px sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🍷", cx, cy);
+          }
+        } else {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.fillStyle = "#f5f5f5";
+          ctx.fill();
+          ctx.restore();
+          ctx.font = `${innerRadius}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("🍷", cx, cy);
+        }
+      };
+
+      const smallR = size / 2 - 4;
+      // Draw second circle (behind, offset right)
+      if (images.length >= 2) {
+        await drawCirclePhoto(size / 2 + 14, size / 2, smallR, images[1], colors[1] || colors[0]);
+      }
+      // Draw first circle (front)
+      await drawCirclePhoto(size / 2, size / 2, smallR, images[0], colors[0]);
+
+      // Badge with count
+      const badgeR = 11;
+      const badgeX = size + 6;
+      const badgeY = size - badgeR - 2;
+      ctx.fillStyle = "#1f2937";
+      ctx.beginPath();
+      ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(count), badgeX, badgeY);
+
+      resolve(canvas);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Failed to load"));
+    img.src = url;
+  });
+}
+
+function buildSinglePopupHTML(
+  props: Record<string, any>,
+  onShareStory?: (id: string) => void
+): string {
+  const storyButton = onShareStory
+    ? `<button data-tasting-id="${props.id}" class="tasting-story-btn" style="padding:4px 10px;font-size:11px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">📸 Story</button>`
+    : "";
+
+  return `
+    <div style="padding:4px 0;">
+      <h3 style="margin:0 0 4px 0;font-weight:600;font-size:14px;">
+        ${props.wine_name} ${props.wine_year || ""}
+      </h3>
+      <p style="margin:2px 0;font-size:12px;color:#666;">
+        <strong>Domaine:</strong> ${props.domain_name}
+      </p>
+      <p style="margin:2px 0;font-size:12px;color:#666;">
+        <strong>Source:</strong> ${props.source_name}
+      </p>
+      <p style="margin:2px 0;font-size:12px;color:#666;">
+        <strong>Date:</strong> ${props.created_at}
+      </p>
+      <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
+        <a href="/wine/${props.wine_id}" class="wine-link-btn" style="padding:4px 10px;font-size:11px;border:1px solid #8b5cf6;border-radius:6px;background:#f5f3ff;color:#7c3aed;text-decoration:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">🍷 Voir le vin</a>
+        ${storyButton}
+      </div>
+    </div>
+  `;
+}
+
+function buildGroupPopupHTML(
+  tastings: Array<Record<string, any>>,
+  onShareStory?: (id: string) => void
+): string {
+  const items = tastings.map((t, i) => {
+    const storyButton = onShareStory
+      ? `<button data-tasting-id="${t.id}" class="tasting-story-btn" style="padding:3px 8px;font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;cursor:pointer;">📸</button>`
+      : "";
+
+    const separator = i < tastings.length - 1
+      ? `<div style="border-top:1px solid #eee;margin:6px 0;"></div>`
+      : "";
+
+    return `
+      <div>
+        <h4 style="margin:0 0 2px 0;font-weight:600;font-size:13px;">
+          ${t.wine_name} ${t.wine_year || ""}
+        </h4>
+        <p style="margin:1px 0;font-size:11px;color:#888;">
+          ${t.domain_name} · ${t.source_name}
+        </p>
+        <p style="margin:1px 0;font-size:11px;color:#888;">
+          ${t.created_at}
+        </p>
+        <div style="display:flex;gap:4px;margin-top:4px;">
+          <a href="/wine/${t.wine_id}" class="wine-link-btn" style="padding:3px 8px;font-size:10px;border:1px solid #8b5cf6;border-radius:5px;background:#f5f3ff;color:#7c3aed;text-decoration:none;cursor:pointer;">🍷 Voir</a>
+          ${storyButton}
+        </div>
+      </div>
+      ${separator}
+    `;
+  }).join("");
+
+  return `
+    <div style="padding:4px 0;max-height:250px;overflow-y:auto;min-width:220px;">
+      <p style="margin:0 0 6px 0;font-size:11px;color:#999;font-weight:600;">${tastings.length} dégustations ici</p>
+      ${items}
+    </div>
+  `;
 }
 
 export default function TastingsMap({ sourceFilter, userId, onShareStory }: TastingsMapProps) {
@@ -187,61 +386,112 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
         }
       }
 
-      // Load photo markers for tastings with label_url
-      const defaultLabelUrl = "https://amzutunyjouejovlrlah.supabase.co/storage/v1/object/public/domain/tmp/default.png";
+      // Group tastings by location
+      const locationGroups = groupByLocation(tastings);
       const loadedImages = new Set<string>();
 
-      for (const tasting of tastings) {
-        if (tasting.label_url && tasting.label_url !== defaultLabelUrl) {
+      // Process each group
+      for (const [, group] of locationGroups) {
+        if (group.length === 1) {
+          // Single tasting — load individual photo marker
+          const tasting = group[0];
+          if (tasting.label_url && tasting.label_url !== DEFAULT_LABEL_URL) {
+            try {
+              const canvas = await Promise.race([
+                createPhotoMarker(tasting.label_url, SOURCE_COLORS[tasting.source_type] || "#888", 64),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+              ]);
+              const ctx = canvas.getContext("2d")!;
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              if (map.current) {
+                const imageId = `wine-${tasting.id}`;
+                map.current.addImage(imageId, {
+                  width: canvas.width,
+                  height: canvas.height,
+                  data: new Uint8Array(imageData.data.buffer),
+                });
+                loadedImages.add(imageId);
+              }
+            } catch (err) {
+              logger.error(`[TastingsMap] Failed to load photo for ${tasting.id}`, err);
+            }
+          }
+        } else {
+          // Group — create composite marker
+          const groupKey = `group-${group[0].latitude}-${group[0].longitude}`;
           try {
+            const images = group.slice(0, 2).map(t => t.label_url);
+            const colors = group.slice(0, 2).map(t => SOURCE_COLORS[t.source_type] || "#888");
             const canvas = await Promise.race([
-              createPhotoMarker(
-                tasting.label_url,
-                SOURCE_COLORS[tasting.source_type] || "#888",
-                48
-              ),
-              new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+              createGroupMarker(images, colors, group.length, 64),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 4000)),
             ]);
             const ctx = canvas.getContext("2d")!;
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             if (map.current) {
-              const imageId = `wine-${tasting.id}`;
-              map.current.addImage(imageId, {
+              map.current.addImage(groupKey, {
                 width: canvas.width,
                 height: canvas.height,
                 data: new Uint8Array(imageData.data.buffer),
               });
-              loadedImages.add(imageId);
+              loadedImages.add(groupKey);
             }
           } catch (err) {
-            logger.error(`[TastingsMap] Failed to load photo for ${tasting.id}`, err);
+            logger.error(`[TastingsMap] Failed to create group marker`, err);
           }
         }
       }
 
-      const geojson: GeoJSON.FeatureCollection = {
-        type: "FeatureCollection",
-        features: tastings.map((tasting) => {
-          const imageId = `wine-${tasting.id}`;
-          return {
+      // Build GeoJSON features — one per location group
+      const features: GeoJSON.Feature[] = [];
+
+      for (const [, group] of locationGroups) {
+        const first = group[0];
+        if (group.length === 1) {
+          const imageId = `wine-${first.id}`;
+          features.push({
             type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [tasting.longitude, tasting.latitude],
-            },
+            geometry: { type: "Point", coordinates: [first.longitude, first.latitude] },
             properties: {
-              id: tasting.id,
-              wine_name: tasting.wine_name,
-              wine_year: tasting.wine_year,
-              domain_name: tasting.domain_name,
-              source_type: tasting.source_type,
-              source_name: tasting.source_name,
-              created_at: new Date(tasting.created_at).toLocaleDateString("fr-FR"),
-              icon: loadedImages.has(imageId) ? imageId : `pin-${tasting.source_type}`,
+              id: first.id,
+              wine_id: first.wine_id,
+              wine_name: first.wine_name,
+              wine_year: first.wine_year,
+              domain_name: first.domain_name,
+              source_type: first.source_type,
+              source_name: first.source_name,
+              created_at: new Date(first.created_at).toLocaleDateString("fr-FR"),
+              icon: loadedImages.has(imageId) ? imageId : `pin-${first.source_type}`,
+              is_group: false,
+              group_data: null,
             },
-          };
-        }),
-      };
+          });
+        } else {
+          const groupKey = `group-${first.latitude}-${first.longitude}`;
+          const groupData = group.map(t => ({
+            id: t.id,
+            wine_id: t.wine_id,
+            wine_name: t.wine_name,
+            wine_year: t.wine_year,
+            domain_name: t.domain_name,
+            source_name: t.source_name,
+            created_at: new Date(t.created_at).toLocaleDateString("fr-FR"),
+          }));
+          features.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [first.longitude, first.latitude] },
+            properties: {
+              id: groupKey,
+              is_group: true,
+              group_count: group.length,
+              group_data: JSON.stringify(groupData),
+              icon: loadedImages.has(groupKey) ? groupKey : `pin-${first.source_type}`,
+            },
+          });
+        }
+      }
+
+      const geojson: GeoJSON.FeatureCollection = { type: "FeatureCollection", features };
 
       map.current!.addSource("tastings", {
         type: "geojson",
@@ -279,7 +529,7 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
         },
       });
 
-      // Individual pins using symbol layer
+      // Individual/group pins
       map.current!.addLayer({
         id: "unclustered-point",
         type: "symbol",
@@ -289,11 +539,11 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
           "icon-image": ["get", "icon"],
           "icon-size": [
             "interpolate", ["linear"], ["zoom"],
-            4, 0.4,
-            8, 0.65,
-            12, 1.0,
+            4, 0.35,
+            8, 0.55,
+            12, 0.85,
           ],
-          "icon-anchor": "bottom",
+          "icon-anchor": "center",
           "icon-allow-overlap": true,
         },
       });
@@ -312,49 +562,55 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
         });
       });
 
-      // Popup on individual points
+      // Popup on individual/group points
       map.current!.on("click", "unclustered-point", (e) => {
         if (!e.features || !e.features[0]) return;
 
         const coordinates = (e.features[0].geometry as GeoJSON.Point).coordinates.slice();
         const props = e.features[0].properties;
 
-        const storyButton = onShareStory
-          ? `<button data-tasting-id="${props?.id}" class="tasting-story-btn" style="margin-top:8px;padding:4px 10px;font-size:11px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">📸 Story</button>`
-          : "";
+        let popupContent: string;
 
-        const popupContent = `
-          <div style="padding: 8px; min-width: 200px;">
-            <h3 style="margin: 0 0 6px 0; font-weight: 600; font-size: 14px;">
-              ${props?.wine_name} ${props?.wine_year || ""}
-            </h3>
-            <p style="margin: 3px 0; font-size: 12px; color: #666;">
-              <strong>Domaine:</strong> ${props?.domain_name}
-            </p>
-            <p style="margin: 3px 0; font-size: 12px; color: #666;">
-              <strong>Source:</strong> ${props?.source_name}
-            </p>
-            <p style="margin: 3px 0; font-size: 12px; color: #666;">
-              <strong>Date:</strong> ${props?.created_at}
-            </p>
-            ${storyButton}
-          </div>
-        `;
+        if (props?.is_group === true || props?.is_group === "true") {
+          // Group popup
+          try {
+            const groupData = JSON.parse(props.group_data);
+            popupContent = buildGroupPopupHTML(groupData, onShareStory);
+          } catch {
+            popupContent = `<p>Erreur d'affichage</p>`;
+          }
+        } else {
+          // Single popup
+          popupContent = `<div style="padding:8px;min-width:200px;">${buildSinglePopupHTML(props as any, onShareStory)}</div>`;
+        }
 
-        new mapboxgl.Popup({ offset: [0, -30] })
+        new mapboxgl.Popup({ offset: [0, -10], maxWidth: "280px" })
           .setLngLat([coordinates[0], coordinates[1]])
           .setHTML(popupContent)
           .addTo(map.current!);
       });
 
-      // Listen for story button clicks in popups
-      if (onShareStory) {
+      // Listen for story button clicks & wine link navigation
+      if (onShareStory || true) {
         storyClickHandler = (e: MouseEvent) => {
           const target = e.target as HTMLElement;
-          const btn = target.closest(".tasting-story-btn") as HTMLElement | null;
-          if (btn) {
-            const tastingId = btn.getAttribute("data-tasting-id");
-            if (tastingId) onShareStory(tastingId);
+          
+          // Story button
+          if (onShareStory) {
+            const btn = target.closest(".tasting-story-btn") as HTMLElement | null;
+            if (btn) {
+              const tastingId = btn.getAttribute("data-tasting-id");
+              if (tastingId) onShareStory(tastingId);
+              return;
+            }
+          }
+
+          // Wine link — intercept to use SPA navigation
+          const link = target.closest(".wine-link-btn") as HTMLAnchorElement | null;
+          if (link) {
+            e.preventDefault();
+            const href = link.getAttribute("href");
+            if (href) window.location.href = href;
           }
         };
         mapContainer.current?.addEventListener("click", storyClickHandler);
