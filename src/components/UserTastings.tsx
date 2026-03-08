@@ -1285,6 +1285,26 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
           }}
         />
       )}
+
+      <AlertDialog open={!!deletingTasting} onOpenChange={(open) => { if (!open) setDeletingTasting(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette dégustation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La dégustation de "{deletingTasting?.wine.name}" sera définitivement supprimée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deletingTasting && handleDeleteTasting(deletingTasting)}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
