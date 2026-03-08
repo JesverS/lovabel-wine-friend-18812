@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays, Map as MapIcon, Plus, Instagram, Trash2 } from 'lucide-react';
 import { WineDetailsDialog } from './WineDetailsDialog';
 import { ShareStoryDialog } from './ShareStoryDialog';
+import { TastingCard } from './TastingCard';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import TastingsMap from './TastingsMap';
