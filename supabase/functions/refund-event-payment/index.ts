@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         .from('event_payment')
         .select('id, stripe_payment_intent_id, amount, currency, user_id, event_id, status')
         .eq('id', payment_id)
-        .single();
+        .maybeSingle();
 
       if (paymentError || !data) {
         return new Response(
