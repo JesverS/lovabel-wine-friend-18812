@@ -1,140 +1,125 @@
 
 
-# Preferences de notifications par device
+# Audit Stripe — Analyse complete de l'integration
 
-## Reponse a ta question : faisabilite
+## Resultat global : L'integration est solide et fonctionnelle
 
-Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
-- Lire les preferences associees a ce token precis
-- Modifier les preferences pour ce token precis
+Apres analyse de **14 Edge Functions Stripe**, **6 composants frontend**, **3 pages de gateway**, et de la configuration des secrets, le systeme de paiement est bien concu et couvre tous les cas critiques. Voici le detail :
 
-L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
+---
 
-## Architecture base de donnees
+## Points forts (aucune correction necessaire)
 
-### Nouvelle table `notification_preferences`
+1. **Flux checkout** : `create-event-checkout-session` est robuste — verification d'evenement passe, atomicite via `reserve_event_spot` RPC avec `FOR UPDATE` lock, gestion des sessions Stripe existantes, cleanup automatique.
+2. **Webhook** : Idempotence correcte (verification `existingPayment?.status === 'completed'`), gestion des sessions expirees.
+3. **Remboursements** : Double flux (organisateur direct via `refund-event-payment` + demande participant via `request-event-refund` / `process-refund-request`), `reverse_transfer: true` pour Stripe Connect.
+4. **Stripe Connect** : Onboarding, status check, login link, payout — tout est en place.
+5. **Pending payments** : Recovery banner avec countdown, annulation, cleanup CRON.
+6. **Secrets** : `STRIPE_SECRET_KEY` et `STRIPE_WEBHOOK_SECRET` sont configures.
+7. **Version Stripe** : Standardisee sur `18.5.0` avec API `2025-08-27.basil` partout.
+8. **PLATFORM_FEE_PERCENT** : Coherent a 10% dans tous les fichiers (checkout, refund, request-refund, leave-without-refund, refundUtils.ts).
 
-```text
-notification_preferences
-  id              uuid        PK, default gen_random_uuid()
-  user_id         uuid        NOT NULL, FK -> auth.users
-  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
-  post_like       boolean     DEFAULT true
-  post_comment    boolean     DEFAULT true
-  mention         boolean     DEFAULT true
-  follow_request  boolean     DEFAULT true
-  new_follower    boolean     DEFAULT true
-  follow_accepted boolean     DEFAULT true
-  event_join      boolean     DEFAULT true
-  event_access_request boolean DEFAULT true
-  event_invitation boolean    DEFAULT true
-  cellar_invitation boolean   DEFAULT true
-  refund_request  boolean     DEFAULT true
-  created_at      timestamptz DEFAULT now()
-  updated_at      timestamptz DEFAULT now()
+---
 
-  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
+## Problemes identifies
+
+### BUG 1 — CORS headers incomplets sur toutes les Edge Functions Stripe (CRITIQUE)
+
+**Toutes les fonctions Stripe** utilisent des CORS headers minimalistes :
+```
+"authorization, x-client-info, apikey, content-type"
 ```
 
-### Logique de `token_id`
-
-- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
-- `token_id = uuid` : preferences specifiques a ce device
-
-Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
-
-### Types NON configurables
-
-Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
-- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
-- `refund_processed` (reponse a sa demande)
-- `level_up` (visible directement dans l'app)
-- `badge_unlocked` (idem)
-
-## Modifications SQL
-
-### 1. Creer la table `notification_preferences`
-
-Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
-
-### 2. Modifier `create_notification()` pour les notifications web
-
-Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
-
-Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
-
-- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
-- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
-- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
-
-### 3. Modifier l'Edge Function `send-push-notification`
-
-Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
-
-```text
-Pour chaque token de l'utilisateur :
-  1. Chercher notification_preferences WHERE token_id = token.id
-  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
-  3. Si pas de prefs du tout -> tout est actif (defaut)
-  4. Verifier si le type est desactive -> si oui, skip
-  5. Sinon, envoyer via FCM
+La specification Supabase requiert aussi :
+```
+x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version
 ```
 
-### 4. Modifier `notify_mentioned_user()`
+**Impact** : Certains clients (notamment mobiles ou versions recentes du SDK Supabase) envoient ces headers supplementaires. Sans eux dans `Access-Control-Allow-Headers`, le preflight CORS echoue et le paiement est bloque.
 
-Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
+**Fichiers concernes** (10 fonctions) :
+- `create-event-checkout-session/index.ts`
+- `stripe-event-webhook/index.ts` (moins critique car appele par Stripe, pas le browser)
+- `get-pending-payment/index.ts`
+- `cancel-pending-payment/index.ts`
+- `setup-stripe-connect-account/index.ts`
+- `get-stripe-account-status/index.ts`
+- `create-stripe-login-link/index.ts`
+- `request-stripe-payout/index.ts`
+- `leave-event/index.ts`
+- `leave-event-without-refund/index.ts`
+- `request-event-refund/index.ts`
+- `process-refund-request/index.ts`
 
-## Frontend
+**Correction** : Mettre a jour les `corsHeaders` pour inclure les headers requis. Les 3 fonctions qui importent `_shared/cors.ts` (`refund-event-payment`, `get-event-revenue`, `get-organizer-revenue`, `cleanup-expired-payments`) doivent aussi etre verifiees.
 
-### Nouveau composant `NotificationPreferences.tsx`
+### BUG 2 — `_shared/cors.ts` aussi incomplet
 
-Affiche les preferences groupees par categorie avec des Switch :
+Le fichier partage `supabase/functions/_shared/cors.ts` utilise les memes headers incomplets. Il faut le corriger une seule fois pour toutes les fonctions qui l'importent.
 
-**Social**
-- Likes sur mes posts (`post_like`)
-- Commentaires sur mes posts (`post_comment`)
-- Mentions (`mention`)
-- Demandes d'abonnement (`follow_request`)
-- Nouveaux abonnes (`new_follower`)
-- Abonnement accepte (`follow_accepted`)
+### BUG 3 — `.single()` dans les Edge Functions Stripe (MOYEN)
 
-**Evenements**
-- Nouveau participant (`event_join`)
-- Demandes d'acces (`event_access_request`)
-- Invitations (`event_invitation`)
-- Demandes de remboursement (`refund_request`)
+Plusieurs `.single()` dans les fonctions Stripe pourraient crasher au lieu de retourner une erreur propre :
 
-**Caves**
-- Invitations a une cave (`cellar_invitation`)
+| Fonction | Contexte | Risque |
+|----------|----------|--------|
+| `create-event-checkout-session` L112 | `existingMember` check | Crash si doublon dans `user_event` |
+| `create-event-checkout-session` L129 | `pendingPayment` check | Crash si plusieurs pending |
+| `setup-stripe-connect-account` L65 | `existingAccount` | Crash si doublon |
+| `setup-stripe-connect-account` L72 | `userProfile` slug | Crash si profil absent |
+| `get-stripe-account-status` L57 | Compte Stripe | Gere (retourne `hasAccount: false`) |
+| `refund-event-payment` L64, L97 | Paiement et role | Crash si doublon |
+| `process-refund-request` L76, L98 | Requete et role | Crash si doublon |
+| `get-event-revenue` L54 | Role user | Crash si doublon |
+| `get-organizer-revenue` (aucun) | OK | — |
 
-### Comportement depuis le site web
+### BUG 4 — PaymentGateway.tsx `.single()` ligne 104 (MOYEN)
 
-Comme il n'y a pas de push web pour l'instant :
-- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
-- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
+```typescript
+const { data: membership } = await supabase
+  .from("user_event")
+  .select("user_id")
+  .eq("event_id", eventData.id)
+  .eq("user_id", user.id)
+  .single();  // <-- devrait etre .maybeSingle()
+```
 
-### Comportement futur depuis l'app React Native
+Risque de crash PGRST116 si l'utilisateur n'est pas membre.
 
-L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
+### OBSERVATION 5 — `refund-event-payment` utilise `supabaseServiceKey` pour l'auth (FAIBLE)
 
-### Integration dans UserProfile.tsx
+Ligne 30 : le client d'authentification est cree avec `supabaseServiceKey` au lieu de `SUPABASE_ANON_KEY`. Cela fonctionne mais est moins correct semantiquement — l'auth client devrait utiliser la cle anon.
 
-Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
+### OBSERVATION 6 — `get-event-revenue` et `get-organizer-revenue` n'ont pas de limite sur les paiements
 
-## Etapes d'implementation
+Les requetes `event_payment` n'ont pas de `.limit()`. Si un evenement a plus de 1000 paiements (limite par defaut Supabase), les totaux seraient faux. Pour le moment ce n'est pas un risque reel mais a surveiller.
 
-1. **Migration SQL** : creer la table `notification_preferences` avec RLS
-2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
-3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
-4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
-5. **Composant** : creer `NotificationPreferences.tsx`
-6. **UserProfile.tsx** : ajouter l'onglet Notifications
+---
 
-## Avantages de cette approche
+## Plan de correction
 
-- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
-- **Performante** : un seul SELECT sur une petite table indexee
-- **Granulaire** : preferences par device possibles
-- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
-- **Nettoyage automatique** : CASCADE sur la suppression de token
+### Etape 1 — Corriger les CORS headers (10 fichiers + 1 shared)
+
+Mettre a jour `supabase/functions/_shared/cors.ts` et les 10 fonctions Stripe qui definissent leurs propres `corsHeaders` pour inclure les headers Supabase complets.
+
+### Etape 2 — Remplacer `.single()` par `.maybeSingle()` dans les Edge Functions Stripe
+
+Corriger les 8 appels `.single()` critiques dans les fonctions Stripe (checkout, setup, refund, process-refund, get-event-revenue).
+
+### Etape 3 — Corriger PaymentGateway.tsx `.single()` ligne 104
+
+Remplacer par `.maybeSingle()`.
+
+---
+
+## Resume
+
+| Probleme | Severite | Action |
+|----------|----------|--------|
+| CORS headers incomplets (12 fonctions) | CRITIQUE | Corriger tous les headers |
+| `.single()` dans Edge Functions Stripe | MOYEN | 8 corrections |
+| `.single()` dans PaymentGateway.tsx | MOYEN | 1 correction |
+| Limite 1000 rows sur revenue | FAIBLE | A surveiller (pas de correctif pour l'instant) |
+
+Le systeme Stripe est **fonctionnellement complet et bien securise**. Les bugs identifies sont des problemes de robustesse (crashs sur cas limites) et de compatibilite CORS, pas des failles de logique metier.
 
