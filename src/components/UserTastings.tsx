@@ -693,7 +693,8 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const bottom = e.currentTarget.scrollHeight - e.currentTarget.scrollTop === e.currentTarget.clientHeight;
+    const { scrollHeight, scrollTop, clientHeight } = e.currentTarget;
+    const bottom = scrollHeight - scrollTop <= clientHeight + 1;
     if (bottom && hasMore && !loading) {
       loadMore();
     }
