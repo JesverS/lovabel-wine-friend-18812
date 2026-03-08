@@ -117,15 +117,14 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
 
       setDomain(domainData);
 
-      // Check if wine is in favorites
-      const { data: favoriteData } = await supabase
-        .from("user_favorite")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("wine_id", wine.id)
-        .maybeSingle();
+      // Check if wine is in favorites + wishlist in parallel
+      const [favoriteRes, wishlistRes] = await Promise.all([
+        supabase.from("user_favorite").select("*").eq("user_id", user.id).eq("wine_id", wine.id).maybeSingle(),
+        supabase.from("wine_wishlist" as any).select("id").eq("user_id", user.id).eq("wine_id", wine.id).maybeSingle(),
+      ]);
 
-      setIsFavorite(!!favoriteData);
+      setIsFavorite(!!favoriteRes.data);
+      setIsInWishlist(!!wishlistRes.data);
 
       // Fetch private tasting notes
       const { data: noticeData } = await supabase
