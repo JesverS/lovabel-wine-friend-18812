@@ -14,6 +14,24 @@ import TastingsMap from './TastingsMap';
 import SpontaneousTastingDialog from './SpontaneousTastingDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/errorHandler';
+
+/** Batch fetch helper: chunks large ID arrays to avoid Supabase .in() limits */
+async function batchIn<T = any>(
+  table: string,
+  column: string,
+  ids: string[],
+  select: string = '*'
+): Promise<T[]> {
+  if (ids.length === 0) return [];
+  const CHUNK = 500;
+  const results: T[] = [];
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { data } = await supabase.from(table).select(select).in(column, ids.slice(i, i + CHUNK));
+    if (data) results.push(...(data as T[]));
+  }
+  return results;
+}
 
 type ViewMode = 'date' | 'domain' | 'event' | 'cellar' | 'map';
 
