@@ -10,7 +10,7 @@ import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users, Clock } from 'lucide-react';
+import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users, Clock, BarChart3 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
