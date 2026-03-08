@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays, Map as MapIcon, Plus } from 'lucide-react';
+import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays, Map as MapIcon, Plus, Instagram } from 'lucide-react';
 import { WineDetailsDialog } from './WineDetailsDialog';
+import { ShareStoryDialog } from './ShareStoryDialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import TastingsMap from './TastingsMap';
@@ -20,6 +21,7 @@ interface TastingNote {
   liked: number;
   rating: number | null;
   comment: string | null;
+  details: any;
   wine: {
     id: string;
     name: string;
@@ -31,6 +33,7 @@ interface TastingNote {
     volume_ml: number | null;
     alcohol_percentage: number | null;
     characteristics: any;
+    type: number | null;
   };
   domain: {
     name: string;
@@ -89,6 +92,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
   const [page, setPage] = useState(0);
   const [showDisliked, setShowDisliked] = useState(false);
   const [showSpontaneousDialog, setShowSpontaneousDialog] = useState(false);
+  const [shareStoryTasting, setShareStoryTasting] = useState<TastingNote | null>(null);
 
   useEffect(() => {
     if (targetUserId) {
@@ -162,6 +166,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             liked: tasting.liked,
             rating: tasting.rating,
             comment: tasting.comment,
+            details: tasting.details,
             wine,
             domain: domain || { name: '', logo_url: null }
           };
@@ -300,6 +305,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             liked: tasting.liked,
             rating: tasting.rating,
             comment: tasting.comment,
+            details: tasting.details,
             wine,
             domain
           };
@@ -524,6 +530,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             liked: tasting.liked,
             rating: tasting.rating,
             comment: tasting.comment,
+            details: tasting.details,
             wine,
             domain: domain || { name: '', logo_url: null }
           };
@@ -600,6 +607,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             liked: tasting.liked,
             rating: tasting.rating,
             comment: tasting.comment,
+            details: tasting.details,
             wine,
             domain: domain || { name: '', logo_url: null }
           };
@@ -1033,6 +1041,17 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
                         <Calendar className="w-3 h-3 inline mr-1" />
                         Dégusté le {new Date(tasting.created_at).toLocaleDateString('fr-FR')}
                       </p>
+                      {isOwnProfile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-1 h-7 px-2 gap-1 text-xs"
+                          onClick={(e) => { e.stopPropagation(); setShareStoryTasting(tasting); }}
+                        >
+                          <Instagram className="w-3 h-3" />
+                          Story
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1205,6 +1224,32 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             <Plus className="h-6 w-6" />
           </Button>
         </>
+      )}
+
+      {shareStoryTasting && (
+        <ShareStoryDialog
+          open={!!shareStoryTasting}
+          onOpenChange={(open) => { if (!open) setShareStoryTasting(null); }}
+          post={{
+            content: shareStoryTasting.comment || undefined,
+            image_url: shareStoryTasting.wine.label_url || undefined,
+            is_wine_notice: true,
+            wine_notice: shareStoryTasting.details ? {
+              rating: shareStoryTasting.details?.rating || 5,
+              slot1: shareStoryTasting.details?.slot1,
+              slot2: shareStoryTasting.details?.slot2,
+              slot3: shareStoryTasting.details?.slot3,
+              slot4: shareStoryTasting.details?.slot4,
+            } : undefined,
+          }}
+          wine={{
+            id: shareStoryTasting.wine.id,
+            name: shareStoryTasting.wine.name,
+            label_url: shareStoryTasting.wine.label_url || undefined,
+            type: shareStoryTasting.wine.type,
+            domain: { name: shareStoryTasting.domain.name },
+          }}
+        />
       )}
     </div>
   );

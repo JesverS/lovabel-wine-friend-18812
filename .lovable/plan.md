@@ -1,107 +1,140 @@
 
 
-# Plan : Dashboard "Mon Palais" + Cartes de degustation partageables
+# Preferences de notifications par device
 
----
+## Reponse a ta question : faisabilite
 
-## Donnees disponibles
+Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
+- Lire les preferences associees a ce token precis
+- Modifier les preferences pour ce token precis
 
-La table `user_wine_notice` contient toutes les degustations :
-- `rating` (note globale), `liked` (0=dislike, 1=like), `details` (JSON avec slot1-4 ou anciennes cles acidity/tannins/body/sweetness)
-- `wine_id` → table `wine` (name, type, domain_id, appellation_id, year, label_url)
-- `wine.type` → `wine_type` (1=rouge, 2=blanc, 5=rose, 8=effervescent)
-- `wine.domain_id` → `domain` (name, region)
-- Relations `user_wine_notice_cellar` et `user_wine_notice_event` pour le contexte
+L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
 
-Pas besoin de migration SQL. Toutes les donnees necessaires existent deja.
+## Architecture base de donnees
 
----
+### Nouvelle table `notification_preferences`
 
-## PARTIE 1 : Dashboard "Mon Palais"
+```text
+notification_preferences
+  id              uuid        PK, default gen_random_uuid()
+  user_id         uuid        NOT NULL, FK -> auth.users
+  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
+  post_like       boolean     DEFAULT true
+  post_comment    boolean     DEFAULT true
+  mention         boolean     DEFAULT true
+  follow_request  boolean     DEFAULT true
+  new_follower    boolean     DEFAULT true
+  follow_accepted boolean     DEFAULT true
+  event_join      boolean     DEFAULT true
+  event_access_request boolean DEFAULT true
+  event_invitation boolean    DEFAULT true
+  cellar_invitation boolean   DEFAULT true
+  refund_request  boolean     DEFAULT true
+  created_at      timestamptz DEFAULT now()
+  updated_at      timestamptz DEFAULT now()
 
-### 1.1 Nouveau composant `src/components/TastingDashboard.tsx`
+  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
+```
 
-Page accessible depuis le profil utilisateur (nouvel onglet "Mon Palais" dans `UserProfile.tsx`). Visible uniquement par le proprietaire du profil.
+### Logique de `token_id`
 
-**Requete unique** : fetch toutes les `user_wine_notice` de l'utilisateur avec join sur `wine` et `domain` pour calculer les stats cote client.
+- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
+- `token_id = uuid` : preferences specifiques a ce device
 
-### 1.2 Sections du dashboard
+Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
 
-**Bloc 1 — Chiffres cles** (4 cards en grille)
-- Nombre total de degustations
-- Note moyenne globale
-- Nombre de vins aimes (liked=1) vs pas aimes (liked=0)
-- Nombre de domaines differents explores
+### Types NON configurables
 
-**Bloc 2 — Repartition par type de vin** (bar chart horizontal avec Recharts)
-- Compteur par type : Rouge, Blanc, Rose, Effervescent, Autre
-- Couleurs associees (#6A1B2B rouge, #C9A227 blanc, #F5A3B5 rose, #E5E7EB effervescent)
+Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
+- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
+- `refund_processed` (reponse a sa demande)
+- `level_up` (visible directement dans l'app)
+- `badge_unlocked` (idem)
 
-**Bloc 3 — Profil aromatique moyen** (radar chart Recharts)
-- Moyenne des 4 slots pour chaque type de vin degusted (ex: pour les rouges → moyenne Fruite, Epice, Tannique, Boise)
-- Affiche le type de vin le plus degusted par defaut, avec selector pour changer
+## Modifications SQL
 
-**Bloc 4 — Top regions** (liste ordonnee)
-- Top 5 regions les plus degustees, avec nombre de degustations par region
+### 1. Creer la table `notification_preferences`
 
-**Bloc 5 — Progression dans le temps** (line chart Recharts)
-- Nombre de degustations par mois sur les 12 derniers mois
-- Note moyenne par mois en overlay
+Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
 
-### 1.3 Integration dans UserProfile.tsx
+### 2. Modifier `create_notification()` pour les notifications web
 
-- Ajouter un onglet "Mon Palais" (icone BarChart3) dans le `TabsList` existant
-- Conditionnel : visible uniquement si `isOwnProfile` est true
-- Le composant recoit `userId` en prop
+Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
 
----
+Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
 
-## PARTIE 2 : Cartes de degustation partageables (Stories)
+- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
+- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
+- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
 
-### 2.1 Etat actuel
+### 3. Modifier l'Edge Function `send-push-notification`
 
-`ShareStoryDialog.tsx` existe et fonctionne deja. Il est appele depuis `PostCard.tsx` pour partager un post de type wine_notice en format story Instagram (1080x1920). Il utilise `html2canvas` pour capturer un template HTML inline avec choix de couleur de fond.
+Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
 
-### 2.2 Nouveau point d'entree : depuis les degustations
+```text
+Pour chaque token de l'utilisateur :
+  1. Chercher notification_preferences WHERE token_id = token.id
+  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
+  3. Si pas de prefs du tout -> tout est actif (defaut)
+  4. Verifier si le type est desactive -> si oui, skip
+  5. Sinon, envoyer via FCM
+```
 
-Actuellement, le partage n'est possible que depuis un post dans le feed. Il faut l'ajouter depuis :
+### 4. Modifier `notify_mentioned_user()`
 
-**A) `UserTastings.tsx`** — Ajouter un bouton "Partager" (icone Instagram) sur chaque carte de degustation dans la liste. Au clic, ouvrir `ShareStoryDialog` en construisant les props `post` et `wine` depuis les donnees de la tasting note.
+Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
 
-**B) `WineDetailsDialog.tsx`** — Ajouter un bouton "Partager en Story" dans le dialog de detail d'un vin, si l'utilisateur a une notice existante pour ce vin.
+## Frontend
 
-**C) `CellarWineDetailsDialog.tsx`** — Meme principe que B, dans le contexte cave.
+### Nouveau composant `NotificationPreferences.tsx`
 
-### 2.3 Amelioration du template visuel
+Affiche les preferences groupees par categorie avec des Switch :
 
-Le template actuel est fonctionnel. Ameliorations legeres :
+**Social**
+- Likes sur mes posts (`post_like`)
+- Commentaires sur mes posts (`post_comment`)
+- Mentions (`mention`)
+- Demandes d'abonnement (`follow_request`)
+- Nouveaux abonnes (`new_follower`)
+- Abonnement accepte (`follow_accepted`)
 
-- Ajouter l'annee du vin (`year`) et l'appellation sous le nom du domaine
-- Ajouter l'icone Wine SVG dans le footer (deja dans le HTML mais absente du composant React de preview)
-- Troncature du contenu texte a 120 caracteres max pour eviter les debordements
+**Evenements**
+- Nouveau participant (`event_join`)
+- Demandes d'acces (`event_access_request`)
+- Invitations (`event_invitation`)
+- Demandes de remboursement (`refund_request`)
 
-### 2.4 Nouvelle carte "Mon Palais" partageable
+**Caves**
+- Invitations a une cave (`cellar_invitation`)
 
-Creer un second template dans `ShareStoryDialog` (ou un nouveau `SharePalaisDashboardDialog.tsx`) qui genere une story a partir des stats du dashboard :
+### Comportement depuis le site web
 
-- Titre "Mon Palais @winenote"
-- Nombre de degustations, note moyenne
-- Repartition par type (barres colorees)
-- Profil aromatique (representation simplifiee en barres, pas de radar en HTML pur)
-- Bouton dans le dashboard "Mon Palais" pour declencher ce partage
+Comme il n'y a pas de push web pour l'instant :
+- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
+- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
 
----
+### Comportement futur depuis l'app React Native
 
-## Resume technique
+L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
 
-| Element | Fichiers | Migration SQL |
-|---------|----------|---------------|
-| Dashboard Mon Palais | Nouveau `TastingDashboard.tsx` | Non |
-| Onglet profil | `UserProfile.tsx` | Non |
-| Bouton partager sur tastings | `UserTastings.tsx` | Non |
-| Bouton partager sur wine details | `WineDetailsDialog.tsx`, `CellarWineDetailsDialog.tsx` | Non |
-| Amelioration template story | `ShareStoryDialog.tsx` | Non |
-| Story "Mon Palais" | Nouveau `SharePalaisStoryDialog.tsx` | Non |
+### Integration dans UserProfile.tsx
 
-Aucune migration SQL necessaire. Recharts est deja installe. html2canvas est deja installe.
+Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
+
+## Etapes d'implementation
+
+1. **Migration SQL** : creer la table `notification_preferences` avec RLS
+2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
+3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
+4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
+5. **Composant** : creer `NotificationPreferences.tsx`
+6. **UserProfile.tsx** : ajouter l'onglet Notifications
+
+## Avantages de cette approche
+
+- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
+- **Performante** : un seul SELECT sur une petite table indexee
+- **Granulaire** : preferences par device possibles
+- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
+- **Nettoyage automatique** : CASCADE sur la suppression de token
 

@@ -10,7 +10,7 @@ import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users, Clock } from 'lucide-react';
+import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users, Clock, BarChart3 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,6 +27,7 @@ import { OrganizerRevenueDashboard } from '@/components/OrganizerRevenueDashboar
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTabsList, TabsTrigger as InnerTabsTrigger } from '@/components/ui/tabs';
 import { FollowDialogs } from '@/components/FollowDialogs';
+import { TastingDashboard } from '@/components/TastingDashboard';
 import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 import { PrivacySettings } from '@/components/PrivacySettings';
 import { NotificationPreferences } from '@/components/NotificationPreferences';
@@ -498,6 +499,7 @@ export default function UserProfile() {
                       {activeTab === 'events' && (isOwnProfile ? 'Mes événements' : 'Événements')}
                       {activeTab === 'tastings' && (isOwnProfile ? 'Mes dégustations' : 'Dégustations')}
                       {activeTab === 'favorites' && (isOwnProfile ? 'Mes favoris' : 'Favoris')}
+                      {activeTab === 'palais' && 'Mon Palais'}
                     </span>
                   </span>
                   <span className="text-muted-foreground text-sm">Changer</span>
@@ -588,19 +590,35 @@ export default function UserProfile() {
                         <div className="text-sm opacity-80">Vins sauvegardés</div>
                       </div>
                     </button>
+
+                    {isOwnProfile && (
+                      <button
+                        onClick={() => { setActiveTab('palais'); setDrawerOpen(false); }}
+                        className={`w-full flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                          activeTab === 'palais' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                        }`}
+                      >
+                        <BarChart3 className="w-6 h-6" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Mon Palais</div>
+                          <div className="text-sm opacity-80">Statistiques de dégustation</div>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </DrawerContent>
               </Drawer>
             </>
           ) : (
             /* Tabs desktop */
-            <TabsList className="grid w-full grid-cols-6 gap-1">
+            <TabsList className={`grid w-full gap-1 ${isOwnProfile ? 'grid-cols-7' : 'grid-cols-6'}`}>
               <TabsTrigger value="posts">Posts</TabsTrigger>
               <TabsTrigger value="cellars">{isOwnProfile ? 'Mes caves' : 'Caves'}</TabsTrigger>
               <TabsTrigger value="domains">{isOwnProfile ? 'Mes domaines' : 'Domaines'}</TabsTrigger>
               <TabsTrigger value="events">{isOwnProfile ? 'Mes événements' : 'Événements'}</TabsTrigger>
               <TabsTrigger value="tastings">{isOwnProfile ? 'Mes dégustations' : 'Dégustations'}</TabsTrigger>
               <TabsTrigger value="favorites">{isOwnProfile ? 'Mes favoris' : 'Favoris'}</TabsTrigger>
+              {isOwnProfile && <TabsTrigger value="palais">Mon Palais</TabsTrigger>}
             </TabsList>
           )}
 
@@ -861,6 +879,12 @@ export default function UserProfile() {
               </Card>
             )}
           </TabsContent>
+
+          {isOwnProfile && (
+            <TabsContent value="palais" className="mt-6">
+              <TastingDashboard userId={profile.id} userName={profile.full_name} />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
