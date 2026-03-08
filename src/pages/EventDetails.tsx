@@ -260,7 +260,7 @@ const EventDetails = () => {
               .eq('event_id', eventData.id)
               .eq('user_id', user.id)
               .eq('status', 'completed')
-              .single();
+              .maybeSingle();
 
             if (completedPayment) {
               setUserPaymentAmount(Number(completedPayment.amount));
