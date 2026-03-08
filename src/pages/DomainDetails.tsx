@@ -59,7 +59,7 @@ export default function DomainDetails() {
   }, [user]);
 
   const fetchDomainDetails = async () => {
-    const { data, error } = await supabase.from("domain").select("*").eq("id", id).single();
+    const { data, error } = await supabase.from("domain").select("*").eq("id", id).maybeSingle();
 
     if (error) {
       console.error("Error fetching domain:", error);
