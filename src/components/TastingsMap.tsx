@@ -3,8 +3,10 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
+import { getErrorMessage } from "@/lib/errorHandler";
 
 // Récupérer le token Mapbox depuis les variables d'environnement
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || "";
@@ -42,23 +44,30 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
   const map = useRef<mapboxgl.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [tastings, setTastings] = useState<TastingLocation[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!targetUserId) return;
 
     const fetchTastings = async () => {
       try {
-        const { data, error } = await supabase.rpc("get_user_tastings_with_location", {
+        setError(null);
+        const { data, error: rpcError } = await supabase.rpc("get_user_tastings_with_location", {
           p_user_id: targetUserId,
           p_source_filter: sourceFilter,
         });
 
-        if (error) throw error;
+        if (rpcError) {
+          logger.error("[TastingsMap] RPC error:", rpcError);
+          setError(`Erreur de chargement des données: ${rpcError.message}`);
+          return;
+        }
 
         setTastings(data || []);
-      } catch (error) {
-        console.error("Error fetching tastings:", error);
-        toast.error("Erreur lors du chargement des dégustations");
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        logger.error("[TastingsMap] Unexpected error:", err);
+        setError(`Erreur inattendue: ${msg}`);
       } finally {
         setIsLoading(false);
       }
@@ -68,7 +77,13 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
   }, [targetUserId, sourceFilter]);
 
   useEffect(() => {
-    if (!mapContainer.current || !MAPBOX_TOKEN || tastings.length === 0) return;
+    if (!mapContainer.current || tastings.length === 0) return;
+
+    if (!MAPBOX_TOKEN) {
+      logger.error("[TastingsMap] Token Mapbox manquant (VITE_MAPBOX_TOKEN)");
+      setError("Configuration carte manquante. Contactez l'administrateur.");
+      return;
+    }
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
@@ -76,8 +91,12 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [2.3522, 48.8566], // Paris par défaut
+      center: [2.3522, 48.8566],
       zoom: 5,
+    });
+
+    map.current.on("error", (e) => {
+      logger.error("[TastingsMap] Mapbox runtime error:", e.error);
     });
 
     // Ajouter les contrôles de navigation
@@ -246,6 +265,18 @@ export default function TastingsMap({ sourceFilter, userId }: TastingsMapProps) 
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Chargement de la carte...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[600px] bg-muted rounded-lg">
+        <div className="text-center space-y-2">
+          <AlertTriangle className="h-8 w-8 mx-auto text-destructive" />
+          <p className="text-lg font-medium">Erreur</p>
+          <p className="text-sm text-muted-foreground max-w-md">{error}</p>
         </div>
       </div>
     );
