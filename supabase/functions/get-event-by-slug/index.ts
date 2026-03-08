@@ -127,9 +127,9 @@ Deno.serve(async (req) => {
 
     // ÉTAPE 3 : L'événement est privé - vérifier le TOKEN
     if (token && token === eventData.private_token) {
-      // Token valide mais pas membre → masquer les infos confidentielles
+      // Token valide mais pas membre → masquer les infos confidentielles + inclure posts publics
       // Token valide ET membre → accès complet
-      return buildResponse(!hasConfidentialAccess);
+      return buildResponse(!hasConfidentialAccess, !hasConfidentialAccess);
     }
 
     // ÉTAPE 4 : Événement privé sans token valide
