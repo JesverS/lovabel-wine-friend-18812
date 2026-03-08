@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2, Copy, AlertTriangle, Lock, CreditCard, Globe, Users, Eye, EyeOff } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2, Copy, AlertTriangle, Lock, CreditCard, Globe, Users, Eye, EyeOff, Newspaper } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
