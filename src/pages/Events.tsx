@@ -347,9 +347,8 @@ const Events = () => {
               </TabsList>
             </Tabs>
 
-            {/* Search filters - only for public events */}
-            {activeTab === 'public' && (
-              <div className="mb-12 space-y-4">
+            {/* Search filters */}
+            <div className="mb-12 space-y-4">
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
