@@ -60,6 +60,53 @@ function svgToImage(svg: string, size: number): Promise<HTMLImageElement> {
   });
 }
 
+// Create a rounded square thumbnail with colored border from a photo URL
+function createPhotoMarker(imageUrl: string, borderColor: string, size: number = 48): Promise<HTMLCanvasElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const scale = 2; // retina
+      canvas.width = size * scale;
+      canvas.height = size * scale;
+      const ctx = canvas.getContext("2d")!;
+      ctx.scale(scale, scale);
+
+      const borderWidth = 3;
+      const radius = 8;
+      const inner = size - borderWidth * 2;
+
+      // Draw colored border (rounded rect)
+      ctx.fillStyle = borderColor;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, radius);
+      ctx.fill();
+
+      // Clip inner rounded rect for photo
+      ctx.beginPath();
+      ctx.roundRect(borderWidth, borderWidth, inner, inner, radius - 2);
+      ctx.clip();
+
+      // Draw photo
+      const imgAspect = img.width / img.height;
+      let sx = 0, sy = 0, sw = img.width, sh = img.height;
+      if (imgAspect > 1) {
+        sx = (img.width - img.height) / 2;
+        sw = img.height;
+      } else {
+        sy = (img.height - img.width) / 2;
+        sh = img.width;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, borderWidth, borderWidth, inner, inner);
+
+      resolve(canvas);
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = imageUrl;
+  });
+}
+
 export default function TastingsMap({ sourceFilter, userId, onShareStory }: TastingsMapProps) {
   const { user } = useAuth();
   const targetUserId = userId || user?.id;
