@@ -30,6 +30,7 @@ import { OpenInAppBanner } from "@/components/OpenInAppBanner";
 import { getEventDeepLink } from "@/lib/mobileAppUtils";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EventPosts } from "@/components/EventPosts";
 import {
   Collapsible,
   CollapsibleContent,
