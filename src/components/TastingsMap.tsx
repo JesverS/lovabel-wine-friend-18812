@@ -149,6 +149,8 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
   useEffect(() => {
     if (!mapContainer.current || tastings.length === 0) return;
 
+    let storyClickHandler: ((e: MouseEvent) => void) | null = null;
+
     if (!MAPBOX_TOKEN) {
       logger.error("[TastingsMap] Token Mapbox manquant (VITE_MAPBOX_TOKEN)");
       setError("Configuration carte manquante. Contactez l'administrateur.");
