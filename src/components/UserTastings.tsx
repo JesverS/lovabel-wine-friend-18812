@@ -1035,6 +1035,17 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
                         <Calendar className="w-3 h-3 inline mr-1" />
                         Dégusté le {new Date(tasting.created_at).toLocaleDateString('fr-FR')}
                       </p>
+                      {isOwnProfile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-1 h-7 px-2 gap-1 text-xs"
+                          onClick={(e) => { e.stopPropagation(); setShareStoryTasting(tasting); }}
+                        >
+                          <Instagram className="w-3 h-3" />
+                          Story
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
