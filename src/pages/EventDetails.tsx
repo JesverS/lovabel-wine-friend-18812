@@ -1310,6 +1310,14 @@ const EventDetails = () => {
                 </div>
               </TabsContent>
 
+              <TabsContent value="actualites" className="mt-6">
+                <EventPosts
+                  eventId={event.id}
+                  canPost={canEdit}
+                  hasAccess={hasAccess || canEdit}
+                />
+              </TabsContent>
+
               <TabsContent value="organisateurs" className="mt-6">
                 {canManageMembers && event.access_type === 'request_based' && (
                   <div className="mb-8">

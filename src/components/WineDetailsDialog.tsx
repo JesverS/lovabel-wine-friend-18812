@@ -537,6 +537,33 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
     }
   };
 
+  const handleToggleWishlist = async () => {
+    if (!user) {
+      toast({ title: "Connexion requise", description: "Veuillez vous connecter", variant: "destructive" });
+      return;
+    }
+
+    if (isInWishlist) {
+      const { error } = await supabase
+        .from("wine_wishlist" as any)
+        .delete()
+        .eq("user_id", user.id)
+        .eq("wine_id", wine.id);
+      if (!error) {
+        setIsInWishlist(false);
+        toast({ title: "Retiré de la liste À goûter" });
+      }
+    } else {
+      const { error } = await supabase
+        .from("wine_wishlist" as any)
+        .insert({ user_id: user.id, wine_id: wine.id } as any);
+      if (!error) {
+        setIsInWishlist(true);
+        toast({ title: "Ajouté à la liste À goûter" });
+      }
+    }
+  };
+
   const handleDeleteComment = async (commentUserId: string) => {
     if (!user || user.id !== commentUserId) return;
 

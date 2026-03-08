@@ -273,9 +273,14 @@ export default function CellarDetails() {
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-2">
               <h1 className="text-2xl md:text-4xl font-bold break-words flex-1 min-w-0">{cellar.name}</h1>
-              {userRole === 'owner' && (
-                <EditCellarDialog cellar={cellar} onCellarUpdated={fetchCellarData} />
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {(userRole || cellar.is_seller) && cellar.slug && (
+                  <CellarQRCodeDialog cellarSlug={cellar.slug} cellarName={cellar.name} />
+                )}
+                {userRole === 'owner' && (
+                  <EditCellarDialog cellar={cellar} onCellarUpdated={fetchCellarData} />
+                )}
+              </div>
             </div>
             {cellar.location && (
               <p className="text-muted-foreground flex items-center gap-2 mt-2">
