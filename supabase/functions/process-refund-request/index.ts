@@ -73,7 +73,7 @@ serve(async (req) => {
         )
       `)
       .eq("id", requestId)
-      .single();
+      .maybeSingle();
 
     if (requestError || !refundRequest) {
       throw new Error("Demande de remboursement introuvable");
