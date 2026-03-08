@@ -53,6 +53,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <ErrorBoundary>
   <HelmetProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
