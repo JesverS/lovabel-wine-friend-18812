@@ -131,11 +131,12 @@ export const EditProfileDialog = ({ profile, onProfileUpdated }: EditProfileDial
         title: 'Succès',
         description: 'Avatar uploadé avec succès',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const { getUserFriendlyErrorMessage } = await import('@/lib/errorHandler');
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: error.message || 'Erreur lors de l\'upload',
+        description: getUserFriendlyErrorMessage(error),
       });
     } finally {
       setUploading(false);
