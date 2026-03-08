@@ -19,6 +19,8 @@ import {
   ThumbsDown,
   MessageSquare,
   Lock,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
