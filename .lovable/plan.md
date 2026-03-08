@@ -1,140 +1,110 @@
 
 
-# Preferences de notifications par device
+# Plan d'implementation — 5 fonctionnalites
 
-## Reponse a ta question : faisabilite
+---
 
-Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
-- Lire les preferences associees a ce token precis
-- Modifier les preferences pour ce token precis
+## 1. Notifications pour les event posts
 
-L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
+### Migration SQL
+Ajouter un trigger `AFTER INSERT` sur `event_post` qui cree une notification pour chaque membre de l'evenement (via `user_event`) sauf l'auteur du post. Utiliser `pg_net` pour envoyer la push notification, comme les autres triggers de notification existants.
 
-## Architecture base de donnees
+```sql
+create or replace function public.notify_on_event_post()
+returns trigger language plpgsql security definer set search_path = 'public' as $$
+declare
+  v_event_name text;
+  v_event_slug text;
+  v_author_name text;
+  v_member record;
+begin
+  select name, slug into v_event_name, v_event_slug from event where id = NEW.event_id;
+  select full_name into v_author_name from user_profiles where id = NEW.author_id;
 
-### Nouvelle table `notification_preferences`
+  for v_member in
+    select user_id from user_event where event_id = NEW.event_id and user_id != NEW.author_id
+  loop
+    perform create_notification(
+      v_member.user_id,
+      'event_post',
+      'Nouvelle actualité',
+      coalesce(v_author_name, 'Un organisateur') || ' a publié dans ' || v_event_name,
+      jsonb_build_object('event_id', NEW.event_id, 'event_slug', v_event_slug, 'post_id', NEW.id)
+    );
+  end loop;
+  return NEW;
+end;
+$$;
 
-```text
-notification_preferences
-  id              uuid        PK, default gen_random_uuid()
-  user_id         uuid        NOT NULL, FK -> auth.users
-  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
-  post_like       boolean     DEFAULT true
-  post_comment    boolean     DEFAULT true
-  mention         boolean     DEFAULT true
-  follow_request  boolean     DEFAULT true
-  new_follower    boolean     DEFAULT true
-  follow_accepted boolean     DEFAULT true
-  event_join      boolean     DEFAULT true
-  event_access_request boolean DEFAULT true
-  event_invitation boolean    DEFAULT true
-  cellar_invitation boolean   DEFAULT true
-  refund_request  boolean     DEFAULT true
-  created_at      timestamptz DEFAULT now()
-  updated_at      timestamptz DEFAULT now()
-
-  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
+create trigger trg_notify_event_post
+  after insert on event_post
+  for each row execute function notify_on_event_post();
 ```
 
-### Logique de `token_id`
+### Frontend
+Ajouter le type `event_post` dans `NotificationItem.tsx` pour afficher l'icone `Newspaper` et naviguer vers `/event/{slug}` au clic.
 
-- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
-- `token_id = uuid` : preferences specifiques a ce device
+**Fichiers modifies :** Migration SQL, `NotificationItem.tsx`
 
-Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
+---
 
-### Types NON configurables
+## 2. Toggle Dark Mode
 
-Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
-- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
-- `refund_processed` (reponse a sa demande)
-- `level_up` (visible directement dans l'app)
-- `badge_unlocked` (idem)
+### Header.tsx
+Ajouter un bouton `Sun`/`Moon` (lucide) qui appelle `setTheme()` de `next-themes`. Importer `useTheme` depuis `next-themes`. Placer le toggle a cote des icones existantes (favoris, profil).
 
-## Modifications SQL
+### main.tsx ou App.tsx
+Verifier que le `ThemeProvider` de `next-themes` englobe bien l'app (attribut `attribute="class"`). S'il manque, l'ajouter.
 
-### 1. Creer la table `notification_preferences`
+### MobileBottomNav
+Pas de toggle la, le header suffit.
 
-Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
+**Fichiers modifies :** `Header.tsx`, eventuellement `App.tsx` ou `main.tsx`
 
-### 2. Modifier `create_notification()` pour les notifications web
+---
 
-Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
+## 3. Pull-to-refresh sur mobile
 
-Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
+### Nouveau composant `PullToRefresh.tsx`
+Composant wrapper qui detecte le geste de swipe vers le bas quand `scrollTop === 0`. Affiche un indicateur de chargement (spinner) et appelle un callback `onRefresh`. Utilise les touch events natifs (`touchstart`, `touchmove`, `touchend`) pour detecter le geste. Ne s'active que sur mobile (`useIsMobile()`).
 
-- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
-- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
-- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
+### Integration
+- **Feed.tsx** : Wrapper le `<SocialFeed />` dans `<PullToRefresh onRefresh={() => queryClient.invalidateQueries({ queryKey: ['social-feed'] })} />`
+- **Events.tsx** : Wrapper la liste d'evenements dans `<PullToRefresh onRefresh={fetchEvents} />`
 
-### 3. Modifier l'Edge Function `send-push-notification`
+**Fichiers modifies :** Nouveau `PullToRefresh.tsx`, `Feed.tsx`, `Events.tsx`
 
-Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
+---
 
-```text
-Pour chaque token de l'utilisateur :
-  1. Chercher notification_preferences WHERE token_id = token.id
-  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
-  3. Si pas de prefs du tout -> tout est actif (defaut)
-  4. Verifier si le type est desactive -> si oui, skip
-  5. Sinon, envoyer via FCM
-```
+## 4. Comparaison de palais entre amis
 
-### 4. Modifier `notify_mentioned_user()`
-
-Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
-
-## Frontend
-
-### Nouveau composant `NotificationPreferences.tsx`
-
-Affiche les preferences groupees par categorie avec des Switch :
-
-**Social**
-- Likes sur mes posts (`post_like`)
-- Commentaires sur mes posts (`post_comment`)
-- Mentions (`mention`)
-- Demandes d'abonnement (`follow_request`)
-- Nouveaux abonnes (`new_follower`)
-- Abonnement accepte (`follow_accepted`)
-
-**Evenements**
-- Nouveau participant (`event_join`)
-- Demandes d'acces (`event_access_request`)
-- Invitations (`event_invitation`)
-- Demandes de remboursement (`refund_request`)
-
-**Caves**
-- Invitations a une cave (`cellar_invitation`)
-
-### Comportement depuis le site web
-
-Comme il n'y a pas de push web pour l'instant :
-- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
-- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
-
-### Comportement futur depuis l'app React Native
-
-L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
+### Logique
+Le `TastingDashboard` recoit deja un `userId`. Pour la comparaison, on cree un nouveau composant `TastingComparison.tsx` qui :
+1. Recoit `myUserId` et `friendUserId`
+2. Fetch les `user_wine_notice` des deux utilisateurs (le friend doit avoir un profil public ou etre suivi)
+3. Calcule les moyennes radar (slot1-4) par type de vin pour chacun
+4. Affiche deux `Radar` superposes dans le meme `RadarChart` (Recharts) avec des couleurs differentes et une legende
 
 ### Integration dans UserProfile.tsx
+- Sur le profil d'un ami (pas le sien), si `canViewContent` est true, afficher un bouton "Comparer nos palais" a cote de l'onglet "Palais"
+- Ce bouton ouvre un `Dialog` contenant `TastingComparison`
+- L'onglet "Palais" (actuellement `isOwnProfile` only) devient visible sur les profils publics/suivis aussi, en read-only
+- Le bouton "Comparer" n'apparait que quand l'utilisateur connecte a lui-meme des degustations
 
-Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
+### Donnees
+Les `user_wine_notice` sont accessibles via RLS existante (`can_view_profile_content`). Pas de nouvelle table.
 
-## Etapes d'implementation
+**Fichiers crees :** `TastingComparison.tsx`
+**Fichiers modifies :** `UserProfile.tsx` (onglet palais visible pour les profils visibles + bouton comparer), `TastingDashboard.tsx` (exposer la logique de calcul radar en tant que fonction exportee reutilisable)
 
-1. **Migration SQL** : creer la table `notification_preferences` avec RLS
-2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
-3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
-4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
-5. **Composant** : creer `NotificationPreferences.tsx`
-6. **UserProfile.tsx** : ajouter l'onglet Notifications
+---
 
-## Avantages de cette approche
+## Resume des changements
 
-- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
-- **Performante** : un seul SELECT sur une petite table indexee
-- **Granulaire** : preferences par device possibles
-- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
-- **Nettoyage automatique** : CASCADE sur la suppression de token
+| Fonctionnalite | Fichiers | Effort |
+|---|---|---|
+| Notifications event posts | Migration SQL + `NotificationItem.tsx` | Faible |
+| Dark mode toggle | `Header.tsx`, `App.tsx` | Faible |
+| Pull-to-refresh | Nouveau `PullToRefresh.tsx`, `Feed.tsx`, `Events.tsx` | Moyen |
+| Comparaison de palais | Nouveau `TastingComparison.tsx`, `UserProfile.tsx`, `TastingDashboard.tsx` | Moyen |
 
