@@ -544,23 +544,22 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
 
     const { data, error } = await query.range(from, to);
 
-    if (!error && data) {
-      const enrichedData = await Promise.all(
-        (data as any[]).map(async (tasting: any) => {
-          const { data: wine } = await supabase
-            .from('wine')
-            .select('*')
-            .eq('id', tasting.wine_id)
-            .maybeSingle();
+    if (!error && data && data.length > 0) {
+      // Batch fetch wines
+      const wineIds = [...new Set((data as any[]).map(t => t.wine_id))];
+      const wines = await batchIn('wine', 'id', wineIds);
+      const winesMap = new Map(wines.map((w: any) => [w.id, w]));
 
+      // Batch fetch domains
+      const domainIds = [...new Set(wines.map((w: any) => w.domain_id).filter(Boolean))];
+      const domainsArr = await batchIn('domain', 'id', domainIds, 'id, name, logo_url');
+      const domainsMap = new Map(domainsArr.map((d: any) => [d.id, d]));
+
+      const enrichedData = (data as any[])
+        .map((tasting: any) => {
+          const wine = winesMap.get(tasting.wine_id);
           if (!wine) return null;
-
-          const { data: domain } = await supabase
-            .from('domain')
-            .select('name, logo_url')
-            .eq('id', wine.domain_id)
-            .maybeSingle();
-          
+          const domain = domainsMap.get(wine.domain_id);
           return {
             id: tasting.id,
             wine_id: tasting.wine_id,
@@ -573,16 +572,17 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             domain: domain || { name: '', logo_url: null }
           };
         })
-      );
-
-      const filteredData = enrichedData.filter(item => item !== null) as TastingNote[];
+        .filter(item => item !== null) as TastingNote[];
 
       if (pageNum === 0) {
-        setTastings(filteredData);
+        setTastings(enrichedData);
       } else {
-        setTastings(prev => [...prev, ...filteredData]);
+        setTastings(prev => [...prev, ...enrichedData]);
       }
       setHasMore(data.length === TASTINGS_PER_PAGE);
+    } else {
+      if (pageNum === 0) setTastings([]);
+      setHasMore(false);
     }
 
     setLoading(false);
@@ -621,23 +621,22 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
 
     const { data, error } = await query.range(from, to);
 
-    if (!error && data) {
-      const enrichedData = await Promise.all(
-        (data as any[]).map(async (tasting: any) => {
-          const { data: wine } = await supabase
-            .from('wine')
-            .select('*')
-            .eq('id', tasting.wine_id)
-            .maybeSingle();
+    if (!error && data && data.length > 0) {
+      // Batch fetch wines
+      const wineIds = [...new Set((data as any[]).map(t => t.wine_id))];
+      const wines = await batchIn('wine', 'id', wineIds);
+      const winesMap = new Map(wines.map((w: any) => [w.id, w]));
 
+      // Batch fetch domains
+      const domainIds = [...new Set(wines.map((w: any) => w.domain_id).filter(Boolean))];
+      const domainsArr = await batchIn('domain', 'id', domainIds, 'id, name, logo_url');
+      const domainsMap = new Map(domainsArr.map((d: any) => [d.id, d]));
+
+      const enrichedData = (data as any[])
+        .map((tasting: any) => {
+          const wine = winesMap.get(tasting.wine_id);
           if (!wine) return null;
-
-          const { data: domain } = await supabase
-            .from('domain')
-            .select('name, logo_url')
-            .eq('id', wine.domain_id)
-            .maybeSingle();
-          
+          const domain = domainsMap.get(wine.domain_id);
           return {
             id: tasting.id,
             wine_id: tasting.wine_id,
@@ -650,16 +649,17 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             domain: domain || { name: '', logo_url: null }
           };
         })
-      );
-
-      const filteredData = enrichedData.filter(item => item !== null) as TastingNote[];
+        .filter(item => item !== null) as TastingNote[];
 
       if (pageNum === 0) {
-        setTastings(filteredData);
+        setTastings(enrichedData);
       } else {
-        setTastings(prev => [...prev, ...filteredData]);
+        setTastings(prev => [...prev, ...enrichedData]);
       }
       setHasMore(data.length === TASTINGS_PER_PAGE);
+    } else {
+      if (pageNum === 0) setTastings([]);
+      setHasMore(false);
     }
 
     setLoading(false);
