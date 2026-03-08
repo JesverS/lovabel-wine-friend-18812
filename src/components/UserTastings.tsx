@@ -591,7 +591,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             .from('domain')
             .select('name, logo_url')
             .eq('id', wine.domain_id)
-            .single();
+            .maybeSingle();
           
           return {
             id: tasting.id,

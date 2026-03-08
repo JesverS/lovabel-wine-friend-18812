@@ -126,7 +126,7 @@ const CourseDetails = () => {
 
       toast.success("Leçon déverrouillée avec succès !");
       refetchWeeklySlots();
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ["lessons-with-status", id] });
     } catch (error: any) {
       toast.error(error.message || "Erreur lors du déverrouillage");
     }

@@ -25,7 +25,7 @@ const CourseLocked = () => {
         .from("courses")
         .select("*")
         .eq("id", parseInt(id || "0"))
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as Course;

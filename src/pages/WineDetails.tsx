@@ -74,7 +74,7 @@ export default function WineDetails() {
         .from('domain' as any)
         .select('*')
         .eq('id', (wineData as any).domain_id)
-        .single();
+        .maybeSingle();
       domainData = data;
       setDomaine(data);
     }

@@ -34,7 +34,7 @@ export function CellarMembers({ cellarId, cellarName, userRole }: CellarMembersP
       .from('user_profiles_public' as any)
       .select('full_name')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     setUserProfile(data);
   };
 

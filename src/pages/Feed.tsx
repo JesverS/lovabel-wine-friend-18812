@@ -43,7 +43,7 @@ export default function Feed() {
         {/* Create Post Section */}
         {user ? (
           <div className="mb-8">
-            <CreatePost onPostCreated={() => window.location.reload()} />
+            <CreatePost onPostCreated={() => queryClient.invalidateQueries({ queryKey: ['social-feed'] })} />
           </div>
         ) : (
           <div className="mb-8 p-6 rounded-lg bg-primary/5 border border-primary/20 text-center">

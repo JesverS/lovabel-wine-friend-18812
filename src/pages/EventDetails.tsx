@@ -582,7 +582,7 @@ const EventDetails = () => {
         .from('event')
         .select('banner_url')
         .eq('id', event.id)
-        .single();
+        .maybeSingle();
 
       if (fetchError) throw fetchError;
 

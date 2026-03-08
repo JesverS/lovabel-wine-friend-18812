@@ -66,8 +66,7 @@ export function LeaveEventPaidSection({
       toast.success("Demande de remboursement envoyée");
       setRefundDialogOpen(false);
       setMessage("");
-      // Reload to update the UI
-      window.location.reload();
+      onRefundRequested?.();
     } catch (error: any) {
       console.error("Erreur:", error);
       toast.error(error.message || "Erreur lors de la demande");

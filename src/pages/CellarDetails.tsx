@@ -77,7 +77,7 @@ export default function CellarDetails() {
         .from('cellar')
         .select('*')
         .eq('slug', slug)
-        .single();
+        .maybeSingle();
 
       if (cellarError || !cellarData) {
         console.error('Error fetching cellar:', cellarError);
