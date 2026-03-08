@@ -194,39 +194,18 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
           }
         }
 
-        // Traiter les hashtags
+        // Traiter les hashtags (atomique via RPC)
         if (hashtags.length > 0) {
           for (const tag of hashtags) {
-            // Upsert le hashtag
-            const { data: existingHashtag } = await supabase
-              .from('hashtag' as any)
-              .select('id')
-              .eq('tag', tag)
-              .maybeSingle();
+            const { data: hashtagId } = await (supabase as any).rpc('increment_hashtag_usage', {
+              p_tag: tag,
+            });
 
-            let hashtagId: string;
-
-            if (existingHashtag) {
-              hashtagId = (existingHashtag as any).id;
-              // Incrémenter le compteur
+            if (hashtagId) {
               await supabase
-                .from('hashtag' as any)
-                .update({ usage_count: (existingHashtag as any).usage_count + 1 })
-                .eq('id', hashtagId);
-            } else {
-              // Créer le hashtag
-              const { data: newHashtag } = await supabase
-                .from('hashtag' as any)
-                .insert({ tag, usage_count: 1 })
-                .select('id')
-                .single();
-              hashtagId = (newHashtag as any).id;
+                .from('post_hashtag' as any)
+                .insert({ post_id: newPost.id, hashtag_id: hashtagId });
             }
-
-            // Insérer la relation post_hashtag
-            await supabase
-              .from('post_hashtag' as any)
-              .insert({ post_id: newPost.id, hashtag_id: hashtagId });
           }
         }
       }
