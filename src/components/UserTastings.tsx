@@ -1234,19 +1234,19 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             content: shareStoryTasting.comment || undefined,
             image_url: shareStoryTasting.wine.label_url || undefined,
             is_wine_notice: true,
-            wine_notice: shareStoryTasting.wine ? {
-              rating: (shareStoryTasting as any).details?.rating || 5,
-              slot1: (shareStoryTasting as any).details?.slot1,
-              slot2: (shareStoryTasting as any).details?.slot2,
-              slot3: (shareStoryTasting as any).details?.slot3,
-              slot4: (shareStoryTasting as any).details?.slot4,
+            wine_notice: shareStoryTasting.details ? {
+              rating: shareStoryTasting.details?.rating || 5,
+              slot1: shareStoryTasting.details?.slot1,
+              slot2: shareStoryTasting.details?.slot2,
+              slot3: shareStoryTasting.details?.slot3,
+              slot4: shareStoryTasting.details?.slot4,
             } : undefined,
           }}
           wine={{
             id: shareStoryTasting.wine.id,
             name: shareStoryTasting.wine.name,
             label_url: shareStoryTasting.wine.label_url || undefined,
-            type: shareStoryTasting.wine.year ? undefined : undefined,
+            type: shareStoryTasting.wine.type,
             domain: { name: shareStoryTasting.domain.name },
           }}
         />
