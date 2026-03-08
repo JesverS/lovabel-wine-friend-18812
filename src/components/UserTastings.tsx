@@ -712,48 +712,14 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {tastings.map((tasting) => (
-            <Card 
-              key={tasting.id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => setSelectedWine(tasting.wine)}
-            >
-              <CardContent className="p-4">
-                <div className="flex gap-4">
-                  {tasting.wine.label_url && (
-                    <img
-                      src={tasting.wine.label_url}
-                      alt={tasting.wine.name}
-                      className="w-20 h-20 object-cover rounded"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{tasting.wine.name}</h3>
-                    <p className="text-sm text-muted-foreground">{tasting.domain.name}</p>
-                    {tasting.wine.year && (
-                      <p className="text-sm text-muted-foreground">Année: {tasting.wine.year}</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-lg">{getLikedIcon(tasting.liked)}</span>
-                      {tasting.rating && (
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                          <span className="text-sm font-medium">{tasting.rating}/5</span>
-                        </div>
-                      )}
-                    </div>
-                    {tasting.comment && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {tasting.comment}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      <Calendar className="w-3 h-3 inline mr-1" />
-                      Dégusté le {new Date(tasting.created_at).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <TastingCard
+              key={tasting.id}
+              tasting={tasting}
+              isOwnProfile={isOwnProfile}
+              onSelect={() => setSelectedWine(tasting.wine)}
+              onDelete={() => setDeletingTasting(tasting)}
+              onShareStory={() => setShareStoryTasting(tasting)}
+            />
           ))}
         </div>
 
