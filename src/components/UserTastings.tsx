@@ -1027,7 +1027,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             ))}
           </div>
         ) : viewMode === 'map' ? (
-          <TastingsMap sourceFilter={null} userId={targetUserId} />
+          <TastingsMap sourceFilter={null} userId={targetUserId} onShareStory={handleMapShareStory} />
         ) : null}
 
         {loading && <p className="text-center py-4">Chargement...</p>}
