@@ -3505,6 +3505,7 @@ export type Database = {
           experience: number | null
           full_name: string | null
           id: string | null
+          is_public: boolean | null
           last_name: string | null
           level: number | null
           logo_adress: string | null
@@ -3519,6 +3520,7 @@ export type Database = {
           experience?: never
           full_name?: string | null
           id?: string | null
+          is_public?: boolean | null
           last_name?: string | null
           level?: number | null
           logo_adress?: string | null
@@ -3533,6 +3535,7 @@ export type Database = {
           experience?: never
           full_name?: string | null
           id?: string | null
+          is_public?: boolean | null
           last_name?: string | null
           level?: number | null
           logo_adress?: string | null
