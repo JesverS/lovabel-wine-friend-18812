@@ -149,6 +149,8 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
   useEffect(() => {
     if (!mapContainer.current || tastings.length === 0) return;
 
+    let storyClickHandler: ((e: MouseEvent) => void) | null = null;
+
     if (!MAPBOX_TOKEN) {
       logger.error("[TastingsMap] Token Mapbox manquant (VITE_MAPBOX_TOKEN)");
       setError("Configuration carte manquante. Contactez l'administrateur.");
@@ -340,14 +342,15 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
 
       // Listen for story button clicks in popups
       if (onShareStory) {
-        map.current!.getContainer().addEventListener("click", (e) => {
+        storyClickHandler = (e: MouseEvent) => {
           const target = e.target as HTMLElement;
           const btn = target.closest(".tasting-story-btn") as HTMLElement | null;
           if (btn) {
             const tastingId = btn.getAttribute("data-tasting-id");
             if (tastingId) onShareStory(tastingId);
           }
-        });
+        };
+        mapContainer.current?.addEventListener("click", storyClickHandler);
       }
 
       // Cursor changes
@@ -375,6 +378,9 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
     });
 
     return () => {
+      if (storyClickHandler && mapContainer.current) {
+        mapContainer.current.removeEventListener("click", storyClickHandler);
+      }
       map.current?.remove();
     };
   }, [tastings, onShareStory]);

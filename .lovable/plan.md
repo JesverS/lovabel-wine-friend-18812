@@ -1,101 +1,140 @@
 
 
-# Plan de correction des bugs
+# Preferences de notifications par device
 
-## 1. N+1 queries dans `fetchTastingsByEvent` et `fetchTastingsByCellar`
+## Reponse a ta question : faisabilite
 
-**Fichier:** `UserTastings.tsx` lignes 530-558 et 607-635
+Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
+- Lire les preferences associees a ce token precis
+- Modifier les preferences pour ce token precis
 
-Les deux fonctions font un `Promise.all(data.map(async ...))` avec une requete wine + domain par tasting. Le fix suit le pattern deja utilise dans `fetchTastingsByDomain` (lignes 307-313) :
+L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
 
-- Collecter les `wine_id` uniques depuis `data`
-- Batch fetch tous les wines en une requete `.in('id', wineIds)`
-- Collecter les `domain_id` uniques depuis les wines
-- Batch fetch tous les domains en une requete `.in('id', domainIds)`
-- Construire des Maps pour lookup O(1)
-- Assembler les resultats sans requetes individuelles
+## Architecture base de donnees
 
-## 2. Infinite scroll casse (egalite stricte)
+### Nouvelle table `notification_preferences`
 
-**Fichier:** `UserTastings.tsx` ligne 678
+```text
+notification_preferences
+  id              uuid        PK, default gen_random_uuid()
+  user_id         uuid        NOT NULL, FK -> auth.users
+  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
+  post_like       boolean     DEFAULT true
+  post_comment    boolean     DEFAULT true
+  mention         boolean     DEFAULT true
+  follow_request  boolean     DEFAULT true
+  new_follower    boolean     DEFAULT true
+  follow_accepted boolean     DEFAULT true
+  event_join      boolean     DEFAULT true
+  event_access_request boolean DEFAULT true
+  event_invitation boolean    DEFAULT true
+  cellar_invitation boolean   DEFAULT true
+  refund_request  boolean     DEFAULT true
+  created_at      timestamptz DEFAULT now()
+  updated_at      timestamptz DEFAULT now()
 
-```js
-// Avant
-scrollHeight - scrollTop === clientHeight
-// Apres
-scrollHeight - scrollTop <= clientHeight + 1
+  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
 ```
 
-## 3. Event listener map jamais nettoye
+### Logique de `token_id`
 
-**Fichier:** `TastingsMap.tsx` lignes 342-351
+- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
+- `token_id = uuid` : preferences specifiques a ce device
 
-Extraire le handler dans une variable, et le retirer dans le cleanup :
+Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
 
-```js
-const storyClickHandler = (e) => { ... };
-map.current.getContainer().addEventListener("click", storyClickHandler);
-// Dans le return cleanup:
-return () => {
-  container.removeEventListener("click", storyClickHandler);
-  map.current?.remove();
-};
+### Types NON configurables
+
+Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
+- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
+- `refund_processed` (reponse a sa demande)
+- `level_up` (visible directement dans l'app)
+- `badge_unlocked` (idem)
+
+## Modifications SQL
+
+### 1. Creer la table `notification_preferences`
+
+Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
+
+### 2. Modifier `create_notification()` pour les notifications web
+
+Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
+
+Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
+
+- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
+- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
+- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
+
+### 3. Modifier l'Edge Function `send-push-notification`
+
+Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
+
+```text
+Pour chaque token de l'utilisateur :
+  1. Chercher notification_preferences WHERE token_id = token.id
+  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
+  3. Si pas de prefs du tout -> tout est actif (defaut)
+  4. Verifier si le type est desactive -> si oui, skip
+  5. Sinon, envoyer via FCM
 ```
 
-## 4. FAB chevauche la bottom nav mobile (bug 2.1)
+### 4. Modifier `notify_mentioned_user()`
 
-**Fichier:** `UserTastings.tsx` ligne 1093
+Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
 
-Changer `bottom-6` en `bottom-24` pour que le bouton "+" passe au-dessus de la MobileBottomNav (64px = h-16) sur mobile, et garder `md:bottom-6` pour desktop :
+## Frontend
 
-```
-className="fixed bottom-24 md:bottom-6 right-6 ..."
-```
+### Nouveau composant `NotificationPreferences.tsx`
 
-## 5. Div vide `pb-16` inutile sur desktop (bug 2.2)
+Affiche les preferences groupees par categorie avec des Switch :
 
-**Fichier:** `App.tsx` ligne 106
+**Social**
+- Likes sur mes posts (`post_like`)
+- Commentaires sur mes posts (`post_comment`)
+- Mentions (`mention`)
+- Demandes d'abonnement (`follow_request`)
+- Nouveaux abonnes (`new_follower`)
+- Abonnement accepte (`follow_accepted`)
 
-Ce `<div className="pb-16 md:pb-0" />` est un spacer pour la MobileBottomNav. Il fonctionne mais c'est un div vide. Le garder tel quel car il sert de padding pour le contenu sous la bottom nav mobile. Pas de bug reel, mais on peut le conditionner pour ne s'afficher que sur mobile via `className="h-16 md:h-0"` (hauteur fixe au lieu de padding sur un div vide, plus semantique).
+**Evenements**
+- Nouveau participant (`event_join`)
+- Demandes d'acces (`event_access_request`)
+- Invitations (`event_invitation`)
+- Demandes de remboursement (`refund_request`)
 
-## 6. Pas de limite sur `.in()` avec beaucoup d'IDs (bug 3.1)
+**Caves**
+- Invitations a une cave (`cellar_invitation`)
 
-**Fichiers:** `UserTastings.tsx`
+### Comportement depuis le site web
 
-Ajouter un helper `batchIn` qui decoupe un tableau d'IDs en chunks de 500 et fait plusieurs requetes si necessaire :
+Comme il n'y a pas de push web pour l'instant :
+- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
+- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
 
-```ts
-async function batchFetch(table, column, ids, select) {
-  const CHUNK = 500;
-  const results = [];
-  for (let i = 0; i < ids.length; i += CHUNK) {
-    const { data } = await supabase.from(table).select(select).in(column, ids.slice(i, i + CHUNK));
-    if (data) results.push(...data);
-  }
-  return results;
-}
-```
+### Comportement futur depuis l'app React Native
 
-Appliquer ce helper aux appels `.in()` dans `fetchTastingsByEvent`, `fetchTastingsByCellar`, `fetchTastingsByDomain`, et `fetchTastingsByDate`.
+L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
 
-## 7. Gestion d'erreurs manquante dans les fetches (bug 3.2)
+### Integration dans UserProfile.tsx
 
-**Fichier:** `UserTastings.tsx`
+Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
 
-Envelopper `fetchDomains`, `fetchEvents`, `fetchCellars`, `fetchTastingsByEvent`, `fetchTastingsByCellar` dans des try/catch avec un toast d'erreur, comme c'est deja fait dans d'autres composants du projet. Utiliser `getErrorMessage` de `errorHandler.ts`.
+## Etapes d'implementation
 
-## 8. N+1 dans `EventAccessRequestsManagement` (bug 3.2 bonus)
+1. **Migration SQL** : creer la table `notification_preferences` avec RLS
+2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
+3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
+4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
+5. **Composant** : creer `NotificationPreferences.tsx`
+6. **UserProfile.tsx** : ajouter l'onglet Notifications
 
-**Fichier:** `EventAccessRequestsManagement.tsx` lignes 49-62
+## Avantages de cette approche
 
-Meme pattern : collecter les `user_id` uniques, batch fetch les profils en une seule requete `.in('id', userIds)`.
-
-## Resume des fichiers modifies
-
-| Fichier | Changements |
-|---------|-------------|
-| `UserTastings.tsx` | Batch queries event/cellar, infinite scroll fix, FAB position, try/catch, batchIn helper |
-| `TastingsMap.tsx` | Cleanup event listener |
-| `App.tsx` | Spacer div semantique |
-| `EventAccessRequestsManagement.tsx` | Batch fetch profils |
+- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
+- **Performante** : un seul SELECT sur une petite table indexee
+- **Granulaire** : preferences par device possibles
+- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
+- **Nettoyage automatique** : CASCADE sur la suppression de token
 

@@ -14,6 +14,24 @@ import TastingsMap from './TastingsMap';
 import SpontaneousTastingDialog from './SpontaneousTastingDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/errorHandler';
+
+/** Batch fetch helper: chunks large ID arrays to avoid Supabase .in() limits */
+async function batchIn(
+  table: string,
+  column: string,
+  ids: string[],
+  select: string = '*'
+): Promise<any[]> {
+  if (ids.length === 0) return [];
+  const CHUNK = 500;
+  const results: any[] = [];
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { data } = await (supabase.from as any)(table).select(select).in(column, ids.slice(i, i + CHUNK));
+    if (data) results.push(...data);
+  }
+  return results;
+}
 
 type ViewMode = 'date' | 'domain' | 'event' | 'cellar' | 'map';
 
@@ -165,12 +183,12 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
     if (!error && data && data.length > 0) {
       // Batch fetch wines
       const wineIds = [...new Set((data as any[]).map(t => t.wine_id))];
-      const { data: wines } = await supabase.from('wine').select('*').in('id', wineIds);
-      const winesMap = new Map((wines || []).map(w => [w.id, w]));
+      const wines = await batchIn('wine', 'id', wineIds);
+      const winesMap = new Map(wines.map(w => [w.id, w]));
 
       // Get domain IDs from wines
-      const domainIds = [...new Set((wines || []).map(w => w.domain_id).filter(Boolean))];
-      const { data: domains } = await supabase.from('domain').select('id, name, logo_url').in('id', domainIds);
+      const domainIds = [...new Set(wines.map(w => w.domain_id).filter(Boolean))];
+      const domains = await batchIn('domain', 'id', domainIds, 'id, name, logo_url');
       const domainsMap = new Map((domains || []).map(d => [d.id, d]));
 
       const enrichedData = (data as any[])
@@ -228,7 +246,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
     if (!error && data && data.length > 0) {
       // Batch fetch wines to get domain IDs
       const wineIds = [...new Set((data as any[]).map(item => item.wine_id))];
-      const { data: wines } = await supabase.from('wine').select('id, domain_id').in('id', wineIds);
+      const wines = await batchIn('wine', 'id', wineIds, 'id, domain_id');
 
       const domainCounts = (wines || []).reduce((acc: Record<string, number>, wine) => {
         if (wine.domain_id) {
@@ -526,23 +544,22 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
 
     const { data, error } = await query.range(from, to);
 
-    if (!error && data) {
-      const enrichedData = await Promise.all(
-        (data as any[]).map(async (tasting: any) => {
-          const { data: wine } = await supabase
-            .from('wine')
-            .select('*')
-            .eq('id', tasting.wine_id)
-            .maybeSingle();
+    if (!error && data && data.length > 0) {
+      // Batch fetch wines
+      const wineIds = [...new Set((data as any[]).map(t => t.wine_id))];
+      const wines = await batchIn('wine', 'id', wineIds);
+      const winesMap = new Map(wines.map((w: any) => [w.id, w]));
 
+      // Batch fetch domains
+      const domainIds = [...new Set(wines.map((w: any) => w.domain_id).filter(Boolean))];
+      const domainsArr = await batchIn('domain', 'id', domainIds, 'id, name, logo_url');
+      const domainsMap = new Map(domainsArr.map((d: any) => [d.id, d]));
+
+      const enrichedData = (data as any[])
+        .map((tasting: any) => {
+          const wine = winesMap.get(tasting.wine_id);
           if (!wine) return null;
-
-          const { data: domain } = await supabase
-            .from('domain')
-            .select('name, logo_url')
-            .eq('id', wine.domain_id)
-            .maybeSingle();
-          
+          const domain = domainsMap.get(wine.domain_id);
           return {
             id: tasting.id,
             wine_id: tasting.wine_id,
@@ -555,16 +572,17 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             domain: domain || { name: '', logo_url: null }
           };
         })
-      );
-
-      const filteredData = enrichedData.filter(item => item !== null) as TastingNote[];
+        .filter(item => item !== null) as TastingNote[];
 
       if (pageNum === 0) {
-        setTastings(filteredData);
+        setTastings(enrichedData);
       } else {
-        setTastings(prev => [...prev, ...filteredData]);
+        setTastings(prev => [...prev, ...enrichedData]);
       }
       setHasMore(data.length === TASTINGS_PER_PAGE);
+    } else {
+      if (pageNum === 0) setTastings([]);
+      setHasMore(false);
     }
 
     setLoading(false);
@@ -603,23 +621,22 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
 
     const { data, error } = await query.range(from, to);
 
-    if (!error && data) {
-      const enrichedData = await Promise.all(
-        (data as any[]).map(async (tasting: any) => {
-          const { data: wine } = await supabase
-            .from('wine')
-            .select('*')
-            .eq('id', tasting.wine_id)
-            .maybeSingle();
+    if (!error && data && data.length > 0) {
+      // Batch fetch wines
+      const wineIds = [...new Set((data as any[]).map(t => t.wine_id))];
+      const wines = await batchIn('wine', 'id', wineIds);
+      const winesMap = new Map(wines.map((w: any) => [w.id, w]));
 
+      // Batch fetch domains
+      const domainIds = [...new Set(wines.map((w: any) => w.domain_id).filter(Boolean))];
+      const domainsArr = await batchIn('domain', 'id', domainIds, 'id, name, logo_url');
+      const domainsMap = new Map(domainsArr.map((d: any) => [d.id, d]));
+
+      const enrichedData = (data as any[])
+        .map((tasting: any) => {
+          const wine = winesMap.get(tasting.wine_id);
           if (!wine) return null;
-
-          const { data: domain } = await supabase
-            .from('domain')
-            .select('name, logo_url')
-            .eq('id', wine.domain_id)
-            .maybeSingle();
-          
+          const domain = domainsMap.get(wine.domain_id);
           return {
             id: tasting.id,
             wine_id: tasting.wine_id,
@@ -632,16 +649,17 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             domain: domain || { name: '', logo_url: null }
           };
         })
-      );
-
-      const filteredData = enrichedData.filter(item => item !== null) as TastingNote[];
+        .filter(item => item !== null) as TastingNote[];
 
       if (pageNum === 0) {
-        setTastings(filteredData);
+        setTastings(enrichedData);
       } else {
-        setTastings(prev => [...prev, ...filteredData]);
+        setTastings(prev => [...prev, ...enrichedData]);
       }
       setHasMore(data.length === TASTINGS_PER_PAGE);
+    } else {
+      if (pageNum === 0) setTastings([]);
+      setHasMore(false);
     }
 
     setLoading(false);
@@ -675,7 +693,8 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const bottom = e.currentTarget.scrollHeight - e.currentTarget.scrollTop === e.currentTarget.clientHeight;
+    const { scrollHeight, scrollTop, clientHeight } = e.currentTarget;
+    const bottom = scrollHeight - scrollTop <= clientHeight + 1;
     if (bottom && hasMore && !loading) {
       loadMore();
     }
@@ -1090,7 +1109,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
 
           <Button
             onClick={() => setShowSpontaneousDialog(true)}
-            className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-50"
+            className="fixed bottom-24 md:bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-50"
             size="icon"
           >
             <Plus className="h-6 w-6" />
