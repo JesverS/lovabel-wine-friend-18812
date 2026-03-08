@@ -223,11 +223,11 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
       if (onPostCreated) {
         onPostCreated();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating post:', error);
       toast({
         title: 'Erreur',
-        description: error.message || 'Impossible de créer le post',
+        description: getUserFriendlyErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

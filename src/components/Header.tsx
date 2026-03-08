@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Wine, User, Heart, Menu, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalSearchBar } from "@/components/GlobalSearchBar";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { useUserSlug } from "@/hooks/useUserSlug";
 import {
   Sheet,
   SheetContent,
@@ -19,24 +20,10 @@ export const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userSlug, setUserSlug] = useState<string | null>(null);
+  const userSlug = useUserSlug();
 
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(path + '/');
-
-  useEffect(() => {
-    const fetchUserSlug = async () => {
-      if (user) {
-        const { data } = await supabase
-          .from('user_profiles_public' as any)
-          .select('slug')
-          .eq('id', user.id)
-          .maybeSingle();
-        setUserSlug((data as any)?.slug || null);
-      }
-    };
-    fetchUserSlug();
-  }, [user]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -115,7 +102,6 @@ export const Header = () => {
             aria-label="Ouvrir la recherche"
             onClick={() => {
               setMobileMenuOpen(false);
-              // Trouver et cliquer sur le bouton de recherche GlobalSearchBar
               const searchButton = document.querySelector('[data-search-trigger]') as HTMLButtonElement;
               if (searchButton) searchButton.click();
             }}
