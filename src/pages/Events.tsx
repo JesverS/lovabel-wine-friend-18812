@@ -473,6 +473,7 @@ const Events = () => {
             )}
           </div>
         </section>
+        </PullToRefresh>
       </main>
       <Footer />
     </div>
