@@ -507,7 +507,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
             .from('wine')
             .select('*')
             .eq('id', tasting.wine_id)
-            .single();
+            .maybeSingle();
 
           if (!wine) return null;
 
