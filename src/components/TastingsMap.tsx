@@ -195,8 +195,14 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
               SOURCE_COLORS[tasting.source_type] || "#888",
               48
             );
+            const ctx = canvas.getContext("2d")!;
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             if (map.current) {
-              map.current.addImage(`wine-${tasting.id}`, canvas, { pixelRatio: 2 });
+              map.current.addImage(`wine-${tasting.id}`, {
+                width: canvas.width,
+                height: canvas.height,
+                data: new Uint8Array(imageData.data.buffer),
+              });
             }
           } catch (err) {
             logger.error(`[TastingsMap] Failed to load photo for ${tasting.id}`, err);
