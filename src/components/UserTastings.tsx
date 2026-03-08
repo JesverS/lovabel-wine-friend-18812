@@ -90,6 +90,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
   const [page, setPage] = useState(0);
   const [showDisliked, setShowDisliked] = useState(false);
   const [showSpontaneousDialog, setShowSpontaneousDialog] = useState(false);
+  const [shareStoryTasting, setShareStoryTasting] = useState<TastingNote | null>(null);
 
   useEffect(() => {
     if (targetUserId) {
