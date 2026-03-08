@@ -19,6 +19,8 @@ import {
   ThumbsDown,
   MessageSquare,
   Lock,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -86,6 +88,7 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
   const [liked, setLiked] = useState<number>(0); // 0 = neutre, 1 = j'aime, -1 = je n'aime pas
+  const [isInWishlist, setIsInWishlist] = useState(false);
   const [commentReactions, setCommentReactions] = useState<
     Record<string, { userReaction: number | null; likeCount: number }>
   >({});
@@ -114,15 +117,14 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
 
       setDomain(domainData);
 
-      // Check if wine is in favorites
-      const { data: favoriteData } = await supabase
-        .from("user_favorite")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("wine_id", wine.id)
-        .maybeSingle();
+      // Check if wine is in favorites + wishlist in parallel
+      const [favoriteRes, wishlistRes] = await Promise.all([
+        supabase.from("user_favorite").select("*").eq("user_id", user.id).eq("wine_id", wine.id).maybeSingle(),
+        supabase.from("wine_wishlist" as any).select("id").eq("user_id", user.id).eq("wine_id", wine.id).maybeSingle(),
+      ]);
 
-      setIsFavorite(!!favoriteData);
+      setIsFavorite(!!favoriteRes.data);
+      setIsInWishlist(!!wishlistRes.data);
 
       // Fetch private tasting notes
       const { data: noticeData } = await supabase
@@ -535,6 +537,33 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
     }
   };
 
+  const handleToggleWishlist = async () => {
+    if (!user) {
+      toast({ title: "Connexion requise", description: "Veuillez vous connecter", variant: "destructive" });
+      return;
+    }
+
+    if (isInWishlist) {
+      const { error } = await supabase
+        .from("wine_wishlist" as any)
+        .delete()
+        .eq("user_id", user.id)
+        .eq("wine_id", wine.id);
+      if (!error) {
+        setIsInWishlist(false);
+        toast({ title: "Retiré de la liste À goûter" });
+      }
+    } else {
+      const { error } = await supabase
+        .from("wine_wishlist" as any)
+        .insert({ user_id: user.id, wine_id: wine.id } as any);
+      if (!error) {
+        setIsInWishlist(true);
+        toast({ title: "Ajouté à la liste À goûter" });
+      }
+    }
+  };
+
   const handleDeleteComment = async (commentUserId: string) => {
     if (!user || user.id !== commentUserId) return;
 
@@ -686,15 +715,25 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
             <div className="flex items-start justify-between gap-2 md:gap-4">
               <h2 className="text-xl md:text-3xl font-serif break-words flex-1 min-w-0">{wine.name}</h2>
               {user && (
-                <Button
-                  variant={isFavorite ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleToggleFavorite}
-                  className="flex items-center gap-2"
-                >
-                  <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
-                  {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={isInWishlist ? "default" : "outline"}
+                    size="icon"
+                    onClick={handleToggleWishlist}
+                    title={isInWishlist ? "Retirer de la liste À goûter" : "Ajouter à la liste À goûter"}
+                  >
+                    {isInWishlist ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant={isFavorite ? "default" : "outline"}
+                    size="sm"
+                    onClick={handleToggleFavorite}
+                    className="flex items-center gap-2"
+                  >
+                    <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                    {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                  </Button>
+                </div>
               )}
             </div>
             <Button

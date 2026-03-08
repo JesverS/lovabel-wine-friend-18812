@@ -2,10 +2,12 @@ import { Helmet } from "react-helmet-async";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { UserFavorites } from "@/components/UserFavorites";
+import { UserWishlist } from "@/components/UserWishlist";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, Navigate } from "react-router-dom";
-import { Heart, LogIn, Wine } from "lucide-react";
+import { Heart, LogIn, Wine, Bookmark } from "lucide-react";
 
 export default function Favorites() {
   const { user, loading } = useAuth();
@@ -44,13 +46,32 @@ export default function Favorites() {
           </p>
         </div>
 
-        {/* Favorites Content */}
+        {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : user ? (
-          <UserFavorites />
+          <Tabs defaultValue="favorites" className="w-full">
+            <TabsList className="mb-6">
+              <TabsTrigger value="favorites" className="gap-2">
+                <Heart className="h-4 w-4" />
+                Favoris
+              </TabsTrigger>
+              <TabsTrigger value="wishlist" className="gap-2">
+                <Bookmark className="h-4 w-4" />
+                À goûter
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="favorites">
+              <UserFavorites />
+            </TabsContent>
+
+            <TabsContent value="wishlist">
+              <UserWishlist />
+            </TabsContent>
+          </Tabs>
         ) : (
           <div className="text-center py-20">
             <Wine className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />

@@ -69,8 +69,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Helper: fetch public event posts (for non-members with token or public events)
+    const fetchPublicPosts = async (eventId: string) => {
+      const { data: posts } = await supabase
+        .from('event_post')
+        .select('id, event_id, author_id, content, image_url, visibility, created_at, updated_at, likes_count, comment_count')
+        .eq('event_id', eventId)
+        .eq('visibility', 'public')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      return posts || [];
+    };
+
     // Fonction helper pour construire la réponse avec masquage
-    const buildResponse = (applyMasking: boolean) => {
+    const buildResponse = async (applyMasking: boolean, includePublicPosts: boolean = false) => {
       const safeEventData = { ...eventData };
       let hasHiddenContactInfo = false;
       let hasHiddenAddress = false;
@@ -90,12 +102,18 @@ Deno.serve(async (req) => {
         }
       }
 
+      const responseData: any = { 
+        event: safeEventData,
+        hasHiddenContactInfo,
+        hasHiddenAddress
+      };
+
+      if (includePublicPosts) {
+        responseData.publicPosts = await fetchPublicPosts(eventData.id);
+      }
+
       return new Response(
-        JSON.stringify({ 
-          event: safeEventData,
-          hasHiddenContactInfo,
-          hasHiddenAddress
-        }),
+        JSON.stringify(responseData),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     };
@@ -103,15 +121,15 @@ Deno.serve(async (req) => {
     // ÉTAPE 2 : L'événement est public
     if (eventData.is_public) {
       // Si l'utilisateur est membre → accès complet (pas de masquage)
-      // Sinon → masquer selon les flags confidential_*
-      return buildResponse(!hasConfidentialAccess);
+      // Sinon → masquer selon les flags confidential_*, inclure posts publics
+      return buildResponse(!hasConfidentialAccess, !hasConfidentialAccess);
     }
 
     // ÉTAPE 3 : L'événement est privé - vérifier le TOKEN
     if (token && token === eventData.private_token) {
-      // Token valide mais pas membre → masquer les infos confidentielles
+      // Token valide mais pas membre → masquer les infos confidentielles + inclure posts publics
       // Token valide ET membre → accès complet
-      return buildResponse(!hasConfidentialAccess);
+      return buildResponse(!hasConfidentialAccess, !hasConfidentialAccess);
     }
 
     // ÉTAPE 4 : Événement privé sans token valide

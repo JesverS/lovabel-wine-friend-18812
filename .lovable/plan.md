@@ -1,216 +1,140 @@
 
 
-# Plan d'implémentation — Wishlist, QR Caves, Posts d'événements
+# Preferences de notifications par device
 
-## 1. Wishlist "À goûter"
+## Reponse a ta question : faisabilite
 
-### 1.1 Migration SQL
-Nouvelle table `wine_wishlist` :
-```sql
-create table public.wine_wishlist (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  wine_id uuid not null references public.wine(id) on delete cascade,
-  created_at timestamptz default now(),
-  unique(user_id, wine_id)
-);
-alter table public.wine_wishlist enable row level security;
--- RLS: l'utilisateur voit/gère ses propres entrées
-create policy "Users manage own wishlist" on public.wine_wishlist
-  for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
--- Visibilité publique (profils publics) pour les visiteurs
-create policy "Public profiles wishlist visible" on public.wine_wishlist
-  for select to authenticated using (
-    public.can_view_profile_content(auth.uid(), user_id)
-  );
+Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
+- Lire les preferences associees a ce token precis
+- Modifier les preferences pour ce token precis
+
+L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
+
+## Architecture base de donnees
+
+### Nouvelle table `notification_preferences`
+
+```text
+notification_preferences
+  id              uuid        PK, default gen_random_uuid()
+  user_id         uuid        NOT NULL, FK -> auth.users
+  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
+  post_like       boolean     DEFAULT true
+  post_comment    boolean     DEFAULT true
+  mention         boolean     DEFAULT true
+  follow_request  boolean     DEFAULT true
+  new_follower    boolean     DEFAULT true
+  follow_accepted boolean     DEFAULT true
+  event_join      boolean     DEFAULT true
+  event_access_request boolean DEFAULT true
+  event_invitation boolean    DEFAULT true
+  cellar_invitation boolean   DEFAULT true
+  refund_request  boolean     DEFAULT true
+  created_at      timestamptz DEFAULT now()
+  updated_at      timestamptz DEFAULT now()
+
+  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
 ```
 
-### 1.2 Trigger auto-retrait
-Quand un `user_wine_notice` est inséré (= vin dégusté), supprimer automatiquement le vin de la wishlist :
-```sql
-create or replace function public.remove_from_wishlist_on_tasting()
-returns trigger language plpgsql security definer set search_path = 'public' as $$
-begin
-  delete from wine_wishlist where user_id = NEW.user_id and wine_id = NEW.wine_id;
-  return NEW;
-end;
-$$;
-create trigger trg_remove_wishlist_on_tasting
-  after insert on user_wine_notice
-  for each row execute function remove_from_wishlist_on_tasting();
+### Logique de `token_id`
+
+- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
+- `token_id = uuid` : preferences specifiques a ce device
+
+Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
+
+### Types NON configurables
+
+Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
+- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
+- `refund_processed` (reponse a sa demande)
+- `level_up` (visible directement dans l'app)
+- `badge_unlocked` (idem)
+
+## Modifications SQL
+
+### 1. Creer la table `notification_preferences`
+
+Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
+
+### 2. Modifier `create_notification()` pour les notifications web
+
+Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
+
+Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
+
+- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
+- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
+- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
+
+### 3. Modifier l'Edge Function `send-push-notification`
+
+Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
+
+```text
+Pour chaque token de l'utilisateur :
+  1. Chercher notification_preferences WHERE token_id = token.id
+  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
+  3. Si pas de prefs du tout -> tout est actif (defaut)
+  4. Verifier si le type est desactive -> si oui, skip
+  5. Sinon, envoyer via FCM
 ```
 
-### 1.3 Frontend — Bouton Bookmark dans `WineDetailsDialog.tsx`
-- Ajouter un state `isInWishlist` à côté de `isFavorite`
-- Fetch `wine_wishlist` dans le `useEffect` existant (en parallèle des autres fetches)
-- Icône `Bookmark` / `BookmarkCheck` à côté du cœur, toggle insert/delete sur `wine_wishlist`
+### 4. Modifier `notify_mentioned_user()`
 
-### 1.4 Frontend — Onglet Wishlist dans `Favorites.tsx`
-- Ajouter des `Tabs` : "Favoris" (Heart) | "À goûter" (Bookmark)
-- Nouveau composant `UserWishlist.tsx` qui liste les vins de `wine_wishlist` avec le même pattern que `UserFavorites` (pagination, vue par date)
+Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
 
----
+## Frontend
 
-## 2. QR Code pour les caves
+### Nouveau composant `NotificationPreferences.tsx`
 
-### 2.1 Dépendance
-Installer `qrcode.react` (lib légère, rendu côté client uniquement).
+Affiche les preferences groupees par categorie avec des Switch :
 
-### 2.2 Composant `CellarQRCodeDialog.tsx`
-- Dialog avec un QR code pointant vers `https://winenote.me/cellar/${slug}`
-- Bouton "Télécharger" qui exporte le QR en PNG via `canvas.toDataURL()`
-- Le QR inclut le logo de la cave au centre (option de `qrcode.react`)
+**Social**
+- Likes sur mes posts (`post_like`)
+- Commentaires sur mes posts (`post_comment`)
+- Mentions (`mention`)
+- Demandes d'abonnement (`follow_request`)
+- Nouveaux abonnes (`new_follower`)
+- Abonnement accepte (`follow_accepted`)
 
-### 2.3 Intégration dans `CellarDetails.tsx`
-- Afficher un bouton "QR Code" (icône `QrCode` de lucide) dans le header de la cave
-- Visible pour les membres de la cave (owner/co_owner/admin) ou si `is_seller = true`
+**Evenements**
+- Nouveau participant (`event_join`)
+- Demandes d'acces (`event_access_request`)
+- Invitations (`event_invitation`)
+- Demandes de remboursement (`refund_request`)
 
----
+**Caves**
+- Invitations a une cave (`cellar_invitation`)
 
-## 3. Posts d'événements
+### Comportement depuis le site web
 
-### 3.1 Nouvelles tables SQL
+Comme il n'y a pas de push web pour l'instant :
+- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
+- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
 
-**Table `event_post`** :
-```sql
-create table public.event_post (
-  id uuid primary key default gen_random_uuid(),
-  event_id uuid not null references public.event(id) on delete cascade,
-  author_id uuid not null references auth.users(id) on delete cascade,
-  content text not null,
-  image_url text,
-  visibility text not null default 'members_only'
-    check (visibility in ('public', 'members_only')),
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  likes_count integer default 0,
-  comment_count integer default 0
-);
-alter table public.event_post enable row level security;
-```
+### Comportement futur depuis l'app React Native
 
-**Table `event_post_like`** :
-```sql
-create table public.event_post_like (
-  id uuid primary key default gen_random_uuid(),
-  event_post_id uuid not null references public.event_post(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz default now(),
-  unique(event_post_id, user_id)
-);
-alter table public.event_post_like enable row level security;
-```
+L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
 
-**Table `event_post_comment`** :
-```sql
-create table public.event_post_comment (
-  id uuid primary key default gen_random_uuid(),
-  event_post_id uuid not null references public.event_post(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  content text not null,
-  created_at timestamptz default now(),
-  likes_count integer default 0
-);
-alter table public.event_post_comment enable row level security;
-```
+### Integration dans UserProfile.tsx
 
-**Table `event_post_comment_like`** :
-```sql
-create table public.event_post_comment_like (
-  id uuid primary key default gen_random_uuid(),
-  comment_id uuid not null references public.event_post_comment(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz default now(),
-  unique(comment_id, user_id)
-);
-alter table public.event_post_comment_like enable row level security;
-```
+Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
 
-### 3.2 RLS — Logique de visibilité
+## Etapes d'implementation
 
-**Qui peut CRÉER un post ?** Organisateur, co-organisateur ou admin de l'événement (via `user_event` avec rôle adéquat).
+1. **Migration SQL** : creer la table `notification_preferences` avec RLS
+2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
+3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
+4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
+5. **Composant** : creer `NotificationPreferences.tsx`
+6. **UserProfile.tsx** : ajouter l'onglet Notifications
 
-**Qui peut LIRE un post ?**
-- `visibility = 'public'` : accessible si l'événement est public, OU si l'utilisateur possède le `private_token` (vérifié via Edge Function), OU si l'utilisateur est membre (`user_event`)
-- `visibility = 'members_only'` : accessible uniquement si l'utilisateur est membre (`user_event`)
+## Avantages de cette approche
 
-Helper SECURITY DEFINER pour éviter la récursion RLS :
-```sql
-create or replace function public.can_view_event_post(_user_id uuid, _post_id uuid)
-returns boolean language sql stable security definer set search_path = 'public' as $$
-  select exists (
-    select 1 from event_post ep
-    join event e on e.id = ep.event_id
-    where ep.id = _post_id
-    and (
-      -- Post public + event public = tout le monde
-      (ep.visibility = 'public' and e.access_type = 'public')
-      -- Post public + event privé = membres uniquement (le token est géré côté Edge Function)
-      or (ep.visibility = 'public' and exists (
-        select 1 from user_event ue where ue.event_id = e.id and ue.user_id = _user_id
-      ))
-      -- Post members_only = membres uniquement
-      or (ep.visibility = 'members_only' and exists (
-        select 1 from user_event ue where ue.event_id = e.id and ue.user_id = _user_id
-      ))
-    )
-  );
-$$;
-```
-
-Policies RLS sur `event_post` :
-- SELECT : `using (can_view_event_post(auth.uid(), id))`
-- INSERT : organisateur/co-organisateur/admin seulement
-- UPDATE/DELETE : auteur du post seulement
-
-Policies sur likes et commentaires : accès en lecture si `can_view_event_post` du post parent, écriture si authentifié et peut voir le post.
-
-### 3.3 Triggers compteurs
-- `event_post_like` INSERT/DELETE → met à jour `event_post.likes_count`
-- `event_post_comment` INSERT/DELETE → met à jour `event_post.comment_count`
-- `event_post_comment_like` INSERT/DELETE → met à jour `event_post_comment.likes_count`
-
-### 3.4 Accès via token (événements privés, posts publics)
-Pour les visiteurs non-membres qui ont le token de l'événement, les posts `visibility = 'public'` doivent être accessibles. Comme le token n'est pas dans le JWT, la RLS ne peut pas le vérifier. Solution : modifier l'Edge Function `get-event-by-slug` pour retourner aussi les posts publics de l'événement dans sa réponse. Les posts `members_only` ne sont jamais retournés par l'Edge Function pour les non-membres.
-
-### 3.5 Frontend
-
-**Nouveau composant `EventPosts.tsx`** :
-- Feed de posts avec like/commentaire (même UX que `PostCard` mais adapté)
-- Toggle de visibilité à la création : "Visible par tous" / "Réservé aux inscrits"
-- Affiché dans un nouvel onglet "Actualités" sur `EventDetails.tsx`
-
-**Composant `CreateEventPost.tsx`** :
-- Champ texte + upload image optionnel + sélecteur de visibilité
-- Visible uniquement pour les organisateurs/co-organisateurs/admins
-
-**Composant `EventPostCard.tsx`** :
-- Affichage du post avec avatar auteur, contenu, image, likes, commentaires
-- Boutons like/commentaire fonctionnels
-- Badge de visibilité (cadenas pour members_only, globe pour public)
-
-### 3.6 Intégration dans `EventDetails.tsx`
-- Ajouter un onglet "Actualités" (icône `Newspaper`) dans les tabs existants
-- Le contenu de l'onglet = `<EventPosts eventId={event.id} canPost={canEdit} />`
-- Les posts publics sont visibles par tout visiteur ayant accès à la page (token ou public)
-- Les posts members_only ne sont visibles que pour les inscrits (`hasAccess = true`)
-
----
-
-## Résumé des fichiers
-
-| Fichier | Action |
-|---------|--------|
-| **Migration SQL** | Tables `wine_wishlist`, `event_post`, `event_post_like`, `event_post_comment`, `event_post_comment_like` + RLS + triggers + helpers |
-| `WineDetailsDialog.tsx` | Bouton Bookmark wishlist |
-| `Favorites.tsx` | Tabs Favoris / À goûter |
-| `UserWishlist.tsx` | Nouveau composant liste wishlist |
-| `CellarQRCodeDialog.tsx` | Nouveau composant QR code |
-| `CellarDetails.tsx` | Bouton QR code |
-| `EventPosts.tsx` | Nouveau composant feed posts event |
-| `CreateEventPost.tsx` | Nouveau composant création post event |
-| `EventPostCard.tsx` | Nouveau composant card post event |
-| `EventDetails.tsx` | Onglet Actualités |
-| `get-event-by-slug/index.ts` | Retourner les posts publics pour les non-membres avec token |
-| `package.json` | Ajout `qrcode.react` |
+- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
+- **Performante** : un seul SELECT sur une petite table indexee
+- **Granulaire** : preferences par device possibles
+- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
+- **Nettoyage automatique** : CASCADE sur la suppression de token
 

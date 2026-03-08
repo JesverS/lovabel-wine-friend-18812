@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2, Copy, AlertTriangle, Lock, CreditCard, Globe, Users, Eye, EyeOff } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Trash2, Copy, AlertTriangle, Lock, CreditCard, Globe, Users, Eye, EyeOff, Newspaper } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -30,6 +30,7 @@ import { OpenInAppBanner } from "@/components/OpenInAppBanner";
 import { getEventDeepLink } from "@/lib/mobileAppUtils";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EventPosts } from "@/components/EventPosts";
 import {
   Collapsible,
   CollapsibleContent,
@@ -925,6 +926,10 @@ const EventDetails = () => {
             <Tabs defaultValue="presentation" className="mt-8">
               <TabsList className="mb-6">
                 <TabsTrigger value="presentation">Présentation</TabsTrigger>
+                <TabsTrigger value="actualites" className="gap-1.5">
+                  <Newspaper className="h-4 w-4" />
+                  Actualités
+                </TabsTrigger>
                 <TabsTrigger value="organisateurs">Organisateurs</TabsTrigger>
               </TabsList>
 
@@ -1303,6 +1308,14 @@ const EventDetails = () => {
                     ))
                   )}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="actualites" className="mt-6">
+                <EventPosts
+                  eventId={event.id}
+                  canPost={canEdit}
+                  hasAccess={hasAccess || canEdit}
+                />
               </TabsContent>
 
               <TabsContent value="organisateurs" className="mt-6">

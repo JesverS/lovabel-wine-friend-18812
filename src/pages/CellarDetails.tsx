@@ -9,7 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Store, MapPin } from 'lucide-react';
+import { Store, MapPin, QrCode } from 'lucide-react';
+import { CellarQRCodeDialog } from '@/components/CellarQRCodeDialog';
 import { CellarCatalog } from '@/components/CellarCatalog';
 import { EditCellarDialog } from '@/components/EditCellarDialog';
 import { CellarMembers } from '@/components/CellarMembers';
@@ -272,9 +273,14 @@ export default function CellarDetails() {
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-2">
               <h1 className="text-2xl md:text-4xl font-bold break-words flex-1 min-w-0">{cellar.name}</h1>
-              {userRole === 'owner' && (
-                <EditCellarDialog cellar={cellar} onCellarUpdated={fetchCellarData} />
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {(userRole || cellar.is_seller) && cellar.slug && (
+                  <CellarQRCodeDialog cellarSlug={cellar.slug} cellarName={cellar.name} />
+                )}
+                {userRole === 'owner' && (
+                  <EditCellarDialog cellar={cellar} onCellarUpdated={fetchCellarData} />
+                )}
+              </div>
             </div>
             {cellar.location && (
               <p className="text-muted-foreground flex items-center gap-2 mt-2">
