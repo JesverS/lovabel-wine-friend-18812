@@ -4,13 +4,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays, Map as MapIcon, Plus, Instagram } from 'lucide-react';
+import { Wine, Calendar, ArrowLeft, Star, MapPin, CalendarDays, Map as MapIcon, Plus, Instagram, Trash2 } from 'lucide-react';
 import { WineDetailsDialog } from './WineDetailsDialog';
 import { ShareStoryDialog } from './ShareStoryDialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import TastingsMap from './TastingsMap';
 import SpontaneousTastingDialog from './SpontaneousTastingDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 type ViewMode = 'date' | 'domain' | 'event' | 'cellar' | 'map';
 
@@ -93,6 +95,23 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
   const [showDisliked, setShowDisliked] = useState(false);
   const [showSpontaneousDialog, setShowSpontaneousDialog] = useState(false);
   const [shareStoryTasting, setShareStoryTasting] = useState<TastingNote | null>(null);
+  const [deletingTasting, setDeletingTasting] = useState<TastingNote | null>(null);
+
+  const handleDeleteTasting = async (tasting: TastingNote) => {
+    try {
+      const { error } = await supabase
+        .from('user_wine_notice')
+        .delete()
+        .eq('id', tasting.id);
+      if (error) throw error;
+      setTastings(prev => prev.filter(t => t.id !== tasting.id));
+      toast.success('Dégustation supprimée');
+    } catch (error) {
+      console.error('Error deleting tasting:', error);
+      toast.error('Erreur lors de la suppression');
+    }
+    setDeletingTasting(null);
+  };
 
   useEffect(() => {
     if (targetUserId) {
@@ -1008,7 +1027,41 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
                 className="hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => setSelectedWine(tasting.wine)}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-4 space-y-3">
+                  {/* Action bar */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      {isOwnProfile && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 gap-1 text-xs text-destructive hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); setDeletingTasting(tasting); }}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 gap-1 text-xs"
+                            onClick={(e) => { e.stopPropagation(); setShareStoryTasting(tasting); }}
+                          >
+                            <Instagram className="w-3 h-3" />
+                            Story
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    {tasting.rating && (
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                        <span className="text-sm font-semibold">{tasting.rating}/5</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
                   <div className="flex gap-4">
                     {tasting.wine.label_url && (
                       <img
@@ -1023,15 +1076,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
                       {tasting.wine.year && (
                         <p className="text-sm text-muted-foreground">Année: {tasting.wine.year}</p>
                       )}
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-lg">{getLikedIcon(tasting.liked)}</span>
-                        {tasting.rating && (
-                          <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                            <span className="text-sm font-medium">{tasting.rating}/5</span>
-                          </div>
-                        )}
-                      </div>
+                      <span className="text-lg">{getLikedIcon(tasting.liked)}</span>
                       {tasting.comment && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                           {tasting.comment}
@@ -1041,17 +1086,6 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
                         <Calendar className="w-3 h-3 inline mr-1" />
                         Dégusté le {new Date(tasting.created_at).toLocaleDateString('fr-FR')}
                       </p>
-                      {isOwnProfile && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-1 h-7 px-2 gap-1 text-xs"
-                          onClick={(e) => { e.stopPropagation(); setShareStoryTasting(tasting); }}
-                        >
-                          <Instagram className="w-3 h-3" />
-                          Story
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1251,6 +1285,26 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
           }}
         />
       )}
+
+      <AlertDialog open={!!deletingTasting} onOpenChange={(open) => { if (!open) setDeletingTasting(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette dégustation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La dégustation de "{deletingTasting?.wine.name}" sera définitivement supprimée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deletingTasting && handleDeleteTasting(deletingTasting)}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

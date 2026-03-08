@@ -3697,7 +3697,6 @@ export type Database = {
           created_at: string
           domain_name: string
           id: string
-          label_url: string
           latitude: number
           liked: number
           longitude: number
