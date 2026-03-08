@@ -201,14 +201,22 @@ const EventDetails = () => {
 
       // Check if user can edit and get their role
       if (user) {
-        const { data: userEventData } = await supabase
-          .from("user_event")
-          .select("role")
-          .eq("event_id", eventData.id)
-          .eq("user_id", user.id)
-          .maybeSingle();
+        // Parallelize independent user queries
+        const [userEventRes, accessRequestRes, memberRes, pendingPaymentRes, completedPaymentRes] = await Promise.all([
+          supabase.from("user_event").select("role").eq("event_id", eventData.id).eq("user_id", user.id).maybeSingle(),
+          eventData.access_type === 'request_based'
+            ? supabase.from('event_access_request').select('id, status').eq('event_id', eventData.id).eq('user_id', user.id).maybeSingle()
+            : Promise.resolve({ data: null }),
+          supabase.from('user_event').select('user_id').eq('event_id', eventData.id).eq('user_id', user.id).maybeSingle(),
+          eventData.access_type === 'paid'
+            ? supabase.from('event_payment').select('id, status').eq('event_id', eventData.id).eq('user_id', user.id).eq('status', 'pending').maybeSingle()
+            : Promise.resolve({ data: null }),
+          eventData.access_type === 'paid'
+            ? supabase.from('event_payment').select('amount').eq('event_id', eventData.id).eq('user_id', user.id).eq('status', 'completed').maybeSingle()
+            : Promise.resolve({ data: null }),
+        ]);
 
-        const role = userEventData?.role;
+        const role = userEventRes.data?.role;
         const canManageContent = role && ['organizer', 'co_organizer', 'admin'].includes(role);
         const canManageMembers = role && ['organizer', 'co_organizer'].includes(role);
         const canDeleteEvent = role === 'organizer';
@@ -218,54 +226,20 @@ const EventDetails = () => {
         setCanManageMembers(canManageMembers);
         setCanDeleteEvent(canDeleteEvent);
 
-        // Check if user has access request for this event
         if (eventData.access_type === 'request_based') {
-          const { data: requestData } = await supabase
-            .from('event_access_request')
-            .select('id, status')
-            .eq('event_id', eventData.id)
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          setHasAccessRequest(requestData?.status === 'pending');
+          setHasAccessRequest(accessRequestRes.data?.status === 'pending');
         }
 
-        // Check if user has access (for all non-public events)
         if (eventData.access_type !== 'public') {
-          const { data: memberData } = await supabase
-            .from('user_event')
-            .select('user_id')
-            .eq('event_id', eventData.id)
-            .eq('user_id', user.id)
-            .maybeSingle();
+          setHasAccess(!!memberRes.data || !!role);
 
-          setHasAccess(!!memberData || !!role);
-
-          // Check for pending payment for paid events
           if (eventData.access_type === 'paid') {
-            const { data: paymentData } = await supabase
-              .from('event_payment')
-              .select('id, status')
-              .eq('event_id', eventData.id)
-              .eq('user_id', user.id)
-              .eq('status', 'pending')
-              .maybeSingle();
+            setHasPendingPayment(!!pendingPaymentRes.data);
 
-            setHasPendingPayment(!!paymentData);
+            if (completedPaymentRes.data) {
+              setUserPaymentAmount(Number(completedPaymentRes.data.amount));
 
-            // Check for completed payment amount (for leave section)
-            const { data: completedPayment } = await supabase
-              .from('event_payment')
-              .select('amount')
-              .eq('event_id', eventData.id)
-              .eq('user_id', user.id)
-              .eq('status', 'completed')
-              .maybeSingle();
-
-            if (completedPayment) {
-              setUserPaymentAmount(Number(completedPayment.amount));
-
-              // Check for pending refund request
+              // Refund request depends on completedPayment existing
               const { data: refundRequest } = await supabase
                 .from('event_refund_request')
                 .select('id')
@@ -278,16 +252,7 @@ const EventDetails = () => {
             }
           }
         } else {
-          // Pour les événements publics, vérifier si l'utilisateur a rejoint
-          const { data: memberData } = await supabase
-            .from('user_event')
-            .select('user_id')
-            .eq('event_id', eventData.id)
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          // L'utilisateur a accès s'il est organisateur/admin OU s'il a rejoint l'événement
-          setHasAccess(!!memberData || !!role);
+          setHasAccess(!!memberRes.data || !!role);
         }
       }
 
