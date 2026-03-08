@@ -88,6 +88,7 @@ export const WineDetailsDialog = ({ wine, onClose, onFavoriteRemoved, eventId }:
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
   const [liked, setLiked] = useState<number>(0); // 0 = neutre, 1 = j'aime, -1 = je n'aime pas
+  const [isInWishlist, setIsInWishlist] = useState(false);
   const [commentReactions, setCommentReactions] = useState<
     Record<string, { userReaction: number | null; likeCount: number }>
   >({});
