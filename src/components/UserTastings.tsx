@@ -1109,7 +1109,7 @@ export const UserTastings = ({ userId }: UserTastingsProps = {}) => {
 
           <Button
             onClick={() => setShowSpontaneousDialog(true)}
-            className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-50"
+            className="fixed bottom-24 md:bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-50"
             size="icon"
           >
             <Plus className="h-6 w-6" />

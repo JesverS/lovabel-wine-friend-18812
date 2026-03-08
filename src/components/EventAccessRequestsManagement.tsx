@@ -45,21 +45,21 @@ export function EventAccessRequestsManagement({ eventId }: EventAccessRequestsMa
 
       if (error) throw error;
 
-      // Récupérer les profils utilisateurs séparément
-      const requestsWithProfiles = await Promise.all(
-        (data || []).map(async (request) => {
-          const { data: profile } = await supabase
+      // Batch fetch all user profiles in a single query
+      const userIds = [...new Set((data || []).map(r => r.user_id))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase
             .from('user_profiles_public')
-            .select('full_name, email, logo_adress')
-            .eq('id', request.user_id)
-            .maybeSingle();
-          
-          return {
-            ...request,
-            user_profiles: profile || undefined,
-          };
-        })
-      );
+            .select('id, full_name, email, logo_adress')
+            .in('id', userIds)
+        : { data: [] };
+      
+      const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+      
+      const requestsWithProfiles = (data || []).map(request => ({
+        ...request,
+        user_profiles: profilesMap.get(request.user_id) || undefined,
+      }));
 
       setRequests(requestsWithProfiles);
     } catch (error: any) {

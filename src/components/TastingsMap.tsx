@@ -378,6 +378,9 @@ export default function TastingsMap({ sourceFilter, userId, onShareStory }: Tast
     });
 
     return () => {
+      if (storyClickHandler && mapContainer.current) {
+        mapContainer.current.removeEventListener("click", storyClickHandler);
+      }
       map.current?.remove();
     };
   }, [tastings, onShareStory]);
