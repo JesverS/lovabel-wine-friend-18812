@@ -17,18 +17,18 @@ import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/errorHandler';
 
 /** Batch fetch helper: chunks large ID arrays to avoid Supabase .in() limits */
-async function batchIn<T = any>(
+async function batchIn(
   table: string,
   column: string,
   ids: string[],
   select: string = '*'
-): Promise<T[]> {
+): Promise<any[]> {
   if (ids.length === 0) return [];
   const CHUNK = 500;
-  const results: T[] = [];
+  const results: any[] = [];
   for (let i = 0; i < ids.length; i += CHUNK) {
-    const { data } = await supabase.from(table).select(select).in(column, ids.slice(i, i + CHUNK));
-    if (data) results.push(...(data as T[]));
+    const { data } = await (supabase.from as any)(table).select(select).in(column, ids.slice(i, i + CHUNK));
+    if (data) results.push(...data);
   }
   return results;
 }
