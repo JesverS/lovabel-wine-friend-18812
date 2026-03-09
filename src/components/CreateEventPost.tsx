@@ -152,7 +152,7 @@ export const CreateEventPost = ({ eventId, onPostCreated }: CreateEventPostProps
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="public"><span className="flex items-center gap-2"><Globe className="h-3.5 w-3.5" /> Tout le monde</span></SelectItem>
-                    <SelectItem value="members_only"><span className="flex items-center gap-2"><Lock className="h-3.5 w-3.5" /> Inscrits uniquement</span></SelectItem>
+                    <SelectItem value="members_only"><span className="flex items-center gap-2"><LockKeyhole className="h-3.5 w-3.5" /> Inscrits uniquement</span></SelectItem>
                   </SelectContent>
                 </Select>
               </div>
