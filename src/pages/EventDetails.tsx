@@ -263,11 +263,9 @@ const EventDetails = () => {
   const refetchData = async () => {
     if (!slug) return;
 
-    // Récupérer le token depuis l'URL pour les événements privés
     const currentParams = new URLSearchParams(window.location.search);
     const privateToken = currentParams.get('token');
 
-    // Utiliser l'Edge Function pour respecter les RLS
     const { data, error } = await supabase.functions.invoke('get-event-by-slug', {
       body: { slug, token: privateToken }
     });
@@ -281,70 +279,20 @@ const EventDetails = () => {
     setEvent(eventData);
     setHasHiddenContactInfo(data.hasHiddenContactInfo || false);
     setHasHiddenAddress(data.hasHiddenAddress || false);
+    setParticipantsCount(eventData.participants_count || 0);
+    setDomainsWithWines(data.domainsWithWines || []);
 
-    // Fetch domains
-    const { data: eventDomainsData } = await supabase
-      .from("event_domain")
-      .select("domain_id")
-      .eq("event_id", eventData.id);
-
-    if (!eventDomainsData) return;
-
-    const domainIds = eventDomainsData.map((ed) => ed.domain_id);
-
-    if (domainIds.length === 0) {
-      setDomainsWithWines([]);
-      return;
-    }
-
-    // Fetch domain details
-    const { data: domainsData } = await supabase
-      .from("domain")
-      .select("id, name, logo_url")
-      .in("id", domainIds);
-
-    if (!domainsData) return;
-
-    // Fetch all wines for this event in a single query (optimized)
-    const { data: allWinesData } = await supabase
-      .from("event_domain_wine")
-      .select(`
-        wine_id,
-        domain_id,
-        wine:wine_id (
-          id,
-          name,
-          year,
-          label_url,
-          description,
-          domain_id,
-          price,
-          volume_ml,
-          alcohol_percentage,
-          characteristics,
-          type,
-          mode_culture,
-          wine_classification,
-          website_order_url,
-          wine_classification_data:wine_classification(nom)
-        )
-      `)
-      .eq("event_id", eventData.id)
-      .in("domain_id", domainIds);
-
-    // Group wines by domain client-side
-    const winesByDomain = (allWinesData || []).reduce((acc, item: any) => {
-      if (!acc[item.domain_id]) acc[item.domain_id] = [];
-      if (item.wine) acc[item.domain_id].push(item.wine);
-      return acc;
-    }, {} as Record<string, Wine[]>);
-
-    const domainsWithWinesData: DomainWithWines[] = domainsData.map(domain => ({
-      domain,
-      wines: winesByDomain[domain.id] || [],
-    }));
-
-    setDomainsWithWines(domainsWithWinesData);
+    // Re-apply user data
+    const role = data.userRole;
+    setUserRole(role);
+    setCanEdit(role && ['organizer', 'co_organizer', 'admin'].includes(role));
+    setCanManageMembers(role && ['organizer', 'co_organizer'].includes(role));
+    setCanDeleteEvent(role === 'organizer');
+    setHasAccess(data.hasAccess || false);
+    setHasAccessRequest(data.hasAccessRequest || false);
+    setHasPendingPayment(data.hasPendingPayment || false);
+    setUserPaymentAmount(data.userPaymentAmount || null);
+    setHasPendingRefundRequest(data.hasPendingRefundRequest || false);
   };
 
   const toggleDomain = (domainId: string) => {
