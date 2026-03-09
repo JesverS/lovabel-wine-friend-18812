@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, Image as ImageIcon, X } from 'lucide-react';
+import { Send, Image as ImageIcon, X, Globe, LockKeyhole } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ImageCropDialog } from '@/components/ImageCropDialog';
 
@@ -151,8 +151,8 @@ export const CreateEventPost = ({ eventId, onPostCreated }: CreateEventPostProps
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="public">🌐 Tout le monde</SelectItem>
-                    <SelectItem value="members_only">🔒 Inscrits uniquement</SelectItem>
+                    <SelectItem value="public"><span className="flex items-center gap-2"><Globe className="h-3.5 w-3.5" /> Tout le monde</span></SelectItem>
+                    <SelectItem value="members_only"><span className="flex items-center gap-2"><LockKeyhole className="h-3.5 w-3.5" /> Inscrits uniquement</span></SelectItem>
                   </SelectContent>
                 </Select>
               </div>
