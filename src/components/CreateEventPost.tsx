@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, Image as ImageIcon, X } from 'lucide-react';
+import { Send, Image as ImageIcon, X, Globe, LockKeyhole } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ImageCropDialog } from '@/components/ImageCropDialog';
 
