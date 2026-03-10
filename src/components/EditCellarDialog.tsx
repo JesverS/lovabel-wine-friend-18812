@@ -443,7 +443,7 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
             imageSrc={selectedBannerImage}
             onCropComplete={handleBannerCropComplete}
             loading={uploadingImages}
-            aspect={21 / 9}
+            aspect={16 / 9}
             cropShape="rect"
             title="Ajuster la bannière"
           />
