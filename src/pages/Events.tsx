@@ -51,6 +51,7 @@ interface UserEvent extends Event {
 const EVENTS_PER_PAGE = 12;
 
 const Events = () => {
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'public' | 'registered' | 'organizing'>('public');
   const [publicEvents, setPublicEvents] = useState<Event[]>([]);
