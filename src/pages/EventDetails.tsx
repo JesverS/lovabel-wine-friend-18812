@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -89,6 +91,7 @@ interface Event {
   currency: string | null;
   max_participants: number | null;
   contact_phone: string | null;
+  participants_count?: number;
   contact_email: string | null;
 }
 
@@ -122,110 +125,69 @@ interface DomainWithWines {
   wines: Wine[];
 }
 
+// Fonction de fetch extraite pour réutilisation (prefetch)
+export const fetchEventBySlug = async (slug: string, token: string | null) => {
+  const { data, error } = await supabase.functions.invoke('get-event-by-slug', {
+    body: { slug, token }
+  });
+  if (error || !data?.event) {
+    const errorCode = data?.code || error?.status;
+    throw { code: errorCode, message: data?.error || 'Erreur serveur' };
+  }
+  return data;
+};
+
 const EventDetails = () => {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [event, setEvent] = useState<Event | null>(null);
-  const [domainsWithWines, setDomainsWithWines] = useState<DomainWithWines[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const privateToken = new URLSearchParams(window.location.search).get('token');
+
+  // React Query avec cache stale-while-revalidate
+  const { data: queryData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['event', slug, privateToken],
+    queryFn: () => fetchEventBySlug(slug!, privateToken),
+    enabled: !!slug,
+    staleTime: 5 * 60 * 1000, // 5 min
+    gcTime: 30 * 60 * 1000, // 30 min
+    retry: false,
+  });
+
+  // Dériver toutes les valeurs depuis queryData
+  const event = queryData?.event as Event | null ?? null;
+  const domainsWithWines: DomainWithWines[] = queryData?.domainsWithWines || [];
+  const hasHiddenContactInfo = queryData?.hasHiddenContactInfo || false;
+  const hasHiddenAddress = queryData?.hasHiddenAddress || false;
+  const participantsCount = event?.participants_count || 0;
+
+  const role = queryData?.userRole;
+  const userRole = role as 'organizer' | 'co_organizer' | 'admin' | 'participant' | null ?? null;
+  const canEdit = role && ['organizer', 'co_organizer', 'admin'].includes(role);
+  const canManageMembers = role && ['organizer', 'co_organizer'].includes(role);
+  const canDeleteEvent = role === 'organizer';
+  const hasAccess = queryData?.hasAccess || false;
+  const hasAccessRequest = queryData?.hasAccessRequest || false;
+  const hasPendingPayment = queryData?.hasPendingPayment || false;
+  const userPaymentAmount = queryData?.userPaymentAmount || null;
+  const hasPendingRefundRequest = queryData?.hasPendingRefundRequest || false;
+
+  // Error state dérivé
+  const errorState = queryError ? {
+    type: (queryError as any)?.code === 403 ? 'access_denied' as const : 'not_found' as const,
+    message: (queryError as any)?.code === 403 ? 'Vous n\'avez pas accès à cet événement' : 'Événement inexistant',
+  } : null;
+
+  // Local UI states
   const [selectedWine, setSelectedWine] = useState<Wine | null>(null);
   const [openDomains, setOpenDomains] = useState<Record<string, boolean>>({});
-  const [canEdit, setCanEdit] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ type: 'domain' | 'wine', id: string, domainId?: string, name: string } | null>(null);
-  const [userRole, setUserRole] = useState<'organizer' | 'co_organizer' | 'admin' | 'participant' | null>(null);
-  const [canManageMembers, setCanManageMembers] = useState(false);
-  const [canDeleteEvent, setCanDeleteEvent] = useState(false);
   const [deleteEventDialogOpen, setDeleteEventDialogOpen] = useState(false);
   const [eventNameConfirmation, setEventNameConfirmation] = useState('');
   const [leaveEventDialogOpen, setLeaveEventDialogOpen] = useState(false);
-  const [hasAccessRequest, setHasAccessRequest] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
-  const [hasPendingPayment, setHasPendingPayment] = useState(false);
-  const [hasPendingRefundRequest, setHasPendingRefundRequest] = useState(false);
-  const [userPaymentAmount, setUserPaymentAmount] = useState<number | null>(null);
-  const [participantsCount, setParticipantsCount] = useState(0);
-  const [hasHiddenContactInfo, setHasHiddenContactInfo] = useState(false);
-  const [hasHiddenAddress, setHasHiddenAddress] = useState(false);
-  const [errorState, setErrorState] = useState<{
-    type: 'not_found' | 'access_denied' | null;
-    message: string;
-  } | null>(null);
-
-  useEffect(() => {
-    const fetchEventDetails = async () => {
-      if (!slug) return;
-
-      setLoading(true);
-
-      // Récupérer le token depuis l'URL
-      const searchParams = new URLSearchParams(window.location.search);
-      const privateToken = searchParams.get('token');
-
-      // Appeler l'Edge Function pour récupérer l'événement
-      const { data, error: fetchError } = await supabase.functions.invoke('get-event-by-slug', {
-        body: { slug, token: privateToken }
-      });
-
-      if (fetchError || !data?.event) {
-        const errorCode = data?.code || fetchError?.status;
-        
-        if (errorCode === 404) {
-          setErrorState({
-            type: 'not_found',
-            message: 'Événement inexistant'
-          });
-        } else if (errorCode === 403) {
-          setErrorState({
-            type: 'access_denied',
-            message: 'Vous n\'avez pas accès à cet événement'
-          });
-        } else {
-          setErrorState({
-            type: 'not_found',
-            message: 'Événement inexistant'
-          });
-        }
-        
-        setLoading(false);
-        return;
-      }
-
-      setErrorState(null);
-
-      const eventData = data.event;
-      setEvent(eventData);
-      setHasHiddenContactInfo(data.hasHiddenContactInfo || false);
-      setHasHiddenAddress(data.hasHiddenAddress || false);
-
-      // Toutes les données utilisateur viennent de l'edge function
-      const role = data.userRole;
-      const canManageContent = role && ['organizer', 'co_organizer', 'admin'].includes(role);
-      const canManageMembersVal = role && ['organizer', 'co_organizer'].includes(role);
-      const canDeleteEventVal = role === 'organizer';
-
-      setCanEdit(canManageContent);
-      setUserRole(role);
-      setCanManageMembers(canManageMembersVal);
-      setCanDeleteEvent(canDeleteEventVal);
-      setHasAccess(data.hasAccess || false);
-      setHasAccessRequest(data.hasAccessRequest || false);
-      setHasPendingPayment(data.hasPendingPayment || false);
-      setUserPaymentAmount(data.userPaymentAmount || null);
-      setHasPendingRefundRequest(data.hasPendingRefundRequest || false);
-
-      // Participants count
-      setParticipantsCount(eventData.participants_count || 0);
-
-      // Domaines et vins depuis l'edge function
-      setDomainsWithWines(data.domainsWithWines || []);
-      setLoading(false);
-    };
-
-    fetchEventDetails();
-  }, [slug, user]);
 
   // Handle payment status from URL params
   useEffect(() => {
@@ -235,22 +197,20 @@ const EventDetails = () => {
         title: 'Paiement réussi !',
         description: 'Vous avez maintenant accès à cet événement.',
       });
-      // Remove only the payment param from URL, preserve token
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('payment');
       const newUrl = newParams.toString() 
         ? `${window.location.pathname}?${newParams.toString()}`
         : window.location.pathname;
       window.history.replaceState({}, '', newUrl);
-      // Refresh to update access status
-      setHasAccess(true);
+      // Invalider le cache pour forcer un refetch avec le nouvel accès
+      queryClient.invalidateQueries({ queryKey: ['event', slug] });
     } else if (paymentStatus === 'cancelled') {
       toast({
         title: 'Paiement annulé',
         description: 'Votre paiement a été annulé.',
         variant: 'destructive',
       });
-      // Remove only the payment param from URL, preserve token
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('payment');
       const newUrl = newParams.toString() 
@@ -260,40 +220,9 @@ const EventDetails = () => {
     }
   }, [searchParams]);
 
-  const refetchData = async () => {
-    if (!slug) return;
-
-    const currentParams = new URLSearchParams(window.location.search);
-    const privateToken = currentParams.get('token');
-
-    const { data, error } = await supabase.functions.invoke('get-event-by-slug', {
-      body: { slug, token: privateToken }
-    });
-
-    if (error || !data?.event) {
-      console.error('Error refetching event:', error);
-      return;
-    }
-
-    const eventData = data.event;
-    setEvent(eventData);
-    setHasHiddenContactInfo(data.hasHiddenContactInfo || false);
-    setHasHiddenAddress(data.hasHiddenAddress || false);
-    setParticipantsCount(eventData.participants_count || 0);
-    setDomainsWithWines(data.domainsWithWines || []);
-
-    // Re-apply user data
-    const role = data.userRole;
-    setUserRole(role);
-    setCanEdit(role && ['organizer', 'co_organizer', 'admin'].includes(role));
-    setCanManageMembers(role && ['organizer', 'co_organizer'].includes(role));
-    setCanDeleteEvent(role === 'organizer');
-    setHasAccess(data.hasAccess || false);
-    setHasAccessRequest(data.hasAccessRequest || false);
-    setHasPendingPayment(data.hasPendingPayment || false);
-    setUserPaymentAmount(data.userPaymentAmount || null);
-    setHasPendingRefundRequest(data.hasPendingRefundRequest || false);
-  };
+  const refetchData = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['event', slug] });
+  }, [queryClient, slug]);
 
   const toggleDomain = (domainId: string) => {
     setOpenDomains((prev) => ({
@@ -511,8 +440,52 @@ const EventDetails = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="pt-20 container mx-auto px-4 py-16 flex-grow min-h-screen">
-          <div className="text-center">Chargement...</div>
+        <main className="pt-20 flex-grow">
+          {/* Banner skeleton */}
+          <Skeleton className="w-full h-48 md:h-64" />
+          
+          <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+            {/* Breadcrumb skeleton */}
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+
+            {/* Titre */}
+            <Skeleton className="h-10 w-2/3" />
+
+            {/* Badges date + ville */}
+            <div className="flex flex-wrap gap-3">
+              <Skeleton className="h-6 w-40 rounded-full" />
+              <Skeleton className="h-6 w-28 rounded-full" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/5" />
+            </div>
+
+            {/* Section domaines */}
+            <div className="space-y-4 pt-4">
+              <Skeleton className="h-7 w-48" />
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </main>
         <Footer />
       </div>
@@ -845,8 +818,7 @@ const EventDetails = () => {
                       maxParticipants={event.max_participants}
                       currentParticipants={participantsCount}
                       onJoined={() => {
-                        setHasAccess(true);
-                        setParticipantsCount(prev => prev + 1);
+                        refetchData();
                       }}
                     />
                   </Card>
@@ -875,7 +847,7 @@ const EventDetails = () => {
                           eventId={event.id}
                           eventName={event.name}
                           hasExistingRequest={hasAccessRequest}
-                          onRequestSent={() => setHasAccessRequest(true)}
+                          onRequestSent={() => refetchData()}
                         />
                       )}
                     </div>
@@ -1247,7 +1219,7 @@ const EventDetails = () => {
                       paidAmount={userPaymentAmount}
                       currency={event.currency || 'EUR'}
                       hasPendingRefundRequest={hasPendingRefundRequest}
-                      onRefundRequested={() => setHasPendingRefundRequest(true)}
+                      onRefundRequested={() => refetchData()}
                     />
                   </div>
                 )}
