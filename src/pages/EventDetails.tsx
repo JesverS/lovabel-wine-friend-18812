@@ -442,7 +442,7 @@ const EventDetails = () => {
         <Header />
         <main className="pt-20 flex-grow">
           {/* Banner skeleton */}
-          <Skeleton className="w-full h-48 md:h-64" />
+          <Skeleton className="w-full aspect-video max-h-[400px]" />
           
           <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
             {/* Breadcrumb skeleton */}

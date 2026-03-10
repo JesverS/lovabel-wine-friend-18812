@@ -194,7 +194,7 @@ export default function EventInvitation() {
             <img
               src={event.banner_url}
               alt={event.name}
-              className="w-full h-48 object-cover rounded-t-lg"
+              className="w-full aspect-video max-h-[200px] object-cover rounded-t-lg"
             />
           )}
           <CardHeader>

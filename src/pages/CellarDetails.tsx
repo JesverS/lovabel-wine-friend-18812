@@ -252,7 +252,7 @@ export default function CellarDetails() {
         </Breadcrumb>
         {/* Banner */}
         {cellar.banner_url && (
-          <div className="relative w-full h-64 mb-8 rounded-lg overflow-hidden">
+          <div className="relative w-full aspect-video max-h-[400px] mb-8 rounded-lg overflow-hidden">
             <img
               src={cellar.banner_url}
               alt={cellar.name}

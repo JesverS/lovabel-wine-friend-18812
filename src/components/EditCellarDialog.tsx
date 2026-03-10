@@ -370,8 +370,8 @@ export function EditCellarDialog({ cellar, onCellarUpdated }: EditCellarDialogPr
                   <p className="text-sm text-muted-foreground">
                     Ajouter une bannière
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Format paysage recommandé • Max 5 Mo
+                   <p className="text-xs text-muted-foreground mt-1">
+                    Format recommandé : 1920 × 1080 px (16:9) • Max 5 Mo
                   </p>
                 </label>
               </div>

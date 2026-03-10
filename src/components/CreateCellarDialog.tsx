@@ -467,22 +467,25 @@ export function CreateCellarDialog({ onCellarCreated }: CreateCellarDialogProps)
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById('banner-input')?.click()}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Choisir une bannière
-                </Button>
-                <input
-                  id="banner-input"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleBannerSelect}
-                />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('banner-input')?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Choisir une bannière
+                  </Button>
+                  <input
+                    id="banner-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleBannerSelect}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Format recommandé : 1920 × 1080 px (16:9)</p>
               </div>
             )}
           </div>

@@ -377,6 +377,7 @@ export function CreateEventDialog({ onEventCreated, triggerButton }: CreateEvent
               />
               {imageFile && <span className="text-sm text-muted-foreground">{imageFile.name}</span>}
             </div>
+            <p className="text-xs text-muted-foreground">Format recommandé : 1920 × 1080 px (16:9)</p>
             {imagePreview && (
               <img
                 src={imagePreview}
