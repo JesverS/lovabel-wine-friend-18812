@@ -206,15 +206,29 @@ const Events = () => {
     return filtered;
   };
 
+  const handlePrefetchEvent = useCallback((slug: string, token: string | null) => {
+    queryClient.prefetchQuery({
+      queryKey: ['event', slug, token],
+      queryFn: () => fetchEventBySlug(slug, token),
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [queryClient]);
+
   const renderEventCard = (event: Event | UserEvent, showRole = false) => {
     const role = 'role' in event ? event.role : null;
     const isOrganizing = role && ['organizer', 'co_organizer', 'admin'].includes(role);
     const eventUrl = event.is_public === false && event.private_token
       ? `/event/${event.slug}?token=${event.private_token}`
       : `/event/${event.slug}`;
+    const prefetchToken = event.is_public === false && event.private_token ? event.private_token : null;
 
     return (
-      <Link key={event.id} to={eventUrl}>
+      <Link
+        key={event.id}
+        to={eventUrl}
+        onMouseEnter={() => handlePrefetchEvent(event.slug, prefetchToken)}
+        onTouchStart={() => handlePrefetchEvent(event.slug, prefetchToken)}
+      >
         <Card className="p-4 md:p-6 hover:shadow-lg transition-shadow cursor-pointer overflow-hidden">
           <div className="flex flex-col md:flex-row gap-4 md:gap-6">
             {event.banner_url && (
