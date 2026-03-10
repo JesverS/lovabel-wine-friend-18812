@@ -91,6 +91,7 @@ interface Event {
   currency: string | null;
   max_participants: number | null;
   contact_phone: string | null;
+  participants_count?: number;
   contact_email: string | null;
 }
 
