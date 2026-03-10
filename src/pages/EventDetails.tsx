@@ -124,110 +124,69 @@ interface DomainWithWines {
   wines: Wine[];
 }
 
+// Fonction de fetch extraite pour réutilisation (prefetch)
+export const fetchEventBySlug = async (slug: string, token: string | null) => {
+  const { data, error } = await supabase.functions.invoke('get-event-by-slug', {
+    body: { slug, token }
+  });
+  if (error || !data?.event) {
+    const errorCode = data?.code || error?.status;
+    throw { code: errorCode, message: data?.error || 'Erreur serveur' };
+  }
+  return data;
+};
+
 const EventDetails = () => {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [event, setEvent] = useState<Event | null>(null);
-  const [domainsWithWines, setDomainsWithWines] = useState<DomainWithWines[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const privateToken = new URLSearchParams(window.location.search).get('token');
+
+  // React Query avec cache stale-while-revalidate
+  const { data: queryData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['event', slug, privateToken],
+    queryFn: () => fetchEventBySlug(slug!, privateToken),
+    enabled: !!slug,
+    staleTime: 5 * 60 * 1000, // 5 min
+    gcTime: 30 * 60 * 1000, // 30 min
+    retry: false,
+  });
+
+  // Dériver toutes les valeurs depuis queryData
+  const event = queryData?.event as Event | null ?? null;
+  const domainsWithWines: DomainWithWines[] = queryData?.domainsWithWines || [];
+  const hasHiddenContactInfo = queryData?.hasHiddenContactInfo || false;
+  const hasHiddenAddress = queryData?.hasHiddenAddress || false;
+  const participantsCount = event?.participants_count || 0;
+
+  const role = queryData?.userRole;
+  const userRole = role as 'organizer' | 'co_organizer' | 'admin' | 'participant' | null ?? null;
+  const canEdit = role && ['organizer', 'co_organizer', 'admin'].includes(role);
+  const canManageMembers = role && ['organizer', 'co_organizer'].includes(role);
+  const canDeleteEvent = role === 'organizer';
+  const hasAccess = queryData?.hasAccess || false;
+  const hasAccessRequest = queryData?.hasAccessRequest || false;
+  const hasPendingPayment = queryData?.hasPendingPayment || false;
+  const userPaymentAmount = queryData?.userPaymentAmount || null;
+  const hasPendingRefundRequest = queryData?.hasPendingRefundRequest || false;
+
+  // Error state dérivé
+  const errorState = queryError ? {
+    type: (queryError as any)?.code === 403 ? 'access_denied' as const : 'not_found' as const,
+    message: (queryError as any)?.code === 403 ? 'Vous n\'avez pas accès à cet événement' : 'Événement inexistant',
+  } : null;
+
+  // Local UI states
   const [selectedWine, setSelectedWine] = useState<Wine | null>(null);
   const [openDomains, setOpenDomains] = useState<Record<string, boolean>>({});
-  const [canEdit, setCanEdit] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ type: 'domain' | 'wine', id: string, domainId?: string, name: string } | null>(null);
-  const [userRole, setUserRole] = useState<'organizer' | 'co_organizer' | 'admin' | 'participant' | null>(null);
-  const [canManageMembers, setCanManageMembers] = useState(false);
-  const [canDeleteEvent, setCanDeleteEvent] = useState(false);
   const [deleteEventDialogOpen, setDeleteEventDialogOpen] = useState(false);
   const [eventNameConfirmation, setEventNameConfirmation] = useState('');
   const [leaveEventDialogOpen, setLeaveEventDialogOpen] = useState(false);
-  const [hasAccessRequest, setHasAccessRequest] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
-  const [hasPendingPayment, setHasPendingPayment] = useState(false);
-  const [hasPendingRefundRequest, setHasPendingRefundRequest] = useState(false);
-  const [userPaymentAmount, setUserPaymentAmount] = useState<number | null>(null);
-  const [participantsCount, setParticipantsCount] = useState(0);
-  const [hasHiddenContactInfo, setHasHiddenContactInfo] = useState(false);
-  const [hasHiddenAddress, setHasHiddenAddress] = useState(false);
-  const [errorState, setErrorState] = useState<{
-    type: 'not_found' | 'access_denied' | null;
-    message: string;
-  } | null>(null);
-
-  useEffect(() => {
-    const fetchEventDetails = async () => {
-      if (!slug) return;
-
-      setLoading(true);
-
-      // Récupérer le token depuis l'URL
-      const searchParams = new URLSearchParams(window.location.search);
-      const privateToken = searchParams.get('token');
-
-      // Appeler l'Edge Function pour récupérer l'événement
-      const { data, error: fetchError } = await supabase.functions.invoke('get-event-by-slug', {
-        body: { slug, token: privateToken }
-      });
-
-      if (fetchError || !data?.event) {
-        const errorCode = data?.code || fetchError?.status;
-        
-        if (errorCode === 404) {
-          setErrorState({
-            type: 'not_found',
-            message: 'Événement inexistant'
-          });
-        } else if (errorCode === 403) {
-          setErrorState({
-            type: 'access_denied',
-            message: 'Vous n\'avez pas accès à cet événement'
-          });
-        } else {
-          setErrorState({
-            type: 'not_found',
-            message: 'Événement inexistant'
-          });
-        }
-        
-        setLoading(false);
-        return;
-      }
-
-      setErrorState(null);
-
-      const eventData = data.event;
-      setEvent(eventData);
-      setHasHiddenContactInfo(data.hasHiddenContactInfo || false);
-      setHasHiddenAddress(data.hasHiddenAddress || false);
-
-      // Toutes les données utilisateur viennent de l'edge function
-      const role = data.userRole;
-      const canManageContent = role && ['organizer', 'co_organizer', 'admin'].includes(role);
-      const canManageMembersVal = role && ['organizer', 'co_organizer'].includes(role);
-      const canDeleteEventVal = role === 'organizer';
-
-      setCanEdit(canManageContent);
-      setUserRole(role);
-      setCanManageMembers(canManageMembersVal);
-      setCanDeleteEvent(canDeleteEventVal);
-      setHasAccess(data.hasAccess || false);
-      setHasAccessRequest(data.hasAccessRequest || false);
-      setHasPendingPayment(data.hasPendingPayment || false);
-      setUserPaymentAmount(data.userPaymentAmount || null);
-      setHasPendingRefundRequest(data.hasPendingRefundRequest || false);
-
-      // Participants count
-      setParticipantsCount(eventData.participants_count || 0);
-
-      // Domaines et vins depuis l'edge function
-      setDomainsWithWines(data.domainsWithWines || []);
-      setLoading(false);
-    };
-
-    fetchEventDetails();
-  }, [slug, user]);
 
   // Handle payment status from URL params
   useEffect(() => {
