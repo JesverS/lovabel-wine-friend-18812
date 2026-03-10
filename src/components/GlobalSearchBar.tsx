@@ -37,7 +37,7 @@ export const GlobalSearchBar = () => {
   const [page, setPage] = useState(0);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const categoryConfig = {
     wines: { label: 'Vins', icon: Wine, placeholder: 'Rechercher un vin...' },

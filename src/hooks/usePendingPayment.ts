@@ -28,7 +28,7 @@ export function usePendingPayment(eventId: string): UsePendingPaymentReturn {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isCanceling, setIsCanceling] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const calculateTimeRemaining = useCallback((expiresAt: string): number => {
     const expiresDate = new Date(expiresAt).getTime();
