@@ -201,18 +201,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Posts publics pour non-membres
-    let publicPosts: any[] = [];
-    if (!hasConfidentialAccess) {
-      const { data: posts } = await supabase
-        .from('event_post')
-        .select('id, event_id, author_id, content, image_url, visibility, created_at, updated_at, likes_count, comment_count')
-        .eq('event_id', eventId)
-        .eq('visibility', 'public')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      publicPosts = posts || [];
-    }
+    // Posts publics — résultat du Promise.all, ignoré si membre
+    const publicPosts = !hasConfidentialAccess ? (publicPostsRes.data || []) : [];
 
     // Calculer hasAccess
     const hasAccess = isMember || (isPublic && !!membershipRes.data);
