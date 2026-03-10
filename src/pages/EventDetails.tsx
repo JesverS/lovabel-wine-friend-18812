@@ -219,40 +219,9 @@ const EventDetails = () => {
     }
   }, [searchParams]);
 
-  const refetchData = async () => {
-    if (!slug) return;
-
-    const currentParams = new URLSearchParams(window.location.search);
-    const privateToken = currentParams.get('token');
-
-    const { data, error } = await supabase.functions.invoke('get-event-by-slug', {
-      body: { slug, token: privateToken }
-    });
-
-    if (error || !data?.event) {
-      console.error('Error refetching event:', error);
-      return;
-    }
-
-    const eventData = data.event;
-    setEvent(eventData);
-    setHasHiddenContactInfo(data.hasHiddenContactInfo || false);
-    setHasHiddenAddress(data.hasHiddenAddress || false);
-    setParticipantsCount(eventData.participants_count || 0);
-    setDomainsWithWines(data.domainsWithWines || []);
-
-    // Re-apply user data
-    const role = data.userRole;
-    setUserRole(role);
-    setCanEdit(role && ['organizer', 'co_organizer', 'admin'].includes(role));
-    setCanManageMembers(role && ['organizer', 'co_organizer'].includes(role));
-    setCanDeleteEvent(role === 'organizer');
-    setHasAccess(data.hasAccess || false);
-    setHasAccessRequest(data.hasAccessRequest || false);
-    setHasPendingPayment(data.hasPendingPayment || false);
-    setUserPaymentAmount(data.userPaymentAmount || null);
-    setHasPendingRefundRequest(data.hasPendingRefundRequest || false);
-  };
+  const refetchData = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['event', slug] });
+  }, [queryClient, slug]);
 
   const toggleDomain = (domainId: string) => {
     setOpenDomains((prev) => ({
