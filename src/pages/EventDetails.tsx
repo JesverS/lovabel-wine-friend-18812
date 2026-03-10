@@ -196,22 +196,20 @@ const EventDetails = () => {
         title: 'Paiement réussi !',
         description: 'Vous avez maintenant accès à cet événement.',
       });
-      // Remove only the payment param from URL, preserve token
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('payment');
       const newUrl = newParams.toString() 
         ? `${window.location.pathname}?${newParams.toString()}`
         : window.location.pathname;
       window.history.replaceState({}, '', newUrl);
-      // Refresh to update access status
-      setHasAccess(true);
+      // Invalider le cache pour forcer un refetch avec le nouvel accès
+      queryClient.invalidateQueries({ queryKey: ['event', slug] });
     } else if (paymentStatus === 'cancelled') {
       toast({
         title: 'Paiement annulé',
         description: 'Votre paiement a été annulé.',
         variant: 'destructive',
       });
-      // Remove only the payment param from URL, preserve token
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('payment');
       const newUrl = newParams.toString() 
