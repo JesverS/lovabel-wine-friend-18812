@@ -803,7 +803,7 @@ const EventDetails = () => {
                           eventId={event.id}
                           eventName={event.name}
                           hasExistingRequest={hasAccessRequest}
-                          onRequestSent={() => setHasAccessRequest(true)}
+                          onRequestSent={() => refetchData()}
                         />
                       )}
                     </div>
