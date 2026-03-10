@@ -108,6 +108,20 @@ Deno.serve(async (req) => {
       ? supabase.from('event_payment').select('id, amount').eq('event_id', eventId).eq('user_id', authUser.id).eq('status', 'completed').maybeSingle()
       : Promise.resolve({ data: null });
 
+    // Refund request — lancé inconditionnellement pour les users auth (coût négligeable)
+    const refundRequestPromise = authUser
+      ? supabase.from('event_refund_request').select('id').eq('event_id', eventId).eq('user_id', authUser.id).eq('status', 'pending').maybeSingle()
+      : Promise.resolve({ data: null });
+
+    // Public posts — lancé toujours, on ignorera le résultat si l'user est membre
+    const publicPostsPromise = supabase
+      .from('event_post')
+      .select('id, event_id, author_id, content, image_url, visibility, created_at, updated_at, likes_count, comment_count')
+      .eq('event_id', eventId)
+      .eq('visibility', 'public')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
     const [
       membershipRes,
       domainsRes,
@@ -115,6 +129,8 @@ Deno.serve(async (req) => {
       accessRequestRes,
       pendingPaymentRes,
       completedPaymentRes,
+      refundRequestRes,
+      publicPostsRes,
     ] = await Promise.all([
       membershipPromise,
       domainsPromise,
@@ -122,6 +138,8 @@ Deno.serve(async (req) => {
       accessRequestPromise,
       pendingPaymentPromise,
       completedPaymentPromise,
+      refundRequestPromise,
+      publicPostsPromise,
     ]);
 
     // Déterminer le rôle et l'accès
