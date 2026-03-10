@@ -59,8 +59,18 @@ export const ImageCropDialog = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = croppedAreaPixels.width;
-    canvas.height = croppedAreaPixels.height;
+    const MAX_WIDTH = 1920;
+    let outputWidth = croppedAreaPixels.width;
+    let outputHeight = croppedAreaPixels.height;
+
+    if (outputWidth > MAX_WIDTH) {
+      const scale = MAX_WIDTH / outputWidth;
+      outputWidth = MAX_WIDTH;
+      outputHeight = Math.round(outputHeight * scale);
+    }
+
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
 
     ctx.drawImage(
       image,
@@ -70,14 +80,14 @@ export const ImageCropDialog = ({
       croppedAreaPixels.height,
       0,
       0,
-      croppedAreaPixels.width,
-      croppedAreaPixels.height
+      outputWidth,
+      outputHeight
     );
 
     return new Promise<Blob | null>((resolve) => {
       canvas.toBlob((blob) => {
         resolve(blob);
-      }, 'image/jpeg', 0.9);
+      }, 'image/jpeg', 0.85);
     });
   }, [imageSrc, croppedAreaPixels]);
 

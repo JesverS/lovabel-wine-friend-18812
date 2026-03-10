@@ -1,76 +1,140 @@
 
 
-# Analyse — Uniformisation des bannieres
+# Preferences de notifications par device
 
-## Problemes identifies
+## Reponse a ta question : faisabilite
 
-| Contexte | Ratio de crop | Affichage |
-|----------|--------------|-----------|
-| **CreateEventDialog** | 16/9 | — |
-| **EditEventDialog** | 16/9 | — |
-| **CreateCellarDialog** | 16/9 | — |
-| **EditCellarDialog** | **21/9** | — |
-| **EventDetails** (affichage) | — | `h-48 md:h-64 lg:h-96` (pas de ratio fixe) |
-| **EventInvitation** (affichage) | — | `h-48` fixe |
-| **CellarDetails** (affichage) | — | `h-64` fixe |
+Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
+- Lire les preferences associees a ce token precis
+- Modifier les preferences pour ce token precis
 
-### Problemes concrets
+L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
 
-1. **Ratio de crop incohérent** : Les caves utilisent 21/9 en édition mais 16/9 en création. Les events utilisent 16/9 partout. Aucune cohérence globale.
-2. **Affichage sans ratio fixe** : Les conteneurs utilisent des hauteurs fixes (`h-48`, `h-64`, `h-96`) qui varient selon les pages et les breakpoints, ce qui déforme ou coupe différemment selon la largeur d'écran.
-3. **Aucune indication utilisateur** : Pas de texte indiquant la taille recommandée. L'utilisateur uploade n'importe quoi.
-4. **Pas de compression/redimensionnement** : L'image croppée est envoyée telle quelle, potentiellement en 4000x2250px pour une bannière affichée en 800px de large.
+## Architecture base de donnees
 
----
-
-## Solution proposée
-
-### 1. Standardiser le ratio de crop a 16/9 partout
-
-- **EditCellarDialog** : Changer `aspect={21/9}` en `aspect={16/9}` (1 ligne)
-- Toutes les bannieres (events + caves) croppées en 16/9
-
-### 2. Standardiser l'affichage avec un ratio fixe
-
-Remplacer les `h-48 md:h-64 lg:h-96` par un conteneur `aspect-video` (16/9 natif de Tailwind) avec une hauteur max :
+### Nouvelle table `notification_preferences`
 
 ```text
-Avant :  <div class="w-full h-48 md:h-64 lg:h-96">
-Après :  <div class="w-full aspect-video max-h-[400px]">
+notification_preferences
+  id              uuid        PK, default gen_random_uuid()
+  user_id         uuid        NOT NULL, FK -> auth.users
+  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
+  post_like       boolean     DEFAULT true
+  post_comment    boolean     DEFAULT true
+  mention         boolean     DEFAULT true
+  follow_request  boolean     DEFAULT true
+  new_follower    boolean     DEFAULT true
+  follow_accepted boolean     DEFAULT true
+  event_join      boolean     DEFAULT true
+  event_access_request boolean DEFAULT true
+  event_invitation boolean    DEFAULT true
+  cellar_invitation boolean   DEFAULT true
+  refund_request  boolean     DEFAULT true
+  created_at      timestamptz DEFAULT now()
+  updated_at      timestamptz DEFAULT now()
+
+  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
 ```
 
-Appliquer ca dans :
-- `EventDetails.tsx` (banniere event)
-- `CellarDetails.tsx` (banniere cave)
-- `EventInvitation.tsx` (banniere invitation)
+### Logique de `token_id`
 
-### 3. Redimensionner l'image avant upload (compression)
+- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
+- `token_id = uuid` : preferences specifiques a ce device
 
-Dans `ImageCropDialog.tsx`, apres le crop, redimensionner le canvas a une largeur max de **1920px** (et hauteur proportionnelle). Ca reduit la taille du fichier sans perte visible.
+Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
 
-Ajouter aussi une compression JPEG a 0.85 (actuellement 0.9).
+### Types NON configurables
 
-### 4. Ajouter une indication de taille recommandee
+Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
+- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
+- `refund_processed` (reponse a sa demande)
+- `level_up` (visible directement dans l'app)
+- `badge_unlocked` (idem)
 
-Dans les dialogs de creation/edition (event + cave), ajouter un texte sous le bouton d'upload :
+## Modifications SQL
 
-> Format recommandé : 1920 x 1080 px (16:9)
+### 1. Creer la table `notification_preferences`
 
----
+Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
 
-## Fichiers modifies
+### 2. Modifier `create_notification()` pour les notifications web
 
-| Fichier | Changement |
-|---------|-----------|
-| `src/components/EditCellarDialog.tsx` | Ratio 21/9 → 16/9 |
-| `src/components/ImageCropDialog.tsx` | Resize max 1920px + compression 0.85 |
-| `src/pages/EventDetails.tsx` | `aspect-video max-h-[400px]` |
-| `src/pages/CellarDetails.tsx` | `aspect-video max-h-[400px]` |
-| `src/pages/EventInvitation.tsx` | `aspect-video max-h-[200px]` |
-| `src/components/CreateEventDialog.tsx` | Texte "Format recommandé" |
-| `src/components/EditEventDialog.tsx` | Texte "Format recommandé" |
-| `src/components/CreateCellarDialog.tsx` | Texte "Format recommandé" |
-| `src/components/EditCellarDialog.tsx` | Texte "Format recommandé" |
+Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
 
-Complexite : faible (~1h). Impact visuel : immediat et cohérent sur toute l'app.
+Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
+
+- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
+- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
+- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
+
+### 3. Modifier l'Edge Function `send-push-notification`
+
+Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
+
+```text
+Pour chaque token de l'utilisateur :
+  1. Chercher notification_preferences WHERE token_id = token.id
+  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
+  3. Si pas de prefs du tout -> tout est actif (defaut)
+  4. Verifier si le type est desactive -> si oui, skip
+  5. Sinon, envoyer via FCM
+```
+
+### 4. Modifier `notify_mentioned_user()`
+
+Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
+
+## Frontend
+
+### Nouveau composant `NotificationPreferences.tsx`
+
+Affiche les preferences groupees par categorie avec des Switch :
+
+**Social**
+- Likes sur mes posts (`post_like`)
+- Commentaires sur mes posts (`post_comment`)
+- Mentions (`mention`)
+- Demandes d'abonnement (`follow_request`)
+- Nouveaux abonnes (`new_follower`)
+- Abonnement accepte (`follow_accepted`)
+
+**Evenements**
+- Nouveau participant (`event_join`)
+- Demandes d'acces (`event_access_request`)
+- Invitations (`event_invitation`)
+- Demandes de remboursement (`refund_request`)
+
+**Caves**
+- Invitations a une cave (`cellar_invitation`)
+
+### Comportement depuis le site web
+
+Comme il n'y a pas de push web pour l'instant :
+- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
+- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
+
+### Comportement futur depuis l'app React Native
+
+L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
+
+### Integration dans UserProfile.tsx
+
+Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
+
+## Etapes d'implementation
+
+1. **Migration SQL** : creer la table `notification_preferences` avec RLS
+2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
+3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
+4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
+5. **Composant** : creer `NotificationPreferences.tsx`
+6. **UserProfile.tsx** : ajouter l'onglet Notifications
+
+## Avantages de cette approche
+
+- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
+- **Performante** : un seul SELECT sur une petite table indexee
+- **Granulaire** : preferences par device possibles
+- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
+- **Nettoyage automatique** : CASCADE sur la suppression de token
 

@@ -442,7 +442,7 @@ const EventDetails = () => {
         <Header />
         <main className="pt-20 flex-grow">
           {/* Banner skeleton */}
-          <Skeleton className="w-full h-48 md:h-64" />
+          <Skeleton className="w-full aspect-video max-h-[400px]" />
           
           <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
             {/* Breadcrumb skeleton */}
@@ -611,7 +611,7 @@ const EventDetails = () => {
       <Header />
       <main className="pt-20 flex-grow min-h-screen">
         {event.banner_url && (
-          <div className="w-full h-48 md:h-64 lg:h-96 overflow-hidden">
+          <div className="w-full aspect-video max-h-[400px] overflow-hidden">
             <img
               src={event.banner_url}
               alt={event.name}
