@@ -774,8 +774,7 @@ const EventDetails = () => {
                       maxParticipants={event.max_participants}
                       currentParticipants={participantsCount}
                       onJoined={() => {
-                        setHasAccess(true);
-                        setParticipantsCount(prev => prev + 1);
+                        refetchData();
                       }}
                     />
                   </Card>
