@@ -440,8 +440,52 @@ const EventDetails = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="pt-20 container mx-auto px-4 py-16 flex-grow min-h-screen">
-          <div className="text-center">Chargement...</div>
+        <main className="pt-20 flex-grow">
+          {/* Banner skeleton */}
+          <Skeleton className="w-full h-48 md:h-64" />
+          
+          <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+            {/* Breadcrumb skeleton */}
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+
+            {/* Titre */}
+            <Skeleton className="h-10 w-2/3" />
+
+            {/* Badges date + ville */}
+            <div className="flex flex-wrap gap-3">
+              <Skeleton className="h-6 w-40 rounded-full" />
+              <Skeleton className="h-6 w-28 rounded-full" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/5" />
+            </div>
+
+            {/* Section domaines */}
+            <div className="space-y-4 pt-4">
+              <Skeleton className="h-7 w-48" />
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </main>
         <Footer />
       </div>
