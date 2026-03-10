@@ -161,18 +161,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch refund request si paiement completed existe
-    let hasPendingRefundRequest = false;
-    if (authUser && completedPaymentRes.data) {
-      const { data: refundReq } = await supabase
-        .from('event_refund_request')
-        .select('id')
-        .eq('event_id', eventId)
-        .eq('user_id', authUser.id)
-        .eq('status', 'pending')
-        .maybeSingle();
-      hasPendingRefundRequest = !!refundReq;
-    }
+    // Refund request — résultat du Promise.all
+    const hasPendingRefundRequest = !!(authUser && completedPaymentRes.data && refundRequestRes.data);
 
     // Construire domainsWithWines
     const domainsData = domainsRes.data || [];
