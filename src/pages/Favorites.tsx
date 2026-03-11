@@ -12,10 +12,7 @@ import { Heart, LogIn, Wine, Bookmark } from "lucide-react";
 export default function Favorites() {
   const { user, loading } = useAuth();
 
-  // Redirect to auth if not logged in
-  if (!loading && !user) {
-    return <Navigate to="/auth" replace />;
-  }
+  // No redirect — let the fallback UI render below
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

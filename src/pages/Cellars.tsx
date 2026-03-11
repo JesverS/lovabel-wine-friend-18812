@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,10 +7,12 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MapPin, Store, Search, Users } from 'lucide-react';
+import { MapPin, Store, Search, Users, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
+const PAGE_SIZE = 12;
 
 interface Cellar {
   id: string;
@@ -29,9 +31,34 @@ export default function Cellars() {
   const [cellars, setCellars] = useState<Cellar[]>([]);
   const [communityCellars, setCommunityCellars] = useState<Cellar[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadingMoreCommunity, setLoadingMoreCommunity] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [searchName, setSearchName] = useState("");
   const [searchAddress, setSearchAddress] = useState("");
+  const [debouncedName, setDebouncedName] = useState("");
+  const [debouncedAddress, setDebouncedAddress] = useState("");
+  const [cellarPage, setCellarPage] = useState(1);
+  const [communityPage, setCommunityPage] = useState(1);
+  const [hasMoreCellars, setHasMoreCellars] = useState(false);
+  const [hasMoreCommunity, setHasMoreCommunity] = useState(false);
+
+  // Debounce search inputs
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedName(searchName);
+      setDebouncedAddress(searchAddress);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchName, searchAddress]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCellarPage(1);
+    setCommunityPage(1);
+    setCellars([]);
+    setCommunityCellars([]);
+  }, [debouncedName, debouncedAddress]);
 
   useEffect(() => {
     fetchUserLocationAndCellars();
@@ -39,10 +66,10 @@ export default function Cellars() {
 
   useEffect(() => {
     if (!loading) {
-      fetchCellars();
-      fetchCommunityCellars();
+      fetchCellars(1, false);
+      fetchCommunityCellars(1, false);
     }
-  }, [searchName, searchAddress]);
+  }, [debouncedName, debouncedAddress]);
 
   const fetchUserLocationAndCellars = async () => {
     setLoading(true);
@@ -57,20 +84,20 @@ export default function Cellars() {
       if ((profile as any)?.latitude && (profile as any)?.longitude) {
         setUserLocation({ lat: (profile as any).latitude, lng: (profile as any).longitude });
         await Promise.all([
-          fetchNearbyCellars((profile as any).latitude, (profile as any).longitude),
-          fetchCommunityCellars(),
+          fetchNearbyCellars((profile as any).latitude, (profile as any).longitude, 1, false),
+          fetchCommunityCellars(1, false),
         ]);
       } else {
-        await Promise.all([fetchAllCellars(), fetchCommunityCellars()]);
+        await Promise.all([fetchAllCellars(1, false), fetchCommunityCellars(1, false)]);
       }
     } else {
-      await Promise.all([fetchAllCellars(), fetchCommunityCellars()]);
+      await Promise.all([fetchAllCellars(1, false), fetchCommunityCellars(1, false)]);
     }
 
     setLoading(false);
   };
 
-  const fetchCellars = async () => {
+  const fetchCellars = async (page: number = 1, append: boolean = false) => {
     if (user && !userLocation) {
       const { data: profile } = await supabase
         .from('user_profiles' as any)
@@ -79,14 +106,14 @@ export default function Cellars() {
         .single();
 
       if ((profile as any)?.latitude && (profile as any)?.longitude) {
-        await fetchNearbyCellars((profile as any).latitude, (profile as any).longitude);
+        await fetchNearbyCellars((profile as any).latitude, (profile as any).longitude, page, append);
       } else {
-        await fetchAllCellars();
+        await fetchAllCellars(page, append);
       }
     } else if (userLocation) {
-      await fetchNearbyCellars(userLocation.lat, userLocation.lng);
+      await fetchNearbyCellars(userLocation.lat, userLocation.lng, page, append);
     } else {
-      await fetchAllCellars();
+      await fetchAllCellars(page, append);
     }
   };
 
@@ -104,7 +131,9 @@ export default function Cellars() {
     return R * c;
   };
 
-  const fetchNearbyCellars = async (userLat: number, userLng: number) => {
+  const fetchNearbyCellars = async (userLat: number, userLng: number, page: number = 1, append: boolean = false) => {
+    if (append) setLoadingMore(true);
+
     let query = supabase
       .from('cellar' as any)
       .select('*')
@@ -113,65 +142,102 @@ export default function Cellars() {
       .not('latitude', 'is', null)
       .not('longitude', 'is', null);
 
-    if (searchName.trim()) {
-      query = query.ilike('name', `%${searchName}%`);
+    if (debouncedName.trim()) {
+      query = query.ilike('name', `%${debouncedName}%`);
     }
-    if (searchAddress.trim()) {
-      query = query.ilike('location', `%${searchAddress}%`);
+    if (debouncedAddress.trim()) {
+      query = query.ilike('location', `%${debouncedAddress}%`);
     }
 
     const { data, error } = await query;
-    if (error) { console.error('Error fetching cellars:', error); return; }
+    if (error) { console.error('Error fetching cellars:', error); setLoadingMore(false); return; }
 
     const cellarsWithDistance = ((data || []) as any[])
       .map((cellar) => ({
         ...cellar,
         distance: calculateDistance(userLat, userLng, cellar.latitude!, cellar.longitude!),
       }))
-      .sort((a, b) => a.distance! - b.distance!)
-      .slice(0, 10);
+      .sort((a, b) => a.distance! - b.distance!);
 
-    setCellars(cellarsWithDistance as any);
+    // Paginate client-side for nearby (since we need all for distance sort)
+    const paginated = cellarsWithDistance.slice(0, page * PAGE_SIZE);
+    setCellars(paginated as any);
+    setHasMoreCellars(paginated.length < cellarsWithDistance.length);
+    setCellarPage(page);
+    setLoadingMore(false);
   };
 
-  const fetchAllCellars = async () => {
+  const fetchAllCellars = async (page: number = 1, append: boolean = false) => {
+    if (append) setLoadingMore(true);
+
+    const from = (page - 1) * PAGE_SIZE;
+    const to = page * PAGE_SIZE - 1;
+
     let query = supabase
       .from('cellar' as any)
       .select('*')
       .eq('is_public', true)
       .eq('is_seller', true)
-      .limit(10);
+      .range(from, to);
 
-    if (searchName.trim()) {
-      query = query.ilike('name', `%${searchName}%`);
+    if (debouncedName.trim()) {
+      query = query.ilike('name', `%${debouncedName}%`);
     }
-    if (searchAddress.trim()) {
-      query = query.ilike('location', `%${searchAddress}%`);
+    if (debouncedAddress.trim()) {
+      query = query.ilike('location', `%${debouncedAddress}%`);
     }
 
     const { data, error } = await query;
-    if (error) { console.error('Error fetching cellars:', error); return; }
-    setCellars((data || []) as any);
+    if (error) { console.error('Error fetching cellars:', error); setLoadingMore(false); return; }
+
+    const newData = (data || []) as any;
+    setCellars(prev => append ? [...prev, ...newData] : newData);
+    setHasMoreCellars(newData.length === PAGE_SIZE);
+    setCellarPage(page);
+    setLoadingMore(false);
   };
 
-  const fetchCommunityCellars = async () => {
+  const fetchCommunityCellars = async (page: number = 1, append: boolean = false) => {
+    if (append) setLoadingMoreCommunity(true);
+
+    const from = (page - 1) * PAGE_SIZE;
+    const to = page * PAGE_SIZE - 1;
+
     let query = supabase
       .from('cellar' as any)
       .select('*')
       .eq('is_public', true)
       .eq('is_seller', false)
-      .limit(10);
+      .range(from, to);
 
-    if (searchName.trim()) {
-      query = query.ilike('name', `%${searchName}%`);
+    if (debouncedName.trim()) {
+      query = query.ilike('name', `%${debouncedName}%`);
     }
-    if (searchAddress.trim()) {
-      query = query.ilike('location', `%${searchAddress}%`);
+    if (debouncedAddress.trim()) {
+      query = query.ilike('location', `%${debouncedAddress}%`);
     }
 
     const { data, error } = await query;
-    if (error) { console.error('Error fetching community cellars:', error); return; }
-    setCommunityCellars((data || []) as any);
+    if (error) { console.error('Error fetching community cellars:', error); setLoadingMoreCommunity(false); return; }
+
+    const newData = (data || []) as any;
+    setCommunityCellars(prev => append ? [...prev, ...newData] : newData);
+    setHasMoreCommunity(newData.length === PAGE_SIZE);
+    setCommunityPage(page);
+    setLoadingMoreCommunity(false);
+  };
+
+  const handleLoadMoreCellars = () => {
+    const nextPage = cellarPage + 1;
+    if (userLocation) {
+      fetchNearbyCellars(userLocation.lat, userLocation.lng, nextPage, true);
+    } else {
+      fetchAllCellars(nextPage, true);
+    }
+  };
+
+  const handleLoadMoreCommunity = () => {
+    fetchCommunityCellars(communityPage + 1, true);
   };
 
   const renderCellarCard = (cellar: Cellar) => (
@@ -354,9 +420,27 @@ export default function Cellars() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {cellars.map(renderCellarCard)}
-              </div>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {cellars.map(renderCellarCard)}
+                </div>
+                {hasMoreCellars && (
+                  <div className="flex justify-center mt-8">
+                    <Button
+                      variant="outline"
+                      onClick={handleLoadMoreCellars}
+                      disabled={loadingMore}
+                      className="border-2 min-w-[200px]"
+                    >
+                      {loadingMore ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Chargement...</>
+                      ) : (
+                        "Charger plus"
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -370,6 +454,22 @@ export default function Cellars() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {communityCellars.map(renderCellarCard)}
               </div>
+              {hasMoreCommunity && (
+                <div className="flex justify-center mt-8">
+                  <Button
+                    variant="outline"
+                    onClick={handleLoadMoreCommunity}
+                    disabled={loadingMoreCommunity}
+                    className="border-2 min-w-[200px]"
+                  >
+                    {loadingMoreCommunity ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Chargement...</>
+                    ) : (
+                      "Charger plus"
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>

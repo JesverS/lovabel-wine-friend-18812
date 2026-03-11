@@ -1,4 +1,4 @@
-import { Wine, Instagram, Facebook, Twitter } from "lucide-react";
+import { Wine, Instagram } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const Footer = () => {
@@ -13,7 +13,7 @@ export const Footer = () => {
               <span className="font-serif text-2xl font-bold">Wine Note</span>
             </Link>
             <p className="text-sm text-primary-foreground/70">
-              La plateforme qui réinvente la découverte du vin avec des cours personnalisés, des jeux chalereux et la
+              La plateforme qui réinvente la découverte du vin avec des cours personnalisés, des jeux chaleureux et la
               passion de la communauté.
             </p>
             <div className="flex gap-3">
@@ -40,7 +40,7 @@ export const Footer = () => {
               </li>
               <li>
                 <Link to="/game" className="hover:text-secondary transition-colors">
-                  Games
+                  Jeux
                 </Link>
               </li>
               <li>
@@ -50,7 +50,7 @@ export const Footer = () => {
               </li>
               <li>
                 <Link to="/events" className="hover:text-secondary transition-colors">
-                  Evenements
+                  Événements
                 </Link>
               </li>
               <li>
@@ -68,11 +68,6 @@ export const Footer = () => {
               <li>
                 <Link to="/feed" className="hover:text-secondary transition-colors">
                   Fil d'actualité
-                </Link>
-              </li>
-              <li>
-                <Link to="/events" className="hover:text-secondary transition-colors">
-                  Évènements
                 </Link>
               </li>
               <li>
