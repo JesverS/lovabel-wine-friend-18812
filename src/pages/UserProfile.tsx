@@ -364,13 +364,15 @@ export default function UserProfile() {
                             <DialogTitle>Paramètres du compte</DialogTitle>
                           </DialogHeader>
                           <InnerTabs defaultValue="privacy" className="mt-4">
-                            <InnerTabsList className="grid w-full grid-cols-5">
-                              <InnerTabsTrigger value="privacy">Confidentialité</InnerTabsTrigger>
-                              <InnerTabsTrigger value="notifications">Notifications</InnerTabsTrigger>
-                              <InnerTabsTrigger value="stripe">Compte Stripe</InnerTabsTrigger>
-                              <InnerTabsTrigger value="revenue">Mes revenus</InnerTabsTrigger>
-                              <InnerTabsTrigger value="premium">Premium</InnerTabsTrigger>
-                            </InnerTabsList>
+                            <div className="overflow-x-auto -mx-2 px-2">
+                              <InnerTabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-5">
+                                <InnerTabsTrigger value="privacy" className="whitespace-nowrap text-xs md:text-sm">Confidentialité</InnerTabsTrigger>
+                                <InnerTabsTrigger value="notifications" className="whitespace-nowrap text-xs md:text-sm">Notifications</InnerTabsTrigger>
+                                <InnerTabsTrigger value="stripe" className="whitespace-nowrap text-xs md:text-sm">Stripe</InnerTabsTrigger>
+                                <InnerTabsTrigger value="revenue" className="whitespace-nowrap text-xs md:text-sm">Revenus</InnerTabsTrigger>
+                                <InnerTabsTrigger value="premium" className="whitespace-nowrap text-xs md:text-sm">Premium</InnerTabsTrigger>
+                              </InnerTabsList>
+                            </div>
                             <InnerTabsContent value="privacy" className="mt-4">
                               <PrivacySettings />
                             </InnerTabsContent>

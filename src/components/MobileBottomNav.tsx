@@ -30,6 +30,7 @@ export const MobileBottomNav = () => {
           <Link
             key={path}
             to={path}
+            aria-label={label}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-colors",
               isActive(path) ? "text-primary" : "text-muted-foreground"
@@ -41,6 +42,7 @@ export const MobileBottomNav = () => {
         ))}
         <Link
           to={profilePath}
+          aria-label="Profil"
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-colors",
             pathname.startsWith("/user/") || pathname === "/auth" ? "text-primary" : "text-muted-foreground"
