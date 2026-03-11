@@ -194,9 +194,46 @@ export default function CellarDetails() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <div className="container mx-auto px-4 py-24 flex items-center justify-center flex-grow">
-          <p>Chargement...</p>
-        </div>
+        <main className="container mx-auto px-4 py-24 flex-grow space-y-8">
+          {/* Breadcrumb skeleton */}
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+
+          {/* Banner skeleton */}
+          <Skeleton className="w-full aspect-video max-h-[400px] rounded-lg" />
+
+          {/* Header section skeleton */}
+          <div className="flex items-start gap-6">
+            <Skeleton className="w-20 h-20 md:w-24 md:h-24 rounded-full shrink-0" />
+            <div className="flex-1 space-y-3">
+              <Skeleton className="h-8 w-2/3" />
+              <Skeleton className="h-4 w-1/3" />
+            </div>
+          </div>
+
+          {/* Tabs skeleton */}
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
+          </div>
+
+          {/* Catalogue grid skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-lg border bg-card p-4 space-y-3">
+                <Skeleton className="h-40 w-full rounded-md" />
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-1/3" />
+              </div>
+            ))}
+          </div>
+        </main>
         <Footer />
       </div>
     );
