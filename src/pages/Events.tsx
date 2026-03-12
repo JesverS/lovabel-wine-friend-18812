@@ -116,6 +116,10 @@ const Events = () => {
         query = query
           .lte("start_date", endOfDay.toISOString())
           .or(`end_date.gte.${startOfDay.toISOString()},end_date.is.null`);
+      } else {
+        // Par défaut, ne montrer que les événements à venir ou en cours
+        const now = new Date().toISOString();
+        query = query.or(`end_date.gte.${now},and(end_date.is.null,start_date.gte.${now})`);
       }
 
       const { data, error } = await query;
