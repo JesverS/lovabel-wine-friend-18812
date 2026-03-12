@@ -63,6 +63,18 @@ const Events = () => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [debouncedSearchName, setDebouncedSearchName] = useState("");
+  const [debouncedSearchCity, setDebouncedSearchCity] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchName(searchName), 400);
+    return () => clearTimeout(timer);
+  }, [searchName]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchCity(searchCity), 400);
+    return () => clearTimeout(timer);
+  }, [searchCity]);
 
   useEffect(() => {
     if (activeTab === 'public') {
@@ -71,7 +83,7 @@ const Events = () => {
     } else if (user) {
       fetchUserEvents();
     }
-  }, [activeTab, searchName, searchCity, searchDate, user]);
+  }, [activeTab, debouncedSearchName, debouncedSearchCity, searchDate, user]);
 
   const fetchPublicEvents = async (pageNum = 0, append = false) => {
     if (pageNum === 0) setLoading(true);
@@ -87,12 +99,12 @@ const Events = () => {
         .order("start_date", { ascending: true })
         .range(from, to);
 
-      if (searchName.trim()) {
-        query = query.ilike("name", `%${searchName}%`);
+      if (debouncedSearchName.trim()) {
+        query = query.ilike("name", `%${debouncedSearchName}%`);
       }
 
-      if (searchCity.trim()) {
-        query = query.ilike("city", `%${searchCity}%`);
+      if (debouncedSearchCity.trim()) {
+        query = query.ilike("city", `%${debouncedSearchCity}%`);
       }
 
       if (searchDate) {
@@ -104,6 +116,10 @@ const Events = () => {
         query = query
           .lte("start_date", endOfDay.toISOString())
           .or(`end_date.gte.${startOfDay.toISOString()},end_date.is.null`);
+      } else {
+        // Par défaut, ne montrer que les événements à venir ou en cours
+        const now = new Date().toISOString();
+        query = query.or(`end_date.gte.${now},and(end_date.is.null,start_date.gte.${now})`);
       }
 
       const { data, error } = await query;
