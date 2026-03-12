@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Wine, User, Heart, Menu, LogOut, Search, Sun, Moon, Bell } from "lucide-react";
+import { Wine, User, Heart, Menu, Search, Sun, Moon, Bell } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
