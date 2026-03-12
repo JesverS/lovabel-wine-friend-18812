@@ -99,12 +99,12 @@ const Events = () => {
         .order("start_date", { ascending: true })
         .range(from, to);
 
-      if (searchName.trim()) {
-        query = query.ilike("name", `%${searchName}%`);
+      if (debouncedSearchName.trim()) {
+        query = query.ilike("name", `%${debouncedSearchName}%`);
       }
 
-      if (searchCity.trim()) {
-        query = query.ilike("city", `%${searchCity}%`);
+      if (debouncedSearchCity.trim()) {
+        query = query.ilike("city", `%${debouncedSearchCity}%`);
       }
 
       if (searchDate) {
