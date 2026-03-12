@@ -248,20 +248,6 @@ export const Header = () => {
         </div>
       </header>
 
-      <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Se déconnecter</AlertDialogTitle>
-            <AlertDialogDescription>
-              Voulez-vous vraiment vous déconnecter de votre compte ?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSignOut}>Se déconnecter</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };

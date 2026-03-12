@@ -407,6 +407,34 @@ export default function UserProfile() {
                               <InviteKeyRedemption />
                             </InnerTabsContent>
                           </InnerTabs>
+
+                          <Separator className="my-6" />
+
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                              onClick={() => setSignOutDialogOpen(true)}
+                            >
+                              <LogOut className="w-4 h-4 mr-2" />
+                              Se déconnecter
+                            </Button>
+                          </div>
+
+                          <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Se déconnecter</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Voulez-vous vraiment vous déconnecter de votre compte ?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleSignOut}>Se déconnecter</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DialogContent>
                       </Dialog>
                     </div>

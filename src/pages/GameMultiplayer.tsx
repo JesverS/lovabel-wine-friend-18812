@@ -102,6 +102,17 @@ export default function GameMultiplayer() {
       <Header />
 
       <main className="container mx-auto px-4 py-8 pt-32 flex-grow min-h-screen">
+        <Breadcrumb className="mb-6 animate-fade-up">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild><Link to="/">Accueil</Link></BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Jeu</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         {/* Hero Section */}
         <div className="text-center mb-12 animate-fade-up">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/20 backdrop-blur-sm border border-secondary/30 mb-4">

@@ -78,6 +78,17 @@ const Notifications = () => {
       <Header />
       <main className="container mx-auto px-4 pt-28 pb-16">
         <div className="max-w-2xl mx-auto">
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild><Link to="/">Accueil</Link></BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Notifications</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold">Notifications</h1>
