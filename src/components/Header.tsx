@@ -190,7 +190,7 @@ export const Header = () => {
                     className="text-lg font-medium text-foreground hover:text-primary transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Game
+                    Jeu
                   </Link>
 
                   <Separator />

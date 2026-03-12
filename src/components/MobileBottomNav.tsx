@@ -1,4 +1,4 @@
-import { Home, Search, MessageSquare, Heart, User } from "lucide-react";
+import { Home, MessageSquare, Heart, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserSlug } from "@/hooks/useUserSlug";
@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: Home, label: "Accueil", path: "/" },
-  { icon: Search, label: "Recherche", path: "/search" },
   { icon: MessageSquare, label: "Feed", path: "/feed" },
   { icon: Heart, label: "Favoris", path: "/favorites" },
 ];
