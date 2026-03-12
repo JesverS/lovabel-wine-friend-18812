@@ -22,7 +22,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+  
   const userSlug = useUserSlug();
   const { theme, setTheme } = useTheme();
 
