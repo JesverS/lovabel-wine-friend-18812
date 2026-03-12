@@ -70,6 +70,13 @@ export default function UserProfile() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
   const [compareOpen, setCompareOpen] = useState(false);
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setSignOutDialogOpen(false);
+    window.location.href = '/';
+  };
 
   useEffect(() => {
     if (slug) {
