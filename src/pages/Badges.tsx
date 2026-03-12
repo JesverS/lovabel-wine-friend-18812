@@ -7,7 +7,6 @@ import { Link } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { Link } from 'react-router-dom';
 
 export default function Badges() {
   const { user } = useAuth();
