@@ -29,11 +29,6 @@ export const Header = () => {
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(path + '/');
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setSignOutDialogOpen(false);
-    navigate('/');
-  };
 
   return (
     <>
