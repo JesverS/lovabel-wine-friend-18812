@@ -78,7 +78,7 @@ export const Header = () => {
                   : 'text-foreground hover:text-primary'
               }`}
             >
-              Game
+              Jeu
             </Link>
             <Link 
               to="/feed" 
