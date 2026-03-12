@@ -147,15 +147,6 @@ export const Header = () => {
                 >
                   <User className="h-5 w-5" aria-hidden="true" />
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="hidden md:inline-flex"
-                  aria-label="Se déconnecter" 
-                  onClick={() => setSignOutDialogOpen(true)}
-                >
-                  <LogOut className="h-5 w-5" aria-hidden="true" />
-                </Button>
               </>
             ) : (
               <Button asChild className="hidden md:inline-flex">
