@@ -10,6 +10,7 @@ import { NotificationItem } from '@/components/NotificationItem';
 import { Bell, Check, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 const categorizeNotification = (type: string): string => {
   const socialTypes = ['follow_request', 'new_follower', 'follow_accepted', 'post_like', 'post_comment'];
@@ -77,6 +78,17 @@ const Notifications = () => {
       <Header />
       <main className="container mx-auto px-4 pt-28 pb-16">
         <div className="max-w-2xl mx-auto">
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild><Link to="/">Accueil</Link></BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Notifications</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold">Notifications</h1>

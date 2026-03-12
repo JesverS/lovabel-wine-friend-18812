@@ -10,7 +10,7 @@ import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { CreateEventDialog } from '@/components/CreateEventDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users, Clock, BarChart3 } from 'lucide-react';
+import { UserPlus, UserCheck, Store, CalendarDays, Menu, FileText, MapPin, Wine, Heart, Settings, Globe, Lock, Users, Clock, BarChart3, LogOut } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,6 +33,17 @@ import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 import { PrivacySettings } from '@/components/PrivacySettings';
 import { NotificationPreferences } from '@/components/NotificationPreferences';
 import { InviteKeyRedemption } from '@/components/InviteKeyRedemption';
+import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { OpenInAppBanner } from '@/components/OpenInAppBanner';
 import { getProfileDeepLink } from '@/lib/mobileAppUtils';
 import { Helmet } from 'react-helmet-async';
@@ -59,6 +70,13 @@ export default function UserProfile() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
   const [compareOpen, setCompareOpen] = useState(false);
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setSignOutDialogOpen(false);
+    window.location.href = '/';
+  };
 
   useEffect(() => {
     if (slug) {
@@ -389,6 +407,34 @@ export default function UserProfile() {
                               <InviteKeyRedemption />
                             </InnerTabsContent>
                           </InnerTabs>
+
+                          <Separator className="my-6" />
+
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                              onClick={() => setSignOutDialogOpen(true)}
+                            >
+                              <LogOut className="w-4 h-4 mr-2" />
+                              Se déconnecter
+                            </Button>
+                          </div>
+
+                          <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Se déconnecter</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Voulez-vous vraiment vous déconnecter de votre compte ?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleSignOut}>Se déconnecter</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DialogContent>
                       </Dialog>
                     </div>

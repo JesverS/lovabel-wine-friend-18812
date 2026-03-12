@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { LogIn, MessageSquare } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 export default function Feed() {
   const { user } = useAuth();
@@ -28,6 +29,17 @@ export default function Feed() {
       <Header />
 
       <main className="container mx-auto px-4 py-8 pt-28 flex-grow">
+        <Breadcrumb className="mb-6 animate-fade-up">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild><Link to="/">Accueil</Link></BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Feed</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         {/* Header Section */}
         <div className="mb-8 animate-fade-up">
           <div className="flex items-center gap-3 mb-2">

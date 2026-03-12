@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Wine, User, Heart, Menu, LogOut, Search, Sun, Moon, Bell } from "lucide-react";
+import { Wine, User, Heart, Menu, Search, Sun, Moon, Bell } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -15,16 +15,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 
 export const Header = () => {
@@ -32,18 +22,13 @@ export const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+  
   const userSlug = useUserSlug();
   const { theme, setTheme } = useTheme();
 
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(path + '/');
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setSignOutDialogOpen(false);
-    navigate('/');
-  };
 
   return (
     <>
@@ -162,15 +147,6 @@ export const Header = () => {
                 >
                   <User className="h-5 w-5" aria-hidden="true" />
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="hidden md:inline-flex"
-                  aria-label="Se déconnecter" 
-                  onClick={() => setSignOutDialogOpen(true)}
-                >
-                  <LogOut className="h-5 w-5" aria-hidden="true" />
-                </Button>
               </>
             ) : (
               <Button asChild className="hidden md:inline-flex">
@@ -255,18 +231,6 @@ export const Header = () => {
                     {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
                   </button>
 
-                  {user && (
-                    <button
-                      className="flex items-center gap-2 text-lg font-medium text-destructive hover:text-destructive/80 transition-colors text-left"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        setSignOutDialogOpen(true);
-                      }}
-                    >
-                      <LogOut className="h-5 w-5" />
-                      Se déconnecter
-                    </button>
-                  )}
 
                   {!user && (
                     <Link 
@@ -284,20 +248,6 @@ export const Header = () => {
         </div>
       </header>
 
-      <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Se déconnecter</AlertDialogTitle>
-            <AlertDialogDescription>
-              Voulez-vous vraiment vous déconnecter de votre compte ?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSignOut}>Se déconnecter</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };

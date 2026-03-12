@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 export default function Badges() {
   const { user } = useAuth();
@@ -24,6 +25,17 @@ export default function Badges() {
       <Header />
       
       <main className="container mx-auto px-4 py-12 max-w-5xl pt-32 flex-grow">
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild><Link to="/">Accueil</Link></BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Badges</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">🏆 Collection de Badges</h1>
           <p className="text-muted-foreground">
