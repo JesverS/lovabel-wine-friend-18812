@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { WineSelectionForGame } from "@/components/game/WineSelectionForGame";
 import { Helmet } from "react-helmet-async";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Link } from "react-router-dom";
 
 export default function GameMultiplayer() {
   const navigate = useNavigate();
