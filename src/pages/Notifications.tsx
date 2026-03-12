@@ -10,6 +10,7 @@ import { NotificationItem } from '@/components/NotificationItem';
 import { Bell, Check, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 const categorizeNotification = (type: string): string => {
   const socialTypes = ['follow_request', 'new_follower', 'follow_accepted', 'post_like', 'post_comment'];
