@@ -63,6 +63,18 @@ const Events = () => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [debouncedSearchName, setDebouncedSearchName] = useState("");
+  const [debouncedSearchCity, setDebouncedSearchCity] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchName(searchName), 400);
+    return () => clearTimeout(timer);
+  }, [searchName]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchCity(searchCity), 400);
+    return () => clearTimeout(timer);
+  }, [searchCity]);
 
   useEffect(() => {
     if (activeTab === 'public') {
@@ -71,7 +83,7 @@ const Events = () => {
     } else if (user) {
       fetchUserEvents();
     }
-  }, [activeTab, searchName, searchCity, searchDate, user]);
+  }, [activeTab, debouncedSearchName, debouncedSearchCity, searchDate, user]);
 
   const fetchPublicEvents = async (pageNum = 0, append = false) => {
     if (pageNum === 0) setLoading(true);
