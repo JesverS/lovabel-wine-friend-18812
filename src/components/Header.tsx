@@ -231,18 +231,6 @@ export const Header = () => {
                     {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
                   </button>
 
-                  {user && (
-                    <button
-                      className="flex items-center gap-2 text-lg font-medium text-destructive hover:text-destructive/80 transition-colors text-left"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        setSignOutDialogOpen(true);
-                      }}
-                    >
-                      <LogOut className="h-5 w-5" />
-                      Se déconnecter
-                    </button>
-                  )}
 
                   {!user && (
                     <Link 
