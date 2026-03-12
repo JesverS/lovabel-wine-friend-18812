@@ -339,6 +339,17 @@ export default function Cellars() {
 
       <main className="container mx-auto px-4 py-24 flex-grow min-h-screen">
         <div className="max-w-7xl mx-auto">
+          <Breadcrumb className="mb-6 animate-fade-up">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild><Link to="/">Accueil</Link></BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Cavistes</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <div className="text-center mb-12 animate-fade-up">
             <h1 className="text-5xl md:text-6xl font-serif font-bold mb-4 text-gradient-wine">
               Caves & Cavistes
