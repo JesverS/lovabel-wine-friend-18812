@@ -33,6 +33,17 @@ import { UserBadgesSection } from '@/components/badges/UserBadgesSection';
 import { PrivacySettings } from '@/components/PrivacySettings';
 import { NotificationPreferences } from '@/components/NotificationPreferences';
 import { InviteKeyRedemption } from '@/components/InviteKeyRedemption';
+import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { OpenInAppBanner } from '@/components/OpenInAppBanner';
 import { getProfileDeepLink } from '@/lib/mobileAppUtils';
 import { Helmet } from 'react-helmet-async';
