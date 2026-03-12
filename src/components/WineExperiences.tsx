@@ -1,4 +1,4 @@
-import { GraduationCap, Wine } from "lucide-react";
+import { GraduationCap, Wine, BookOpen, Target, Award, Users, PartyPopper } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,9 +41,9 @@ export const WineExperiences = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 justify-center">
-                  <span className="badge-wine">📚 Cours interactifs</span>
-                  <span className="badge-wine">🎯 Quiz</span>
-                  <span className="badge-wine">🏆 Badges</span>
+                  <span className="badge-wine"><BookOpen className="inline h-3.5 w-3.5 mr-1" />Cours interactifs</span>
+                  <span className="badge-wine"><Target className="inline h-3.5 w-3.5 mr-1" />Quiz</span>
+                  <span className="badge-wine"><Award className="inline h-3.5 w-3.5 mr-1" />Badges</span>
                 </div>
 
                 <Button
@@ -58,13 +58,13 @@ export const WineExperiences = () => {
           </Card>
 
           {/* Mode Jeu */}
-          <Card className="group overflow-hidden border-2 hover:border-secondary transition-all duration-300 hover-lift animate-fade-up" style={{ animationDelay: "100ms" }}>
+          <Card className="group overflow-hidden border-2 hover:border-primary transition-all duration-300 hover-lift animate-fade-up" style={{ animationDelay: "100ms" }}>
             <CardContent className="p-8">
               <div className="flex flex-col items-center text-center space-y-6">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-gold opacity-20 blur-2xl rounded-full" />
-                  <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-gold">
-                    <Wine className="h-10 w-10 text-slate" />
+                  <div className="absolute inset-0 bg-gradient-wine opacity-15 blur-2xl rounded-full" />
+                  <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-wine">
+                    <Wine className="h-10 w-10 text-primary-foreground" />
                   </div>
                 </div>
                 
@@ -79,15 +79,16 @@ export const WineExperiences = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 justify-center">
-                  <span className="badge-gold">👥 1-8 joueurs</span>
-                  <span className="badge-gold">🍷 Dégustation</span>
-                  <span className="badge-gold">🎉 Convivial</span>
+                  <span className="badge-wine"><Users className="inline h-3.5 w-3.5 mr-1" />1-8 joueurs</span>
+                  <span className="badge-wine"><Wine className="inline h-3.5 w-3.5 mr-1" />Dégustation</span>
+                  <span className="badge-wine"><PartyPopper className="inline h-3.5 w-3.5 mr-1" />Convivial</span>
                 </div>
 
                 <Button
                   onClick={() => navigate("/game")}
                   size="lg"
-                  className="w-full bg-gradient-gold hover:opacity-90 transition-opacity text-slate font-semibold"
+                  variant="outline"
+                  className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all"
                 >
                   Lancer une partie
                 </Button>
