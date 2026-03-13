@@ -74,7 +74,7 @@ export default function Feed() {
 
         {/* Social Feed */}
         <PullToRefresh onRefresh={async () => { await queryClient.invalidateQueries({ queryKey: ['social-feed'] }); }}>
-          <SocialFeed />
+          <SocialFeed variant="standalone" />
         </PullToRefresh>
       </main>
 
