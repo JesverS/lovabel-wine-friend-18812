@@ -113,6 +113,7 @@ export default function Learning() {
         <meta property="og:description" content="Apprenez le vin avec des cours interactifs" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://winenote.me/learning" />
+        <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/1EK7H96ITKXD3CrC1aSkRhKBhvC2/social-images/social-1765190887528-icon.png" />
       </Helmet>
 
       <Header />

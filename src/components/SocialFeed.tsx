@@ -8,7 +8,11 @@ import { Loader2, LogIn, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export const SocialFeed = () => {
+interface SocialFeedProps {
+  variant?: 'homepage' | 'standalone';
+}
+
+export const SocialFeed = ({ variant = 'homepage' }: SocialFeedProps) => {
   const { user } = useAuth();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useSocialFeed();
 

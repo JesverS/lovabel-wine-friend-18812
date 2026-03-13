@@ -208,6 +208,7 @@ export default function About() {
         <meta property="og:description" content="La plateforme qui réinvente votre passion du vin" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://winenote.me/about" />
+        <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/1EK7H96ITKXD3CrC1aSkRhKBhvC2/social-images/social-1765190887528-icon.png" />
       </Helmet>
       <Header />
       
