@@ -41,8 +41,10 @@ export const SocialFeed = ({ variant = 'homepage' }: SocialFeedProps) => {
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  // Message pour les utilisateurs non connectés
-  if (!user) {
+  const isStandalone = variant === 'standalone';
+
+  // Message pour les utilisateurs non connectés (homepage only)
+  if (!user && !isStandalone) {
     return (
       <section className="py-24 bg-muted/30">
         <div className="container mx-auto px-4">
@@ -79,6 +81,46 @@ export const SocialFeed = ({ variant = 'homepage' }: SocialFeedProps) => {
 
   const allPosts = data?.pages.flatMap((page) => page.posts) || [];
 
+  // Standalone variant: no section wrapper, no title, no extra padding
+  if (isStandalone) {
+    if (isLoading) {
+      return (
+        <div className="max-w-2xl mx-auto space-y-6">
+          {[...Array(3)].map((_, i) => (
+            <PostCardSkeleton key={i} />
+          ))}
+        </div>
+      );
+    }
+
+    if (isError) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          Une erreur est survenue lors du chargement des posts
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <div className="max-w-2xl mx-auto space-y-6">
+          {allPosts.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">Aucun post à afficher pour le moment</div>
+          ) : (
+            allPosts.map((post) => <PostCard key={post.id} post={post} preloadedData />)
+          )}
+        </div>
+        <div ref={observerRef} className="h-10 flex items-center justify-center">
+          {isFetchingNextPage && <Loader2 className="w-6 h-6 animate-spin text-primary" />}
+        </div>
+        {!hasNextPage && allPosts.length > 0 && (
+          <p className="text-center text-sm text-muted-foreground mt-4">Vous avez vu tous les posts</p>
+        )}
+      </div>
+    );
+  }
+
+  // Homepage variant
   if (isLoading) {
     return (
       <section className="py-24 bg-muted/30">
