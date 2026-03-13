@@ -25,6 +25,7 @@ export default function Feed() {
         <meta property="og:description" content="Découvrez les dernières dégustations et partages de la communauté Wine Note." />
         <meta property="og:url" content="https://winenote.me/feed" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/1EK7H96ITKXD3CrC1aSkRhKBhvC2/social-images/social-1765190887528-icon.png" />
       </Helmet>
       <Header />
 
@@ -74,7 +75,7 @@ export default function Feed() {
 
         {/* Social Feed */}
         <PullToRefresh onRefresh={async () => { await queryClient.invalidateQueries({ queryKey: ['social-feed'] }); }}>
-          <SocialFeed />
+          <SocialFeed variant="standalone" />
         </PullToRefresh>
       </main>
 

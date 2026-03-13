@@ -20,6 +20,7 @@ const Index = () => {
         <meta property="og:description" content="La plateforme sociale dédiée aux amateurs de vin. Cours, dégustations, caves et événements." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://winenote.me" />
+        <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/1EK7H96ITKXD3CrC1aSkRhKBhvC2/social-images/social-1765190887528-icon.png" />
         <link rel="canonical" href="https://winenote.me" />
       </Helmet>
       <Header />
