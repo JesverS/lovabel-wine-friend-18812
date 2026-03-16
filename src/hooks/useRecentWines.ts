@@ -7,6 +7,7 @@ export interface RecentWine {
   year: number | null;
   label_url: string | null;
   domain_name: string | null;
+  domain_region: string | null;
 }
 
 export const useRecentWines = (limit = 12) => {
