@@ -16,7 +16,7 @@ export const useRecentWines = (limit = 12) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wine")
-        .select("id, name, year, label_url, domain:domain_id(name)")
+        .select("id, name, year, label_url, domain:domain_id(name, region)")
         .order("created_at", { ascending: false })
         .limit(limit);
 
@@ -28,6 +28,7 @@ export const useRecentWines = (limit = 12) => {
         year: w.year,
         label_url: w.label_url,
         domain_name: w.domain?.name || null,
+        domain_region: w.domain?.region || null,
       })) as RecentWine[];
     },
     staleTime: 5 * 60 * 1000,

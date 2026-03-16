@@ -43,40 +43,46 @@ export const FeaturedWines = () => {
           </div>
         </div>
 
-        <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide -mx-4 px-4">
+        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide">
           {wines.map((wine) => (
             <Link
               key={wine.id}
               to={`/wine/${wine.id}`}
-              className="group flex-shrink-0 w-40 snap-start"
+              className="group flex-shrink-0 w-44 snap-start"
             >
-              <div className="relative w-40 h-52 rounded-xl overflow-hidden bg-card border border-border/60 shadow-sm group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300">
-                <img
-                  src={wine.label_url || DEFAULT_LABEL}
-                  alt={wine.name}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                {wine.year && (
-                  <span className="absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-foreground border border-border/40">
-                    {wine.year}
-                  </span>
-                )}
-              </div>
-              <div className="mt-3 px-0.5">
-                <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
-                  {wine.name}
-                </p>
-                {wine.domain_name && (
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
-                    {wine.domain_name}
+              <div className="bg-card border border-border/60 rounded-2xl p-2.5 shadow-sm group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300">
+                <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden bg-muted">
+                  <img
+                    src={wine.label_url || DEFAULT_LABEL}
+                    alt={wine.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  {wine.year && (
+                    <span className="absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-foreground border border-border/40">
+                      {wine.year}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2.5 px-1 pb-1">
+                  <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
+                    {wine.name}
                   </p>
-                )}
+                  {wine.domain_name && (
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {wine.domain_name}
+                    </p>
+                  )}
+                  {wine.domain_region && wine.domain_region !== "unknown" && (
+                    <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
+                      {wine.domain_region}
+                    </p>
+                  )}
+                </div>
               </div>
             </Link>
           ))}
 
-          {/* Fade-out edge hint */}
           <div className="flex-shrink-0 w-8 flex items-center justify-center">
             <ChevronRight className="h-5 w-5 text-muted-foreground/40" />
           </div>
