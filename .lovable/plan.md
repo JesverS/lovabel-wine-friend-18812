@@ -1,140 +1,101 @@
 
 
-# Preferences de notifications par device
+# Plan — Recherche multi-mots sans nouvelle table
 
-## Reponse a ta question : faisabilite
+## Probleme actuel
 
-Oui, c'est faisable. L'application React Native connait son propre `device_token` FCM lorsqu'elle s'enregistre dans `push_notification_token`. Elle peut donc :
-- Lire les preferences associees a ce token precis
-- Modifier les preferences pour ce token precis
+La fonction fait `ILIKE '%roche mazet chardonnay%'` sur chaque colonne separement → aucun match quand le query combine domaine + nom.
 
-L'Edge Function `send-push-notification` boucle deja token par token, donc le filtrage par device est naturel.
+## Solution
 
-## Architecture base de donnees
+Reecrire `search_wines` et `search_wines_game` directement sur les tables existantes (`wine`, `domain`, `wine_type`). Pas de nouvelle table.
 
-### Nouvelle table `notification_preferences`
+### Logique
 
-```text
-notification_preferences
-  id              uuid        PK, default gen_random_uuid()
-  user_id         uuid        NOT NULL, FK -> auth.users
-  token_id        uuid        NULL, FK -> push_notification_token(id) ON DELETE CASCADE
-  post_like       boolean     DEFAULT true
-  post_comment    boolean     DEFAULT true
-  mention         boolean     DEFAULT true
-  follow_request  boolean     DEFAULT true
-  new_follower    boolean     DEFAULT true
-  follow_accepted boolean     DEFAULT true
-  event_join      boolean     DEFAULT true
-  event_access_request boolean DEFAULT true
-  event_invitation boolean    DEFAULT true
-  cellar_invitation boolean   DEFAULT true
-  refund_request  boolean     DEFAULT true
-  created_at      timestamptz DEFAULT now()
-  updated_at      timestamptz DEFAULT now()
+1. **Normaliser** le query (unaccent, lower, trim)
+2. **Extraire l'annee** si presente (regex `\m(19|20)\d{2}\M`) et la retirer du texte
+3. **Splitter les mots restants** en tableau (`string_to_array`)
+4. **Concatener** les champs en une seule chaine : `domain.name || ' ' || wine.name || ' ' || wine_type.type`
+5. **Verifier que TOUS les mots** matchent dans cette chaine concatenee (boucle `bool_and` + `ILIKE`)
+6. **Filtrer par annee** si detectee
+7. **Trier** par similarite trigram (`pg_trgm.similarity`)
 
-  UNIQUE (user_id, token_id)   -- un seul jeu de prefs par couple user/device
+### Fonction finale `search_wines`
+
+```sql
+CREATE OR REPLACE FUNCTION public.search_wines(query text)
+RETURNS TABLE(id uuid, name text, year integer, label_url text, domain jsonb, wine_type jsonb)
+LANGUAGE plpgsql
+SET search_path TO 'public', 'extensions'
+AS $$
+DECLARE
+  normalized text;
+  cleaned text;
+  words text[];
+  extracted_year integer;
+BEGIN
+  normalized := extensions.unaccent(lower(trim(query)));
+  
+  -- Extraire annee 4 chiffres
+  extracted_year := (regexp_match(normalized, '\m((?:19|20)\d{2})\M'))[1]::integer;
+  
+  -- Retirer l'annee du texte
+  cleaned := trim(regexp_replace(normalized, '\m(?:19|20)\d{2}\M', '', 'g'));
+  
+  -- Splitter en mots
+  words := array_remove(string_to_array(cleaned, ' '), '');
+  
+  RETURN QUERY
+  SELECT
+    w.id, w.name, w.year, w.label_url,
+    jsonb_build_object('id', d.id, 'name', d.name, 'logo_url', d.logo_url, 'region', d.region),
+    jsonb_build_object('id', wt.id, 'type', wt.type)
+  FROM wine w
+  LEFT JOIN domain d ON w.domain_id = d.id
+  LEFT JOIN wine_type wt ON w.type = wt.id
+  WHERE
+    w.is_playable = true
+    AND (extracted_year IS NULL OR w.year = extracted_year)
+    AND (
+      array_length(words, 1) IS NULL
+      OR (
+        SELECT bool_and(
+          extensions.unaccent(lower(
+            coalesce(d.name,'') || ' ' || coalesce(w.name,'') || ' ' || coalesce(wt.type::text,'')
+          )) ILIKE '%' || word || '%'
+        )
+        FROM unnest(words) AS word
+      )
+    )
+  ORDER BY
+    similarity(
+      extensions.unaccent(lower(coalesce(d.name,'') || ' ' || coalesce(w.name,''))),
+      cleaned
+    ) DESC,
+    w.created_at DESC
+  LIMIT 20;
+END;
+$$;
 ```
 
-### Logique de `token_id`
+Meme logique pour `search_wines_game`.
 
-- `token_id = NULL` : preferences globales de l'utilisateur (utilisees depuis le site web, ou comme fallback si un device n'a pas de prefs specifiques)
-- `token_id = uuid` : preferences specifiques a ce device
-
-Quand un token est supprime (device desinstalle, token invalide), le `ON DELETE CASCADE` supprime automatiquement ses preferences.
-
-### Types NON configurables
-
-Les types suivants ne sont PAS dans la table car l'utilisateur doit toujours les recevoir :
-- `event_access_approved` / `event_access_rejected` (reponses a ses propres actions)
-- `refund_processed` (reponse a sa demande)
-- `level_up` (visible directement dans l'app)
-- `badge_unlocked` (idem)
-
-## Modifications SQL
-
-### 1. Creer la table `notification_preferences`
-
-Migration avec la structure ci-dessus, index sur `user_id`, et politique RLS : chaque utilisateur ne peut lire/modifier que ses propres preferences.
-
-### 2. Modifier `create_notification()` pour les notifications web
-
-Ajouter un check : si l'utilisateur a une ligne avec `token_id = NULL` et que le type correspondant est `false`, on ne cree pas la notification.
-
-Cependant, pour les push, le filtrage se fait dans l'Edge Function (car il faut filtrer par device). Donc `create_notification()` ne bloque l'insertion que si **toutes** les preferences (globale + tous les devices) sont desactivees pour ce type. En pratique, pour simplifier :
-
-- `create_notification()` verifie uniquement la preference globale (`token_id IS NULL`)
-- Si la preference globale est `false`, pas d'insertion (donc pas de push non plus)
-- Si la preference globale est `true` (ou absente = `true` par defaut), l'insertion se fait, et le filtrage par device se fait dans l'Edge Function
-
-### 3. Modifier l'Edge Function `send-push-notification`
-
-Avant d'envoyer a chaque token, lire les preferences specifiques a ce `token_id`. Si le type de notification est desactive pour ce device, on saute l'envoi.
+### Exemples de resultats
 
 ```text
-Pour chaque token de l'utilisateur :
-  1. Chercher notification_preferences WHERE token_id = token.id
-  2. Si pas de ligne -> utiliser les prefs globales (token_id IS NULL)
-  3. Si pas de prefs du tout -> tout est actif (defaut)
-  4. Verifier si le type est desactive -> si oui, skip
-  5. Sinon, envoyer via FCM
+Query                        → Match
+"Roche Mazet"                → tous les vins du domaine Roche Mazet
+"Roche Mazet Chardonnay"     → mots [roche, mazet, chardonnay] → chacun present dans "roche mazet chardonnay 2023"
+"Chardonnay Roche Mazet"     → meme resultat (ordre libre)
+"Roche Mazet 2023"           → annee extraite=2023, mots [roche, mazet] → filtre domaine + annee
+"Chardonay"                  → trigram similarity classe en premier malgre typo
 ```
 
-### 4. Modifier `notify_mentioned_user()`
+### Fichier
 
-Remplacer l'INSERT direct par un appel a `create_notification()` pour que les preferences soient respectees aussi pour les mentions.
+| Fichier | Action |
+|---------|--------|
+| `supabase/migrations/new.sql` | DROP + CREATE des 2 fonctions |
 
-## Frontend
-
-### Nouveau composant `NotificationPreferences.tsx`
-
-Affiche les preferences groupees par categorie avec des Switch :
-
-**Social**
-- Likes sur mes posts (`post_like`)
-- Commentaires sur mes posts (`post_comment`)
-- Mentions (`mention`)
-- Demandes d'abonnement (`follow_request`)
-- Nouveaux abonnes (`new_follower`)
-- Abonnement accepte (`follow_accepted`)
-
-**Evenements**
-- Nouveau participant (`event_join`)
-- Demandes d'acces (`event_access_request`)
-- Invitations (`event_invitation`)
-- Demandes de remboursement (`refund_request`)
-
-**Caves**
-- Invitations a une cave (`cellar_invitation`)
-
-### Comportement depuis le site web
-
-Comme il n'y a pas de push web pour l'instant :
-- Le site modifie la ligne avec `token_id = NULL` (preferences globales)
-- Cela affecte tous les devices de l'utilisateur (sauf ceux qui ont des prefs specifiques)
-
-### Comportement futur depuis l'app React Native
-
-L'app enverra son `device_token` ou `token_id` pour modifier uniquement la ligne correspondante. Si aucune ligne specifique n'existe, elle en cree une en copiant les prefs globales comme point de depart.
-
-### Integration dans UserProfile.tsx
-
-Ajout d'un 5e onglet "Notifications" (icone Bell) dans le dialog des parametres, a cote de l'onglet "Confidentialite".
-
-## Etapes d'implementation
-
-1. **Migration SQL** : creer la table `notification_preferences` avec RLS
-2. **Migration SQL** : modifier `create_notification()` pour checker les prefs globales
-3. **Migration SQL** : modifier `notify_mentioned_user()` pour utiliser `create_notification()`
-4. **Edge Function** : modifier `send-push-notification` pour filtrer par device
-5. **Composant** : creer `NotificationPreferences.tsx`
-6. **UserProfile.tsx** : ajouter l'onglet Notifications
-
-## Avantages de cette approche
-
-- **Extensible** : ajouter un nouveau type = ajouter une colonne boolean
-- **Performante** : un seul SELECT sur une petite table indexee
-- **Granulaire** : preferences par device possibles
-- **Retrocompatible** : pas de prefs = tout actif, rien ne casse pour les utilisateurs existants
-- **Nettoyage automatique** : CASCADE sur la suppression de token
+Zero changement frontend — signature identique.
 
