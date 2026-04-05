@@ -185,6 +185,22 @@ export function WineAutocomplete({
                 ))}
               </div>
             )}
+          {onCreateWine && searchQuery.length >= 1 && (
+            <div className="p-2 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-primary"
+                onClick={() => {
+                  onCreateWine(searchQuery);
+                  setShowResults(false);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Je ne trouve pas ma bouteille
+              </Button>
+            </div>
+          )}
           </ScrollArea>
         </div>
       )}
