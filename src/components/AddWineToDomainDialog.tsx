@@ -107,6 +107,8 @@ export function AddWineToDomainDialog({
           p_alcohol_percentage: alcoholPercentage ? parseFloat(alcoholPercentage) : null,
           p_type: wineType,
           p_appellation_id: appellationId,
+          p_is_playable: false,
+          p_cepages: null,
         });
 
       if (rpcError) throw rpcError;

@@ -334,6 +334,8 @@ export function AddWineDialog({ cellarId, onWineAdded }: AddWineDialogProps) {
           p_label_url: domainUrlData.publicUrl,
           p_type: wineType,
           p_appellation_id: appellationId,
+          p_is_playable: false,
+          p_cepages: null,
         });
 
       if (rpcError) throw rpcError;
