@@ -40,7 +40,8 @@ export default function SpontaneousTastingDialog({
     slot4: 5.0,
   });
   const [remarks, setRemarks] = useState('');
-
+  const [showCreateWine, setShowCreateWine] = useState(false);
+  const [createWineInitialName, setCreateWineInitialName] = useState('');
   const requestLocation = async () => {
     if (!navigator.geolocation) {
       setLocationError('La géolocalisation n\'est pas supportée par votre navigateur');
