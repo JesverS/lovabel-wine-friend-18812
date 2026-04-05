@@ -26,7 +26,8 @@ const DEFAULT_IMAGE = 'https://amzutunyjouejovlrlah.supabase.co/storage/v1/objec
 
 export function WineAutocomplete({ 
   domainId, 
-  onSelect, 
+  onSelect,
+  onCreateWine,
   placeholder = "Rechercher un vin...",
   label = "Rechercher un vin"
 }: WineAutocompleteProps) {
