@@ -197,6 +197,10 @@ export default function SpontaneousTastingDialog({
             onSelect={setSelectedWine}
             placeholder="Rechercher un vin..."
             label="Vin dégusté"
+            onCreateWine={(query) => {
+              setCreateWineInitialName(query);
+              setShowCreateWine(true);
+            }}
           />
 
           {selectedWine && (
