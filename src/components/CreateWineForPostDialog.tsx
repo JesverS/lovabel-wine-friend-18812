@@ -224,6 +224,8 @@ export function CreateWineForPostDialog({
           p_label_url: labelUrl,
           p_type: wineType,
           p_appellation_id: appellationId,
+          p_is_playable: false,
+          p_cepages: null,
         });
 
       if (rpcError) throw rpcError;

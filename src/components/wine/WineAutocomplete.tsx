@@ -17,6 +17,7 @@ const WINE_TYPE_LABELS: Record<number, string> = {
 interface WineAutocompleteProps {
   domainId?: string;
   onSelect: (wine: any) => void;
+  onCreateWine?: (query: string) => void;
   placeholder?: string;
   label?: string;
 }
