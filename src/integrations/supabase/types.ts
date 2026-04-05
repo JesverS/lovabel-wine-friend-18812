@@ -3801,51 +3801,29 @@ export type Database = {
         Returns: string
       }
       event_is_public: { Args: { _event_id: string }; Returns: boolean }
-      find_or_create_wine:
-        | {
-            Args: {
-              p_alcohol_percentage?: number
-              p_appellation_id?: number
-              p_description?: string
-              p_domain_id: string
-              p_label_url?: string
-              p_name: string
-              p_price?: number
-              p_type?: number
-              p_volume_ml?: number
-              p_year?: number
-            }
-            Returns: {
-              was_created: boolean
-              wine_id: string
-              wine_label_url: string
-              wine_name: string
-              wine_year: number
-            }[]
-          }
-        | {
-            Args: {
-              p_alcohol_percentage?: number
-              p_appellation_id?: number
-              p_cepages?: Json
-              p_description?: string
-              p_domain_id: string
-              p_is_playable?: boolean
-              p_label_url?: string
-              p_name: string
-              p_price?: number
-              p_type?: number
-              p_volume_ml?: number
-              p_year?: number
-            }
-            Returns: {
-              was_created: boolean
-              wine_id: string
-              wine_label_url: string
-              wine_name: string
-              wine_year: number
-            }[]
-          }
+      find_or_create_wine: {
+        Args: {
+          p_alcohol_percentage?: number
+          p_appellation_id?: number
+          p_cepages?: Json
+          p_description?: string
+          p_domain_id: string
+          p_is_playable?: boolean
+          p_label_url?: string
+          p_name: string
+          p_price?: number
+          p_type?: number
+          p_volume_ml?: number
+          p_year?: number
+        }
+        Returns: {
+          was_created: boolean
+          wine_id: string
+          wine_label_url: string
+          wine_name: string
+          wine_year: number
+        }[]
+      }
       get_monthly_scan_count: { Args: { p_user_id: string }; Returns: number }
       get_team_applications_without_owner: {
         Args: never
