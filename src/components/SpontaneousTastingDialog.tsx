@@ -298,5 +298,16 @@ export default function SpontaneousTastingDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    <CreateWineForPostDialog
+      open={showCreateWine}
+      onOpenChange={setShowCreateWine}
+      initialWineName={createWineInitialName}
+      onWineCreated={(wine) => {
+        setSelectedWine(wine);
+        setShowCreateWine(false);
+      }}
+    />
+    </>
   );
 }
