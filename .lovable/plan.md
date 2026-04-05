@@ -1,101 +1,63 @@
 
+Plan — corriger la vraie erreur de création + débloquer “Mes dégustations”
 
-# Plan — Recherche multi-mots sans nouvelle table
+## Diagnostic confirmé
+- Le screenshot montre un bug backend, pas un bug mobile : PostgREST ne sait pas quelle fonction `public.find_or_create_wine` appeler.
+- Il y a bien 2 versions actives de `find_or_create_wine` en base :
+  - une version legacy à 10 paramètres
+  - une version canonique à 12 paramètres (`p_is_playable`, `p_cepages`)
+- `CreateWineForPostDialog.tsx` appelle la RPC avec seulement les paramètres communs, donc l’appel est ambigu.
+- `SpontaneousTastingDialog` a un autre problème : il utilise `WineAutocomplete`, mais il n’existe aucun chemin “créer cette bouteille” si la recherche n’aboutit pas.
 
-## Probleme actuel
+## Ce que je vais implémenter
+1. Ajouter une migration SQL, sans nouvelle table, pour supprimer l’ancienne surcharge :
+   `public.find_or_create_wine(text, uuid, integer, integer, real, text, text, numeric, bigint, integer)`.
+2. Conserver une seule version canonique de `find_or_create_wine`, avec valeurs par défaut pour `p_is_playable` et `p_cepages`.
+3. Recharger le schéma PostgREST dans la migration pour supprimer immédiatement l’ambiguïté RPC.
+4. Aligner les appels frontend qui créent un vin pour viser explicitement la signature canonique :
+   - `p_is_playable: false`
+   - `p_cepages: null`
+   pour les flows hors jeu.
+5. Ajouter la création depuis `SpontaneousTastingDialog` en réutilisant `CreateWineForPostDialog`.
+6. Étendre `WineAutocomplete` avec `onCreateWine(searchQuery)` et afficher “Je ne trouve pas ma bouteille” dès qu’une recherche est saisie, afin de ne jamais bloquer l’utilisateur.
 
-La fonction fait `ILIKE '%roche mazet chardonnay%'` sur chaque colonne separement → aucun match quand le query combine domaine + nom.
+## Fichiers concernés
+- `supabase/migrations/<timestamp>_remove_legacy_find_or_create_wine.sql`
+- `src/components/CreateWineForPostDialog.tsx`
+- `src/components/AddWineDialog.tsx`
+- `src/components/AddWineToDomainDialog.tsx`
+- `src/components/CreateWineInDomainDialog.tsx`
+- `src/components/wine/WineAutocomplete.tsx`
+- `src/components/SpontaneousTastingDialog.tsx`
 
-## Solution
-
-Reecrire `search_wines` et `search_wines_game` directement sur les tables existantes (`wine`, `domain`, `wine_type`). Pas de nouvelle table.
-
-### Logique
-
-1. **Normaliser** le query (unaccent, lower, trim)
-2. **Extraire l'annee** si presente (regex `\m(19|20)\d{2}\M`) et la retirer du texte
-3. **Splitter les mots restants** en tableau (`string_to_array`)
-4. **Concatener** les champs en une seule chaine : `domain.name || ' ' || wine.name || ' ' || wine_type.type`
-5. **Verifier que TOUS les mots** matchent dans cette chaine concatenee (boucle `bool_and` + `ILIKE`)
-6. **Filtrer par annee** si detectee
-7. **Trier** par similarite trigram (`pg_trgm.similarity`)
-
-### Fonction finale `search_wines`
-
-```sql
-CREATE OR REPLACE FUNCTION public.search_wines(query text)
-RETURNS TABLE(id uuid, name text, year integer, label_url text, domain jsonb, wine_type jsonb)
-LANGUAGE plpgsql
-SET search_path TO 'public', 'extensions'
-AS $$
-DECLARE
-  normalized text;
-  cleaned text;
-  words text[];
-  extracted_year integer;
-BEGIN
-  normalized := extensions.unaccent(lower(trim(query)));
-  
-  -- Extraire annee 4 chiffres
-  extracted_year := (regexp_match(normalized, '\m((?:19|20)\d{2})\M'))[1]::integer;
-  
-  -- Retirer l'annee du texte
-  cleaned := trim(regexp_replace(normalized, '\m(?:19|20)\d{2}\M', '', 'g'));
-  
-  -- Splitter en mots
-  words := array_remove(string_to_array(cleaned, ' '), '');
-  
-  RETURN QUERY
-  SELECT
-    w.id, w.name, w.year, w.label_url,
-    jsonb_build_object('id', d.id, 'name', d.name, 'logo_url', d.logo_url, 'region', d.region),
-    jsonb_build_object('id', wt.id, 'type', wt.type)
-  FROM wine w
-  LEFT JOIN domain d ON w.domain_id = d.id
-  LEFT JOIN wine_type wt ON w.type = wt.id
-  WHERE
-    w.is_playable = true
-    AND (extracted_year IS NULL OR w.year = extracted_year)
-    AND (
-      array_length(words, 1) IS NULL
-      OR (
-        SELECT bool_and(
-          extensions.unaccent(lower(
-            coalesce(d.name,'') || ' ' || coalesce(w.name,'') || ' ' || coalesce(wt.type::text,'')
-          )) ILIKE '%' || word || '%'
-        )
-        FROM unnest(words) AS word
-      )
-    )
-  ORDER BY
-    similarity(
-      extensions.unaccent(lower(coalesce(d.name,'') || ' ' || coalesce(w.name,''))),
-      cleaned
-    ) DESC,
-    w.created_at DESC
-  LIMIT 20;
-END;
-$$;
-```
-
-Meme logique pour `search_wines_game`.
-
-### Exemples de resultats
-
+## Détail technique
 ```text
-Query                        → Match
-"Roche Mazet"                → tous les vins du domaine Roche Mazet
-"Roche Mazet Chardonnay"     → mots [roche, mazet, chardonnay] → chacun present dans "roche mazet chardonnay 2023"
-"Chardonnay Roche Mazet"     → meme resultat (ordre libre)
-"Roche Mazet 2023"           → annee extraite=2023, mots [roche, mazet] → filtre domaine + annee
-"Chardonay"                  → trigram similarity classe en premier malgre typo
+Avant
+CreateWineForPostDialog
+  -> rpc find_or_create_wine(10 args)
+  -> 2 fonctions matchent
+  -> "Could not choose the best candidate function"
+
+Après
+CreateWineForPostDialog / cave / domaine
+  -> rpc alignée sur la signature canonique
+  -> 1 seule fonction en base
+  -> création validée
+
+Mes dégustations
+  -> WineAutocomplete
+  -> "Je ne trouve pas ma bouteille"
+  -> CreateWineForPostDialog(initialWineName=searchQuery)
+  -> onWineCreated(newWine)
+  -> setSelectedWine(newWine)
 ```
 
-### Fichier
+## Ce que je ne vais pas faire
+- Pas de nouvelle table.
+- Pas de refonte de recherche.
+- Pas de changement RLS `wine` ou `storage` pour ce bug précis : l’erreur actuelle arrive avant l’INSERT, donc la cause principale est bien l’ambiguïté de fonction RPC.
 
-| Fichier | Action |
-|---------|--------|
-| `supabase/migrations/new.sql` | DROP + CREATE des 2 fonctions |
-
-Zero changement frontend — signature identique.
-
+## Vérifications prévues
+- Depuis Post : créer une bouteille et vérifier que l’erreur “best candidate function” a disparu.
+- Vérifier les autres flows qui utilisent la même RPC (cave, domaine).
+- Depuis “Mes dégustations” : rechercher un vin absent, lancer la création, auto-sélectionner le vin créé, puis enregistrer la dégustation.
