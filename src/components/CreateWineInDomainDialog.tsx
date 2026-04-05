@@ -133,6 +133,8 @@ export function CreateWineInDomainDialog({
           p_label_url: urlData.publicUrl,
           p_type: wineType,
           p_appellation_id: appellationId,
+          p_is_playable: false,
+          p_cepages: null,
         });
 
       if (rpcError) throw rpcError;

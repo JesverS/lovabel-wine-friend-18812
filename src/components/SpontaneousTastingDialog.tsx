@@ -11,6 +11,7 @@ import { MapPin, Loader2, ThumbsUp, ThumbsDown, Minus } from 'lucide-react';
 import { WineAutocomplete } from './wine/WineAutocomplete';
 import { TastingSliders } from './TastingSliders';
 import { TastingDetails, tastingDetailsToDbFormat } from '@/lib/tastingSliderConfig';
+import { CreateWineForPostDialog } from './CreateWineForPostDialog';
 
 interface SpontaneousTastingDialogProps {
   open: boolean;
@@ -39,7 +40,8 @@ export default function SpontaneousTastingDialog({
     slot4: 5.0,
   });
   const [remarks, setRemarks] = useState('');
-
+  const [showCreateWine, setShowCreateWine] = useState(false);
+  const [createWineInitialName, setCreateWineInitialName] = useState('');
   const requestLocation = async () => {
     if (!navigator.geolocation) {
       setLocationError('La géolocalisation n\'est pas supportée par votre navigateur');
@@ -139,6 +141,7 @@ export default function SpontaneousTastingDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -195,6 +198,10 @@ export default function SpontaneousTastingDialog({
             onSelect={setSelectedWine}
             placeholder="Rechercher un vin..."
             label="Vin dégusté"
+            onCreateWine={(query) => {
+              setCreateWineInitialName(query);
+              setShowCreateWine(true);
+            }}
           />
 
           {selectedWine && (
@@ -292,5 +299,16 @@ export default function SpontaneousTastingDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    <CreateWineForPostDialog
+      open={showCreateWine}
+      onOpenChange={setShowCreateWine}
+      initialWineName={createWineInitialName}
+      onWineCreated={(wine) => {
+        setSelectedWine(wine);
+        setShowCreateWine(false);
+      }}
+    />
+    </>
   );
 }

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 
 // Mapping ID type vers label pour affichage
 const WINE_TYPE_LABELS: Record<number, string> = {
@@ -17,6 +18,7 @@ const WINE_TYPE_LABELS: Record<number, string> = {
 interface WineAutocompleteProps {
   domainId?: string;
   onSelect: (wine: any) => void;
+  onCreateWine?: (query: string) => void;
   placeholder?: string;
   label?: string;
 }
@@ -25,7 +27,8 @@ const DEFAULT_IMAGE = 'https://amzutunyjouejovlrlah.supabase.co/storage/v1/objec
 
 export function WineAutocomplete({ 
   domainId, 
-  onSelect, 
+  onSelect,
+  onCreateWine,
   placeholder = "Rechercher un vin...",
   label = "Rechercher un vin"
 }: WineAutocompleteProps) {
@@ -182,6 +185,22 @@ export function WineAutocomplete({
                 ))}
               </div>
             )}
+          {onCreateWine && searchQuery.length >= 1 && (
+            <div className="p-2 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-primary"
+                onClick={() => {
+                  onCreateWine(searchQuery);
+                  setShowResults(false);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Je ne trouve pas ma bouteille
+              </Button>
+            </div>
+          )}
           </ScrollArea>
         </div>
       )}
