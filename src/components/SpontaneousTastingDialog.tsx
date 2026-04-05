@@ -11,6 +11,7 @@ import { MapPin, Loader2, ThumbsUp, ThumbsDown, Minus } from 'lucide-react';
 import { WineAutocomplete } from './wine/WineAutocomplete';
 import { TastingSliders } from './TastingSliders';
 import { TastingDetails, tastingDetailsToDbFormat } from '@/lib/tastingSliderConfig';
+import { CreateWineForPostDialog } from './CreateWineForPostDialog';
 
 interface SpontaneousTastingDialogProps {
   open: boolean;
