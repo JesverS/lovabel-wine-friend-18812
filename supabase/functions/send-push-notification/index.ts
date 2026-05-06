@@ -6,6 +6,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// --- Auth guard: only the service_role_key (sent by the DB trigger) is accepted ---
+function isServiceRole(req: Request): boolean {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  return !!serviceRoleKey && token === serviceRoleKey;
+}
+
 // Cache du token OAuth2 FCM
 let cachedAccessToken: string | null = null;
 let tokenExpiresAt = 0;
@@ -183,6 +191,14 @@ function isTypeEnabled(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Reject requests that don't carry the service_role_key
+  if (!isServiceRole(req)) {
+    return new Response(
+      JSON.stringify({ error: "Forbidden" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
