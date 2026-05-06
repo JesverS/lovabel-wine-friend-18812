@@ -69,7 +69,6 @@ const BlogArticle = () => {
           url: shareUrl,
         });
       } catch (err) {
-        console.log("Share cancelled");
       }
     }
   };

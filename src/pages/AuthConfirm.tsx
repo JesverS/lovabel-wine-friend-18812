@@ -19,8 +19,6 @@ export default function AuthConfirm() {
       const type = searchParams.get("type");
       const next = searchParams.get("next") || "/";
 
-      console.log("AuthConfirm - token_hash:", token_hash);
-      console.log("AuthConfirm - type:", type);
 
       if (!token_hash || !type) {
         toast({
@@ -33,7 +31,6 @@ export default function AuthConfirm() {
       }
 
       try {
-        console.log("Appel verifyOtp...");
 
         // Vérifier le token OTP
         const { data, error } = await supabase.auth.verifyOtp({
@@ -41,21 +38,18 @@ export default function AuthConfirm() {
           type: type as any,
         });
 
-        console.log("Résultat verifyOtp:", { data, error });
 
         if (error) {
           console.error("Erreur vérification OTP:", error);
           throw error;
         }
 
-        console.log("Token vérifié avec succès, session créée");
 
         // Attendre un peu pour que la session soit bien établie
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         // Succès ! Rediriger vers la page de reset password
         if (type === "recovery") {
-          console.log("Redirection vers /auth/reset-password");
           navigate("/auth/reset-password", { replace: true });
         } else {
           navigate(next, { replace: true });

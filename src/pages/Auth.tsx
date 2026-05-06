@@ -34,7 +34,6 @@ export default function Auth() {
     const accessToken = searchParams.get("access_token");
 
     if (type === "recovery" && accessToken) {
-      console.log("Mode reset password détecté via URL params");
       setIsResetPassword(true);
       setIsForgotPassword(false);
       setIsLogin(false);
@@ -42,10 +41,8 @@ export default function Auth() {
 
     // Écouter les changements d'état d'authentification
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth event:", event);
 
       if (event === "PASSWORD_RECOVERY") {
-        console.log("PASSWORD_RECOVERY event détecté");
         setIsResetPassword(true);
         setIsForgotPassword(false);
         setIsLogin(false);

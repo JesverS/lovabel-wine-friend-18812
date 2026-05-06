@@ -181,3 +181,11 @@
     text-wrap: balance;
   }
 }
+
+/* Ensure animated elements remain visible after animation completes */
+.animate-fade-up,
+.animate-fade-in,
+.animate-scale-in,
+.animate-slide-in-right {
+  animation-fill-mode: both;
+}
