@@ -72,7 +72,6 @@ export default function ResetPassword() {
         return;
       }
 
-      console.log("Mise à jour du mot de passe...");
 
       // L'utilisateur est déjà authentifié, on met juste à jour le mot de passe
       const { error } = await supabase.auth.updateUser({
@@ -84,7 +83,6 @@ export default function ResetPassword() {
         throw error;
       }
 
-      console.log("Mot de passe changé avec succès");
 
       toast({
         title: "Mot de passe changé! ✓",
