@@ -25,7 +25,7 @@ const FEATURES = [
 
 export const Features = () => {
   return (
-    <section className="py-24 bg-background" style={{ border: '5px solid red' }}>
+    <section className="py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16 animate-fade-up">
           <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4">
