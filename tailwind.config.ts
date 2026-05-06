@@ -97,10 +97,10 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.3s ease-out",
         "accordion-up": "accordion-up 0.3s ease-out",
-        "fade-in": "fade-in 0.5s ease-out",
-        "fade-up": "fade-up 0.6s ease-out",
-        "scale-in": "scale-in 0.4s ease-out",
-        "slide-in-right": "slide-in-right 0.4s ease-out",
+        "fade-in": "fade-in 0.5s ease-out forwards",
+        "fade-up": "fade-up 0.6s ease-out forwards",
+        "scale-in": "scale-in 0.4s ease-out forwards",
+        "slide-in-right": "slide-in-right 0.4s ease-out forwards",
         "bounce-gentle": "bounce-gentle 2s ease-in-out infinite",
       },
       backgroundImage: {
