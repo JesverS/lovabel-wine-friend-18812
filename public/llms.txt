@@ -1,0 +1,25 @@
+# Wine Note
+
+> Plateforme sociale dédiée aux amateurs de vin : cours d'œnologie, dégustations, caves personnalisées et événements viticoles.
+
+Wine Note permet de découvrir, partager et apprendre le vin. Les utilisateurs peuvent suivre des cours interactifs, créer leur cave, organiser des dégustations entre amis, participer à des événements œnologiques et échanger sur un fil social communautaire.
+
+## Pages
+
+- [Accueil](/): Présentation de la plateforme Wine Note.
+- [À propos](/about): Notre mission et notre équipe.
+- [Apprendre](/learning): Cours d'œnologie interactifs.
+- [Événements](/events): Dégustations et événements viticoles.
+- [Caves](/cellars): Caves communautaires et caves de cavistes.
+- [Fil social](/feed): Publications et dégustations partagées par la communauté.
+- [Blog](/blog): Articles et actualités sur le vin.
+- [Guides](/guides): Guides pratiques pour amateurs de vin.
+- [Jeu](/game): Jeu de dégustation à l'aveugle.
+- [Recherche](/search): Recherche IA sommelier et par hashtag.
+- [Contact](/contact): Nous contacter.
+
+## Optional
+
+- [Badges](/badges): Système de badges et progression.
+- [Mentions légales](/legal): Mentions légales.
+- [Confidentialité](/privacy): Politique de confidentialité.
