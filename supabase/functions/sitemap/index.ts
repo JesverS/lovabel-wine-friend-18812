@@ -99,6 +99,15 @@ Deno.serve(async (req) => {
       .order('published_at', { ascending: false })
       .limit(500);
 
+    // Récupérer les celliers publics
+    const { data: cellars } = await supabase
+      .from('cellar')
+      .select('slug, updated_at')
+      .eq('is_public', true)
+      .not('slug', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(500);
+
     // Générer le XML
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -197,9 +206,24 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Celliers publics
+    if (cellars) {
+      for (const cellar of cellars) {
+        if (cellar.slug) {
+          xml += `  <url>
+    <loc>${SITE_URL}/cellar/${escapeXml(cellar.slug)}</loc>
+    <lastmod>${formatDate(cellar.updated_at)}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+`;
+        }
+      }
+    }
+
     xml += `</urlset>`;
 
-    console.log(`Sitemap generated: ${staticPages.length} static + ${events?.length || 0} events + ${users?.length || 0} users + ${wines?.length || 0} wines + ${courses?.length || 0} courses + ${domains?.length || 0} domains + ${blogArticles?.length || 0} blog articles`);
+    console.log(`Sitemap generated: ${staticPages.length} static + ${events?.length || 0} events + ${users?.length || 0} users + ${wines?.length || 0} wines + ${courses?.length || 0} courses + ${domains?.length || 0} domains + ${blogArticles?.length || 0} blog articles + ${cellars?.length || 0} cellars`);
 
     return new Response(xml, {
       headers: corsHeaders,

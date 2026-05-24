@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -70,6 +71,10 @@ export default function AuthConfirm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
+      <Helmet>
+        <title>Vérification | Wine Note</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="text-center space-y-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
         <p className="text-muted-foreground">Vérification en cours...</p>

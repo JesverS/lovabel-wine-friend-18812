@@ -12,5 +12,9 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /auth
+Disallow: /auth/confirm
+Disallow: /auth/reset-password
 
 Sitemap: https://winenote.me/sitemap.xml
+Sitemap: https://amzutunyjouejovlrlah.supabase.co/functions/v1/sitemap
