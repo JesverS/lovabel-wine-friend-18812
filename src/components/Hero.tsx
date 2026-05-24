@@ -14,6 +14,10 @@ export const Hero = () => {
         <img 
           src={heroImage}
           alt="Elegant wine collection"
+          width={1920}
+          height={1080}
+          fetchPriority="high"
+          decoding="async"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-hero opacity-80" />
