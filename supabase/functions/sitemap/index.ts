@@ -99,6 +99,15 @@ Deno.serve(async (req) => {
       .order('published_at', { ascending: false })
       .limit(500);
 
+    // Récupérer les celliers publics
+    const { data: cellars } = await supabase
+      .from('cellar')
+      .select('slug, updated_at')
+      .eq('is_public', true)
+      .not('slug', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(500);
+
     // Générer le XML
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
